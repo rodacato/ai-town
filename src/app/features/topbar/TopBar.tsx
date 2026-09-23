@@ -44,7 +44,7 @@ export function TopBar() {
         </button>
         <BenchButton />
         <button className="pill panel btn-pill" onClick={() => town.reset()} title="Devuelve a todos a su rutina y borra el anuncio">
-          <Reset className="pill-icon" />
+          <Reset className="pill-icon reset" />
           Reiniciar
         </button>
       </div>
@@ -57,8 +57,8 @@ function BenchButton() {
   const done = running ? Object.values(running.progress).reduce((n, p) => n + p.done, 0) : 0
   const total = running ? Object.values(running.progress).reduce((n, p) => n + p.total, 0) : 0
   return (
-    <button className="pill panel btn-pill" onClick={() => useBench.getState().setOpen(true)} title="Compara modelos con los mismos pregones" aria-label="Banco de pruebas">
-      <Gauge className="pill-icon" />
+    <button className={`pill panel btn-pill bench ${running ? 'is-running' : ''}`} onClick={() => useBench.getState().setOpen(true)} title="Compara modelos con los mismos pregones" aria-label="Banco de pruebas">
+      <Gauge className="pill-icon gauge" />
       <span className="pill-label">{running ? <span className="mono">{Math.round((done / Math.max(1, total)) * 100)}%</span> : 'Pruebas'}</span>
     </button>
   )

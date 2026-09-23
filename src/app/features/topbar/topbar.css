@@ -135,7 +135,34 @@
 
 .btn-pill:hover .pill-icon {
   color: var(--accent-ink);
+}
+
+.btn-pill:hover .pill-icon.reset {
   transform: rotate(-60deg);
+}
+
+/* Only the needle moves, pivoting on the dial's center like a real gauge. */
+.gauge-needle {
+  transform-box: view-box;
+  transform-origin: 12px 17px;
+  transition: transform 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.btn-pill.bench:hover .gauge-needle {
+  transform: rotate(30deg);
+}
+
+.btn-pill.bench.is-running .gauge-needle {
+  animation: needle 1.6s ease-in-out infinite alternate;
+}
+
+@keyframes needle {
+  from {
+    transform: rotate(-80deg);
+  }
+  to {
+    transform: rotate(35deg);
+  }
 }
 
 .btn-pill .pill-icon {
