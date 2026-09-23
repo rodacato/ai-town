@@ -3,6 +3,7 @@ import type { Action, Decision, DecisionContext, DecisionEvent, DecisionProvider
 import { firstName as first, listNames, toPlace } from '../core/lang'
 import type { WorldContent } from '../core/world/content'
 import { createRng, type Rng } from '../core/world/rng'
+import { buildPrompt } from './llm/prompt'
 
 export type Vocabulary = WorldContent['vocabulary']
 
@@ -235,6 +236,7 @@ export const createMockProvider = (vocab: Vocabulary): DecisionProvider => ({
   id: 'mock',
   label: 'Simulado',
   async *decide(ctx, signal): AsyncIterable<DecisionEvent> {
+    yield { type: 'request', system: 'Modo simulado: reglas locales, no se envía nada a ningún modelo. Este es el contexto que recibiría un LLM:', prompt: buildPrompt(ctx) }
     const decision = mockDecision(ctx, vocab)
     const rng = createRng(hashString(ctx.resident.id + ctx.announcement.id) ^ 0x5f3759df)
     const slow = /paciente|cautelos|metodic/.test(normalize(ctx.resident.traits.join(' '))) ? 700 : 0
@@ -246,6 +248,7 @@ export const createMockProvider = (vocab: Vocabulary): DecisionProvider => ({
       await sleep(step, signal)
       yield { type: 'reasoning', delta: (i ? ' ' : '') + words[i] }
     }
+    yield { type: 'response', text: JSON.stringify(decision, null, 2) }
     yield { type: 'final', decision }
   },
 })

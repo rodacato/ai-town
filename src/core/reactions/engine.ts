@@ -18,6 +18,11 @@ export interface Reaction {
   startedAt: number | null
   decidedAt: number | null
   latencyMs: number | null
+  queuedAt: number | null
+  firstTokenAt: number | null
+  /** The exact exchange with the provider, kept for the inspector. */
+  request: { system: string; prompt: string } | null
+  response: string | null
   decidedBy: string | null
   reasoning: string
   decision: Decision | null
@@ -28,7 +33,15 @@ export interface Reaction {
   error: string | null
 }
 
+export interface LogEntry {
+  at: number
+  id: string
+  kind: 'queued' | 'sent' | 'streaming' | 'decided' | 'error' | 'told'
+  detail: string
+}
+
 export type EngineEvent =
+  | { type: 'log'; entry: LogEntry }
   | { type: 'change'; id: string }
   | { type: 'reasoning'; id: string }
   | { type: 'told'; from: string; to: string }
@@ -92,6 +105,10 @@ export class ReactionEngine {
         startedAt: null,
         decidedAt: null,
         latencyMs: null,
+        queuedAt: null,
+        firstTokenAt: null,
+        request: null,
+        response: null,
         decidedBy: null,
         reasoning: '',
         decision: null,
@@ -132,6 +149,10 @@ export class ReactionEngine {
 
   private emit(e: EngineEvent) {
     for (const fn of this.listeners) fn(e)
+  }
+
+  private log(id: string, kind: LogEntry['kind'], detail = '') {
+    this.emit({ type: 'log', entry: { at: performance.now(), id, kind, detail } })
   }
 
   private later(id: string, seconds: number, run: () => void) {
@@ -189,18 +210,31 @@ export class ReactionEngine {
     reaction.reasoning = ''
     reaction.error = null
     reaction.startedAt = null
+    reaction.firstTokenAt = null
+    reaction.queuedAt = performance.now()
+    reaction.request = null
+    reaction.response = null
     r.frozen = true
     this.emit({ type: 'change', id: reaction.id })
     const ctx = buildContext(this.sim, a, r, reaction.rumors, reaction.decision)
     const provider = this.scheduler.provider
+    this.log(reaction.id, 'queued', provider.label)
     this.scheduler.enqueue({
       ctx,
       onStart: () => {
         reaction.startedAt = performance.now()
+        this.log(reaction.id, 'sent', provider.label)
         this.emit({ type: 'change', id: reaction.id })
       },
+      onRequest: (system, prompt) => (reaction.request = { system, prompt }),
+      onResponse: (text) => (reaction.response = text),
       onReasoning: (delta) => {
         reaction.reasoning += delta
+        if (reaction.firstTokenAt === null) {
+          reaction.firstTokenAt = performance.now()
+          this.log(reaction.id, 'streaming')
+          this.emit({ type: 'change', id: reaction.id })
+        }
         this.emit({ type: 'reasoning', id: reaction.id })
       },
       onDecision: (decision) => {
@@ -210,6 +244,7 @@ export class ReactionEngine {
       onError: (message) => {
         reaction.phase = 'error'
         reaction.error = message
+        this.log(reaction.id, 'error', message)
         r.frozen = false
         this.emit({ type: 'change', id: reaction.id })
         this.checkComplete()
@@ -229,6 +264,7 @@ export class ReactionEngine {
     reaction.phase = 'decided'
     reaction.decidedAt = performance.now()
     reaction.latencyMs = reaction.decidedAt - (reaction.startedAt ?? reaction.decidedAt)
+    this.log(reaction.id, 'decided', decision.action)
     this.emit({ type: 'change', id: reaction.id })
     this.later(reaction.id, SPEECH_PAUSE, () => {
       r.frozen = false
@@ -290,6 +326,7 @@ export class ReactionEngine {
     }
     target.rumors.push(rumor)
     this.emit({ type: 'told', from: from.profile.id, to: toId })
+    this.log(from.profile.id, 'told', toId)
     this.emit({ type: 'change', id: fromReaction.id })
     if (target.phase === 'unaware') return this.hear(to, target, from.profile.id)
     if (target.phase === 'decided' && !target.previous && target.decision?.action !== fromReaction.decision?.action) {

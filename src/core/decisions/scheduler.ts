@@ -4,6 +4,8 @@ export interface DecisionJob {
   ctx: DecisionContext
   onStart: () => void
   onReasoning: (delta: string) => void
+  onRequest?: (system: string, prompt: string) => void
+  onResponse?: (text: string) => void
   onDecision: (decision: Decision) => void
   onError: (message: string) => void
 }
@@ -20,8 +22,14 @@ export class DecisionScheduler {
   constructor(
     public provider: DecisionProvider,
     public concurrency = 6,
-    private timeoutMs = 25000,
+    public timeoutMs = 25000,
   ) {}
+
+  /** Changes how many decisions run at once, starting queued ones right away if there is room. */
+  setConcurrency(n: number) {
+    this.concurrency = n
+    this.pump()
+  }
 
   enqueue(job: DecisionJob) {
     const entry = { job, controller: new AbortController() }
@@ -60,6 +68,8 @@ export class DecisionScheduler {
       for await (const event of this.provider.decide(job.ctx, signal)) {
         if (controller.signal.aborted) return
         if (event.type === 'reasoning') job.onReasoning(event.delta)
+        else if (event.type === 'request') job.onRequest?.(event.system, event.prompt)
+        else if (event.type === 'response') job.onResponse?.(event.text)
         else return job.onDecision(sanitize(event.decision, job.ctx))
       }
       throw new Error('El modelo terminó sin dar una decisión.')

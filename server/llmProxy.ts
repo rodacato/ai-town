@@ -17,6 +17,10 @@ interface ChatRequest {
   system: string
   prompt: string
   maxTokens?: number
+  /** Who the request is for, only used in the terminal log. */
+  tag?: string
+  /** How long to wait for the host to start answering; decisions allow long queues, connection tests fail fast. */
+  timeoutMs?: number
 }
 
 const ENV_KEYS: Record<string, string> = {
@@ -30,15 +34,15 @@ const FALLBACK_MODELS = ['claude-opus-5', 'claude-fable-5-1']
 const HEADERS_TIMEOUT_MS = 30000
 
 class HostTimeout extends Error {
-  constructor() {
-    super('El host no respondió en 30 s. ¿Es la dirección correcta y el servicio está encendido?')
+  constructor(ms = HEADERS_TIMEOUT_MS) {
+    super(`El host no respondió en ${Math.round(ms / 1000)} s. ¿Es la dirección correcta y el servicio está encendido?`)
   }
 }
 
 /** fetch that gives up if the server accepts the connection but never answers. */
-async function fetchWithTimeout(url: string, init: RequestInit & { signal?: AbortSignal }) {
+async function fetchWithTimeout(url: string, init: RequestInit & { signal?: AbortSignal }, ms = HEADERS_TIMEOUT_MS) {
   const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(new HostTimeout()), HEADERS_TIMEOUT_MS)
+  const timer = setTimeout(() => controller.abort(new HostTimeout(ms)), ms)
   const signal = init.signal ? AbortSignal.any([init.signal, controller.signal]) : controller.signal
   try {
     return await fetch(url, { ...init, signal })
@@ -63,6 +67,11 @@ export function llmProxy(env: Record<string, string>): Plugin {
     configureServer: (server) => void server.middlewares.use('/api/llm', handler),
     configurePreviewServer: (server) => void server.middlewares.use('/api/llm', handler),
   }
+}
+
+function log(mark: string, message: string) {
+  const time = new Date().toLocaleTimeString('es', { hour12: false })
+  console.log(`\x1b[2m${time}\x1b[0m \x1b[35m[llm]\x1b[0m ${mark} ${message}`)
 }
 
 async function readJson<T>(req: IncomingMessage): Promise<T> {
@@ -98,22 +107,35 @@ async function chat(req: IncomingMessage, res: ServerResponse, env: Record<strin
   res.on('close', () => controller.abort())
   res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache', connection: 'keep-alive' })
   const send = (data: object) => res.write(`data: ${JSON.stringify(data)}\n\n`)
+  const t0 = Date.now()
+  let who = ''
+  let chars = 0
   try {
     const body = await readJson<ChatRequest>(req)
     const c = withKey(body.connection, env)
+    who = `${c.kind} · ${c.model || '¿modelo?'} · ${body.tag ?? 'prueba'}`
+    log('→', who)
     if (!c.model) throw new Error('Falta elegir un modelo.')
-    const onText = (delta: string) => send({ delta })
+    const onText = (delta: string) => {
+      chars += delta.length
+      send({ delta })
+    }
     if (c.protocol === 'anthropic') await streamAnthropic(c, body, onText, controller.signal)
-    else await streamOpenAI(c, body, onText, controller.signal)
+    else await streamOpenAI(c, body, onText, controller.signal, body.timeoutMs)
     send({ done: true })
+    log('✓', `${who} · ${Date.now() - t0} ms · ${chars} caracteres`)
   } catch (err) {
-    if (!controller.signal.aborted) send({ error: describeError(err) })
+    if (controller.signal.aborted) log('·', `${who} · cancelada`)
+    else {
+      log('✗', `${who} · ${Date.now() - t0} ms · ${describeError(err)}`)
+      send({ error: describeError(err) })
+    }
   }
   res.end()
 }
 
 async function streamAnthropic(c: Connection, body: ChatRequest, onText: (t: string) => void, signal: AbortSignal) {
-  const client = new Anthropic({ apiKey: c.apiKey, baseURL: c.host, maxRetries: 1, timeout: 120000 })
+  const client = new Anthropic({ apiKey: c.apiKey, baseURL: c.host, maxRetries: 1, timeout: body.timeoutMs ?? 120000 })
   const official = /api\.anthropic\.com/.test(c.host)
   const withFallbacks = official && FALLBACK_MODELS.includes(c.model)
   const stream = client.beta.messages.stream(
@@ -134,7 +156,7 @@ async function streamAnthropic(c: Connection, body: ChatRequest, onText: (t: str
   if (final.stop_reason === 'max_tokens') throw new Error('La respuesta se cortó por el límite de tokens.')
 }
 
-async function streamOpenAI(c: Connection, body: ChatRequest, onText: (t: string) => void, signal: AbortSignal) {
+async function streamOpenAI(c: Connection, body: ChatRequest, onText: (t: string) => void, signal: AbortSignal, timeoutMs?: number) {
   const response = await fetchWithTimeout(`${c.host}/v1/chat/completions`, {
     method: 'POST',
     signal,
@@ -147,7 +169,7 @@ async function streamOpenAI(c: Connection, body: ChatRequest, onText: (t: string
         { role: 'user', content: body.prompt },
       ],
     }),
-  })
+  }, timeoutMs)
   if (!response.ok) throw new Error(`Error ${response.status} del proveedor: ${(await response.text()).slice(0, 300)}`)
   if (!response.headers.get('content-type')?.includes('text/event-stream')) {
     const json = (await response.json()) as { choices?: { message?: { content?: string } }[] }

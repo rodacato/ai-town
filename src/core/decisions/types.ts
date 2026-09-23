@@ -52,7 +52,12 @@ export interface DecisionContext {
   townsfolk: { id: string; name: string }[]
 }
 
-export type DecisionEvent = { type: 'reasoning'; delta: string } | { type: 'final'; decision: Decision }
+export type DecisionEvent =
+  | { type: 'reasoning'; delta: string }
+  | { type: 'final'; decision: Decision }
+  /** What the provider sent and got back, surfaced for transparency; optional for providers. */
+  | { type: 'request'; system: string; prompt: string }
+  | { type: 'response'; text: string }
 
 export interface DecisionProvider {
   readonly id: string

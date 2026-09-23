@@ -1,11 +1,24 @@
 import { ACTION_META } from '../../../theme/actions'
 import { useTown } from '../../store'
 import { Avatar } from '../../shared/Avatar'
+import type { Reaction } from '../../../core/reactions/engine'
+import { thinkingStage } from '../experiment/stages'
 import { computeStats, seconds } from '../experiment/summary'
 import { town } from '../../town'
 import './timeline.css'
 
 const PHASE_TIP = { unaware: 'sin enterarse', heard: 'escuchó', thinking: 'pensando…', error: 'error' }
+
+function stageSummary(listeners: Reaction[]) {
+  const counts = { queued: 0, sending: 0, streaming: 0 }
+  for (const r of listeners) if (r.phase === 'thinking') counts[thinkingStage(r)]++
+  const parts = [
+    counts.queued && `${counts.queued} en cola`,
+    counts.sending && `${counts.sending} esperando al modelo`,
+    counts.streaming && `${counts.streaming} escribiendo`,
+  ].filter(Boolean)
+  return `${parts.join(' · ')}…`
+}
 
 export function Timeline() {
   const announcement = useTown((s) => s.announcement)
@@ -21,7 +34,7 @@ export function Timeline() {
     : complete
       ? 'Todos han decidido. Haz clic en cualquiera para ver por qué.'
       : thinking
-        ? `${thinking} ${thinking === 1 ? 'residente está pensando' : 'residentes están pensando'}…`
+        ? stageSummary(stats.listeners)
         : `El ${town.content.copy.noun} se está propagando…`
 
   return (

@@ -1,7 +1,9 @@
 import type { Reaction } from '../../../core/reactions/engine'
 import { useTown } from '../../store'
 import { ActionPill } from '../../shared/ActionPill'
+import { STAGE_LABEL, thinkingStage } from '../experiment/stages'
 import { firstName, seconds } from '../experiment/summary'
+import { Exchange } from './Exchange'
 import { useNow } from '../../shared/useNow'
 import { town } from '../../town'
 
@@ -28,8 +30,8 @@ export function ReactionDetail({ reaction, name }: { reaction: Reaction | undefi
               <i />
               <i />
             </span>
-            {reaction.startedAt ? 'Pensando' : 'En cola'}
-            {reaction.startedAt && <span className="mono">{seconds(now - reaction.startedAt)}</span>}
+            {STAGE_LABEL[thinkingStage(reaction)]}
+            <span className="mono">{seconds(now - (reaction.startedAt ?? reaction.queuedAt ?? now))}</span>
           </div>
           {streamed && (
             <p className="reasoning is-streaming">
@@ -37,6 +39,7 @@ export function ReactionDetail({ reaction, name }: { reaction: Reaction | undefi
               <span className="caret" />
             </p>
           )}
+          <Exchange reaction={reaction} now={now} />
         </div>
       )
     case 'error':
@@ -97,6 +100,7 @@ export function ReactionDetail({ reaction, name }: { reaction: Reaction | undefi
             )}
             {!reaction.revisedBy && reaction.previous && <li>{town.content.residents.find((p) => p.id === reaction.rumors.at(-1)?.fromId)?.name.split(' ')[0]} intentó convencerle, pero no cambió de idea.</li>}
           </ul>
+          <Exchange reaction={reaction} />
         </div>
       )
     }

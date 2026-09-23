@@ -1,7 +1,7 @@
 import type { StateCreator } from 'zustand'
 import type { TownState } from '.'
 import type { Announcement } from '../../core/reactions/announcement'
-import type { Reaction } from '../../core/reactions/engine'
+import type { LogEntry, Reaction } from '../../core/reactions/engine'
 
 export interface ExperimentSlice {
   announcement: Announcement | null
@@ -10,6 +10,9 @@ export interface ExperimentSlice {
   /** Streamed reasoning, refreshed a few times per second while residents think. */
   reasoning: Record<string, string>
   complete: boolean
+  /** Chronological trace of requests and decisions, for transparency. */
+  log: LogEntry[]
+  startedAt: number
 }
 
 export const createExperimentSlice: StateCreator<TownState, [], [], ExperimentSlice> = () => ({
@@ -17,4 +20,6 @@ export const createExperimentSlice: StateCreator<TownState, [], [], ExperimentSl
   reactions: {},
   reasoning: {},
   complete: false,
+  log: [],
+  startedAt: 0,
 })

@@ -335,3 +335,7 @@
   gap: 8px;
   flex: none;
 }
+
+.field-hint.is-warning {
+  color: #8a5f0e;
+}

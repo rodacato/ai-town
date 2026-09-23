@@ -1,6 +1,6 @@
 import { DecisionScheduler } from '../core/decisions/scheduler'
 import { detectPlace, type Announcement } from '../core/reactions/announcement'
-import { ReactionEngine, type Reaction } from '../core/reactions/engine'
+import { ReactionEngine, type LogEntry, type Reaction } from '../core/reactions/engine'
 import { Simulation } from '../core/sim/simulation'
 import { createProvider } from '../providers'
 import { saveSettings, type LlmSettings } from '../providers/llm/config'
@@ -12,6 +12,7 @@ import { EMPTY_DRAFT } from './store/composer'
 export const LAYOUT = { panelWidth: 380, gutter: 24, timelineHeight: 92 }
 const MAP_INSETS = { right: LAYOUT.panelWidth + LAYOUT.gutter + 16, bottom: LAYOUT.timelineHeight + LAYOUT.gutter + 12 }
 const REASONING_FLUSH_MS = 120
+const LOG_LIMIT = 400
 
 /** The one place the UI goes through to change the town: it owns the simulation, the engine and the map. */
 class TownController {
@@ -23,12 +24,14 @@ class TownController {
   private toastedFor = new Set<string>()
   private snapshotFrame = 0
   private reasoningTimer = 0
+  private pendingLog: LogEntry[] = []
 
   constructor() {
-    const { provider, concurrency } = createProvider(useTown.getState().llm, this.content)
-    this.engine = new ReactionEngine(this.sim, new DecisionScheduler(provider, concurrency))
+    const { provider, concurrency, timeoutMs } = createProvider(useTown.getState().llm, this.content)
+    this.engine = new ReactionEngine(this.sim, new DecisionScheduler(provider, concurrency, timeoutMs))
     this.engine.on((e) => {
       if (e.type === 'reasoning') return this.scheduleReasoning()
+      if (e.type === 'log') this.pendingLog.push(e.entry)
       if (e.type === 'complete' && this.engine.announcement && !this.toastedFor.has(this.engine.announcement.id)) {
         this.toastedFor.add(this.engine.announcement.id)
         useTown.getState().toast('Todo el pueblo ha decidido.')
@@ -97,7 +100,8 @@ class TownController {
     this.renderer?.markPlace(announcement.place)
     this.renderer?.select(null)
     this.renderer?.camera.fit()
-    useTown.setState({ announcement, complete: false, reasoning: {}, interacted: true })
+    this.pendingLog = []
+    useTown.setState({ announcement, complete: false, reasoning: {}, log: [], startedAt: performance.now(), interacted: true })
     this.engine.start(announcement)
   }
 
@@ -110,7 +114,8 @@ class TownController {
       this.renderer?.select(null)
       this.renderer?.markPlace(null)
       this.renderer?.camera.fit(false)
-      useTown.setState({ announcement: null, reactions: {}, reasoning: {}, complete: false, draft: EMPTY_DRAFT })
+      this.pendingLog = []
+      useTown.setState({ announcement: null, reactions: {}, reasoning: {}, log: [], complete: false, draft: EMPTY_DRAFT })
       this.syncClock()
       window.setTimeout(() => {
         useTown.setState({ resetting: false })
@@ -124,9 +129,10 @@ class TownController {
   }
 
   applySettings(llm: LlmSettings) {
-    const { provider, concurrency } = createProvider(llm, this.content)
+    const { provider, concurrency, timeoutMs } = createProvider(llm, this.content)
     this.engine.scheduler.provider = provider
-    this.engine.scheduler.concurrency = concurrency
+    this.engine.scheduler.timeoutMs = timeoutMs
+    this.engine.scheduler.setConcurrency(concurrency)
     saveSettings(llm)
     useTown.setState({ llm })
   }
@@ -141,7 +147,8 @@ class TownController {
       this.snapshotFrame = 0
       const reactions: Record<string, Reaction> = {}
       for (const [id, r] of this.engine.reactions) reactions[id] = { ...r, rumors: [...r.rumors], told: [...r.told] }
-      useTown.setState({ reactions, complete: this.engine.settled })
+      const log = this.pendingLog.length ? [...useTown.getState().log, ...this.pendingLog.splice(0)].slice(-LOG_LIMIT) : useTown.getState().log
+      useTown.setState({ reactions, complete: this.engine.settled, log })
       this.flushReasoning()
     })
   }

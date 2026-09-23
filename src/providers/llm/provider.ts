@@ -6,12 +6,12 @@ import { buildPrompt, buildSystemPrompt } from './prompt'
 type ProxyEvent = { delta?: string; done?: boolean; error?: string }
 
 /** Streams a completion through the local proxy, yielding each text delta. */
-export async function* streamChat(connection: Connection, system: string, prompt: string, signal: AbortSignal, maxTokens?: number) {
+export async function* streamChat(connection: Connection, system: string, prompt: string, signal: AbortSignal, opts: { maxTokens?: number; tag?: string; timeoutMs?: number } = {}) {
   const response = await fetch('/api/llm/chat', {
     method: 'POST',
     signal,
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ connection, system, prompt, maxTokens }),
+    body: JSON.stringify({ connection, system, prompt, ...opts }),
   })
   if (!response.ok || !response.body) throw new Error(`El servidor local respondió ${response.status}.`)
   const reader = response.body.getReader()
@@ -40,7 +40,10 @@ export function createLlmProvider(connection: Connection): DecisionProvider {
     async *decide(ctx: DecisionContext, signal: AbortSignal): AsyncIterable<DecisionEvent> {
       let text = ''
       let emitted = 0
-      for await (const delta of streamChat(connection, buildSystemPrompt(ctx.world), buildPrompt(ctx), signal)) {
+      const system = buildSystemPrompt(ctx.world)
+      const prompt = buildPrompt(ctx)
+      yield { type: 'request', system, prompt }
+      for await (const delta of streamChat(connection, system, prompt, signal, { tag: ctx.resident.name, timeoutMs: 110_000 })) {
         text += delta
         const reasoning = partialStringField(text, 'reasoning')
         if (reasoning.length > emitted) {
@@ -48,6 +51,7 @@ export function createLlmProvider(connection: Connection): DecisionProvider {
           emitted = reasoning.length
         }
       }
+      yield { type: 'response', text }
       yield { type: 'final', decision: parseDecision(text, ctx) }
     },
   }

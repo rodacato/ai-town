@@ -244,3 +244,58 @@
   background: #fbeceb;
   color: #9a4a42;
 }
+
+/* Raw exchange */
+.exchange {
+  margin-top: 14px;
+  font-size: 12px;
+}
+
+.exchange > :not(summary) {
+  margin-left: 14px;
+  margin-right: 14px;
+}
+
+.exchange-times {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+.exchange-times dt {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.exchange-times dd {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.exchange h4 {
+  margin: 10px 14px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.exchange pre {
+  max-height: 220px;
+  overflow: auto;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  background: var(--surface-sunk);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

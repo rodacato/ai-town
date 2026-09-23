@@ -286,7 +286,7 @@ export class TownRenderer {
       case 'heard':
         return { bubble: { kind: 'alert' }, ring, pulse: false }
       case 'thinking':
-        return { bubble: { kind: 'thinking' }, ring: 0x6fa8c7, pulse: true }
+        return rx.startedAt === null ? { bubble: { kind: 'thinking' }, ring: 0xb9b0a4, pulse: false } : { bubble: { kind: 'thinking' }, ring: 0x6fa8c7, pulse: true }
       case 'error':
         return { bubble: { kind: 'error' }, ring: 0xc8645a, pulse: false }
       case 'decided': {

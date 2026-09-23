@@ -9,6 +9,8 @@ import { Avatar } from '../../shared/Avatar'
 import { Alert, Reset, Sparkle } from '../../shared/icons'
 import { PlaceChip } from '../../shared/PlaceChip'
 import { SpeakerBadge } from '../../shared/SpeakerBadge'
+import { RequestLog } from './RequestLog'
+import { STAGE_LABEL, queuePosition, thinkingStage } from './stages'
 import { computeStats, seconds, summarize } from './summary'
 import { town } from '../../town'
 import './experiment.css'
@@ -82,6 +84,7 @@ export function ActiveAnnouncement({ announcement }: { announcement: Announcemen
       </div>
 
       <Feed reactions={stats.listeners} />
+      <RequestLog />
 
       <button className="btn-secondary" onClick={() => town.reset()}>
         <Reset width={15} height={15} />
@@ -185,10 +188,10 @@ function Feed({ reactions }: { reactions: Reaction[] }) {
                 <Avatar look={p.look} size={30} />
                 <span className="feed-text">
                   <span className="feed-name">{p.name}</span>
-                  <span className="feed-sub">{feedSub(r, reasoning[r.id])}</span>
+                  <span className="feed-sub">{feedSub(r, reasoning[r.id], reactions)}</span>
                 </span>
                 <span className="feed-end">
-                  {r.decision ? <ActionPill action={r.decision.action} short /> : <span className="feed-state">{PHASE_LABEL[r.phase]}</span>}
+                  {r.decision ? <ActionPill action={r.decision.action} short /> : <span className="feed-state">{r.phase === 'thinking' ? STAGE_LABEL[thinkingStage(r)] : PHASE_LABEL[r.phase]}</span>}
                   {r.latencyMs !== null && <span className="mono feed-latency">{seconds(r.latencyMs)}</span>}
                 </span>
               </button>
@@ -202,9 +205,17 @@ function Feed({ reactions }: { reactions: Reaction[] }) {
 
 const PHASE_LABEL = { unaware: 'Sin enterarse', heard: 'Escuchó', thinking: 'Pensando…', decided: '', error: 'Error' }
 
-function feedSub(r: Reaction, streamed: string | undefined) {
+function feedSub(r: Reaction, streamed: string | undefined, all: Reaction[]) {
   if (r.phase === 'decided' && r.decision) return `${r.decision.emoji} «${r.decision.speech}»`
-  if (r.phase === 'thinking') return streamed ? `…${streamed.slice(-60).replace(/^\S*\s/, '')}` : 'Pensando qué hacer…'
+  if (r.phase === 'thinking') {
+    const stage = thinkingStage(r)
+    if (stage === 'queued') {
+      const ahead = queuePosition(r, all)
+      return ahead ? `Esperando turno: ${ahead} por delante.` : 'Es la siguiente en pasar.'
+    }
+    if (stage === 'sending') return 'Petición enviada, esperando respuesta…'
+    return streamed ? `…${streamed.slice(-60).replace(/^\S*\s/, '')}` : 'Escribiendo…'
+  }
   if (r.phase === 'error') return r.error ?? 'No pudo decidir.'
   if (r.phase === 'heard') return `Acaba de escuchar el ${town.content.copy.noun}.`
   return `Todavía no le llega el ${town.content.copy.noun}.`

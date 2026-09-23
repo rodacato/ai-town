@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { PRESETS, type Connection, type LlmSettings, type ProviderKind } from '../../../providers/llm/config'
+import { MAX_CONCURRENCY } from '../../../providers'
 import { streamChat } from '../../../providers/llm/provider'
 import { useTown } from '../../store'
 import { town } from '../../town'
@@ -85,7 +86,7 @@ function Dialog({ onClose }: { onClose: () => void }) {
     try {
       let reply = ''
       const signal = AbortSignal.timeout(60000)
-      for await (const delta of streamChat(conn, 'Responde únicamente con la palabra: listo', 'Prueba de conexión.', signal, 1024)) reply += delta
+      for await (const delta of streamChat(conn, 'Responde únicamente con la palabra: listo', 'Prueba de conexión.', signal, { maxTokens: 1024, timeoutMs: 20_000 })) reply += delta
       setTest({ status: 'ok', ms: performance.now() - t0, reply: reply.trim().slice(0, 40) })
     } catch (err) {
       setTest({ status: 'error', message: err instanceof Error ? err.message : 'Falló la conexión.' })
@@ -210,15 +211,19 @@ function Dialog({ onClose }: { onClose: () => void }) {
                   <span className="field-label">Residentes pensando a la vez</span>
                   <span className="mono concurrency-value">{conn.concurrency}</span>
                 </div>
-                <input type="range" min={1} max={8} value={conn.concurrency} onChange={(e) => update({ concurrency: Number(e.target.value) })} className="range" />
-                <span className="field-hint">Más rápido con valores altos, pero el proveedor puede limitarte.</span>
+                <input type="range" min={1} max={MAX_CONCURRENCY} value={conn.concurrency} onChange={(e) => update({ concurrency: Number(e.target.value) })} className="range" />
+                {conn.concurrency > 8 ? (
+                  <span className="field-hint is-warning">Prueba de carga: más de 8 a la vez puede saturar al proveedor, hacer que te limite o que rechace peticiones. El registro te mostrará dónde se atasca.</span>
+                ) : (
+                  <span className="field-hint">Más rápido con valores altos, pero el proveedor puede limitarte. Puedes cambiarlo a mitad de un pregón.</span>
+                )}
               </div>
 
               {kind === 'shellm' && (
                 <div className="notice">
                   <Alert width={16} height={16} />
                   <p>
-                    SheLLM corre el CLI oficial y por defecto atiende <b>2 procesos a la vez</b> (Codex, uno). Con 16 residentes cada anuncio tarda más, y su propio aviso menciona que en Codex los filtros anti-abuso pueden suspender la cuenta. Mantén la concurrencia baja. Para usar Codex, pon un modelo <span className="mono">codex</span> o <span className="mono">codex-…</span>.
+                    SheLLM atiende tantos procesos a la vez como diga su <span className="mono">MAX_CONCURRENT</span> (2 por defecto; Codex, uno). Si aquí pides más, el resto espera en la cola de SheLLM y lo verás como «Esperando al modelo». En Codex, su propio aviso advierte que los filtros anti-abuso pueden suspender la cuenta. Para usar Codex, pon un modelo <span className="mono">codex</span> o <span className="mono">codex-…</span>.
                   </p>
                 </div>
               )}
