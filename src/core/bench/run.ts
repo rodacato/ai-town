@@ -27,6 +27,8 @@ export interface BenchRun {
   contenders: ContenderInfo[]
   durationMs: number
   durations: Record<string, number>
+  /** Optional so runs saved before it existed still load. */
+  stopped?: string[]
   cancelled: boolean
   trials: Trial[]
   report: BenchReport
@@ -47,7 +49,7 @@ export async function executeRun(setup: RunSetup, opts: { signal?: AbortSignal; 
   const scenarios = examples.map((e) => buildScenario(content, e, seed))
   const refs = reference ? new Map(scenarios.flatMap((s) => s.contexts.map((ctx) => [cellKey(s.id, ctx.resident.id), reference(ctx)] as const))) : undefined
   const startedAt = performance.now()
-  const { trials, durations } = await runBench({ scenarios, repetitions, contenders: contenders.map((c) => c.contender) }, opts)
+  const { trials, durations, stopped } = await runBench({ scenarios, repetitions, contenders: contenders.map((c) => c.contender) }, opts)
   return {
     format: RUN_FORMAT,
     id: crypto.randomUUID(),
@@ -59,6 +61,7 @@ export async function executeRun(setup: RunSetup, opts: { signal?: AbortSignal; 
     contenders: contenders.map((c) => c.info),
     durationMs: performance.now() - startedAt,
     durations,
+    stopped,
     cancelled: !!opts.signal?.aborted,
     trials,
     report: analyze(trials, contenders.map((c) => c.contender.id), refs),

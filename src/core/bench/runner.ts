@@ -46,18 +46,29 @@ export interface BenchResult {
   trials: Trial[]
   /** Wall-clock time per contender, for throughput. */
   durations: Record<string, number>
+  /** Contenders stopped because their first requests all failed. */
+  stopped: string[]
 }
+
+/** If this many requests fail before any succeeds, the rest would fail too: stop instead of hammering the host. */
+export const FAIL_FAST_AFTER = 5
 
 /** Runs every contender over every scenario and resident, one contender at a time so they do not compete for the same host. */
 export async function runBench(plan: BenchPlan, opts: { signal?: AbortSignal; onTrial?: (t: Trial, p: BenchProgress) => void } = {}): Promise<BenchResult> {
   const trials: Trial[] = []
   const durations: Record<string, number> = {}
+  const stopped: string[] = []
   for (const contender of plan.contenders) {
     if (opts.signal?.aborted) break
     const started = performance.now()
     const jobs = plan.scenarios.flatMap((s) => s.contexts.flatMap((ctx) => Array.from({ length: plan.repetitions }, (_, rep) => ({ s, ctx, rep }))))
     const progress: BenchProgress = { contender: contender.id, done: 0, total: jobs.length, errors: 0 }
     const scheduler = new DecisionScheduler(contender.provider, contender.concurrency, contender.timeoutMs)
+    const waiting = new Set<() => void>()
+    const giveUp = () => {
+      scheduler.cancelAll()
+      for (const resolve of waiting) resolve()
+    }
     const cancel = () => scheduler.cancelAll()
     opts.signal?.addEventListener('abort', cancel, { once: true })
     await Promise.all(
@@ -70,8 +81,13 @@ export async function runBench(plan: BenchPlan, opts: { signal?: AbortSignal; on
               if (t.error) progress.errors++
               opts.onTrial?.(t, { ...progress })
               resolve()
+              if (progress.errors === FAIL_FAST_AFTER && progress.done === FAIL_FAST_AFTER) {
+                stopped.push(contender.id)
+                giveUp()
+              }
             }
             track(scheduler, contender.id, s.id, ctx, rep, finish)
+            waiting.add(resolve)
             opts.signal?.addEventListener('abort', () => resolve(), { once: true })
           }),
       ),
@@ -79,7 +95,7 @@ export async function runBench(plan: BenchPlan, opts: { signal?: AbortSignal; on
     opts.signal?.removeEventListener('abort', cancel)
     durations[contender.id] = performance.now() - started
   }
-  return { trials, durations }
+  return { trials, durations, stopped }
 }
 
 function track(scheduler: DecisionScheduler, contender: string, scenario: string, ctx: DecisionContext, rep: number, finish: (t: Trial) => void) {

@@ -25,6 +25,21 @@ export interface BenchReport {
 
 export type Reference = Map<string, Decision>
 
+/** Distinct error messages per contender, most frequent first. */
+export function errorSummary(trials: Trial[]) {
+  const out = new Map<string, [message: string, count: number][]>()
+  for (const t of trials) {
+    if (!t.error) continue
+    const list = out.get(t.contender) ?? []
+    const hit = list.find(([m]) => m === t.error)
+    if (hit) hit[1]++
+    else list.push([t.error, 1])
+    out.set(t.contender, list)
+  }
+  for (const list of out.values()) list.sort((a, b) => b[1] - a[1])
+  return out
+}
+
 export const cellKey = (scenario: string, resident: string) => `${scenario}/${resident}`
 
 function mode<T>(values: T[], order: readonly T[]): T {

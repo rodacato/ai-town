@@ -390,3 +390,23 @@
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+
+.bench-errors > div {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bench-errors ul {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bench-errors .mono {
+  margin-right: 4px;
+}
+
+.bench-progress-row .field-error {
+  margin-top: 6px;
+}

@@ -1,12 +1,13 @@
 import { useCallback } from 'react'
 import { ACTIONS } from '../../../core/decisions/types'
 import { trialsPerContender } from '../../../core/bench/run'
-import type { ContenderReport } from '../../../core/bench/analysis'
+import { errorSummary, type ContenderReport } from '../../../core/bench/analysis'
+import { FAIL_FAST_AFTER } from '../../../core/bench/runner'
 import { PRESETS } from '../../../providers/llm/config'
 import { ACTION_META } from '../../../theme/actions'
 import { useTown } from '../../store'
 import { town } from '../../town'
-import { Close, Download, Plus } from '../../shared/icons'
+import { Alert, Close, Download, Plus } from '../../shared/icons'
 import { useDialog } from '../../shared/useDialog'
 import { download, stamp } from '../experiment/export'
 import { seconds, tokens, usd } from '../experiment/summary'
@@ -69,6 +70,7 @@ function Dialog() {
 function NewRun() {
   const { specs, scenarioIds, repetitions, seed, running, setPrefs, start } = useBench()
   const llm = useTown((s) => s.llm)
+  const vaultLocked = useTown((s) => s.vaultLocked)
   if (running) return <Progress />
 
   const configured = (k: ContenderKind) => k === 'rules' || !!llm.connections[k].host.trim()
@@ -83,6 +85,7 @@ function NewRun() {
   const missingModel = specs.some((s) => s.kind !== 'rules' && !s.model.trim())
   const perModel = trialsPerContender(town.content, town.content.examples.filter((e) => scenarioIds.includes(e.id)), repetitions)
   const llmCount = specs.filter((s) => s.kind !== 'rules').length
+  const keyless = [...new Set(specs.flatMap((s) => (s.kind !== 'rules' && !llm.connections[s.kind].apiKey ? [PRESETS[s.kind].label] : [])))]
   const problem = !specs.length
     ? 'Añade al menos un contendiente.'
     : !scenarioIds.length
@@ -165,6 +168,19 @@ function NewRun() {
         </label>
       </section>
 
+      {keyless.length > 0 && (
+        <div className="notice">
+          <Alert width={16} height={16} />
+          <p>
+            {vaultLocked ? 'Tus keys cifradas siguen bloqueadas en esta pestaña' : 'No hay key en esta pestaña'} para {keyless.join(', ')}.{' '}
+            {vaultLocked ? 'Desbloquéalas en Configuración' : 'Ponla en Configuración'} si el host la pide; si no, las peticiones fallarán con 401.{' '}
+            <button className="btn-link" onClick={() => useTown.getState().setSettingsOpen(true)}>
+              Abrir Configuración
+            </button>
+          </p>
+        </div>
+      )}
+
       <footer className="bench-start">
         <p>
           <b className="mono">{perModel}</b> peticiones por modelo{llmCount > 1 && <>, <b className="mono">{perModel * llmCount}</b> en total</>}. Solo se mide la primera reacción, sin boca en boca.
@@ -200,6 +216,7 @@ function Progress() {
             <div className="progress-track" role="progressbar" aria-label={label} aria-valuenow={p.done} aria-valuemax={p.total}>
               <span className="bar-seg" style={{ width: `${(p.done / p.total) * 100}%` }} />
             </div>
+            {running.lastError[p.contender] && <p className="field-error">Último error: {running.lastError[p.contender]}</p>}
           </div>
         )
       })}
@@ -246,6 +263,8 @@ function Result({ run }: { run: BenchRun }) {
           </tbody>
         </table>
       </div>
+
+      <Errors run={run} label={label} />
 
       {Object.keys(run.report.agreement).length > 0 && (
         <section>
@@ -345,7 +364,7 @@ function Row({ r, label, hasRef, ms }: { r: ContenderReport; label: string; hasR
       {hasRef && <td className="mono">{r.contender === 'rules' ? '—' : pct(r.referenceAgreement)}</td>}
       <td className={`mono ${r.errors ? 'is-bad' : ''}`}>{r.errors ? `${r.errors}/${r.trials}` : '0'}</td>
       <td className="mono">{m.total && r.contender !== 'rules' ? `${seconds(m.total.p50)} · ${seconds(m.total.p95)}` : '—'}</td>
-      <td className="mono">{ms && r.contender !== 'rules' ? (r.trials / (ms / 1000)).toFixed(1) : '—'}</td>
+      <td className="mono">{ms && r.contender !== 'rules' && decided ? (r.trials / (ms / 1000)).toFixed(1) : '—'}</td>
       <td className="mono">{m.tokensPerSecond ? m.tokensPerSecond.toFixed(0) : '—'}</td>
       <td className="mono">{m.inputTokens ? `${tokens(m.inputTokens)} → ${tokens(m.outputTokens)}` : '—'}</td>
       <td className="mono" title={m.costUsd !== null && decided ? `${usd(m.costUsd / decided)} por decisión` : undefined}>
@@ -403,5 +422,32 @@ function History() {
       ))}
       </ul>
     </div>
+  )
+}
+
+function Errors({ run, label }: { run: BenchRun; label: (id: string) => string }) {
+  const summary = errorSummary(run.trials)
+  if (!summary.size) return null
+  return (
+    <section className="failure-banner bench-errors" role="alert">
+      <Alert width={16} height={16} />
+      <div>
+        {[...summary].map(([id, list]) => (
+          <div key={id}>
+            <p>
+              <b>{label(id)}</b>
+              {run.stopped?.includes(id) && ` se detuvo: sus primeras ${FAIL_FAST_AFTER} peticiones fallaron.`}
+            </p>
+            <ul>
+              {list.map(([message, n]) => (
+                <li key={message}>
+                  <span className="mono">{n}×</span> {message}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </section>
   )
 }

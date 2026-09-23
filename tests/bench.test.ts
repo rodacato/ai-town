@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { analyze, cellKey } from '../src/core/bench/analysis'
+import { analyze, cellKey, errorSummary } from '../src/core/bench/analysis'
 import { checkFormat } from '../src/core/bench/format'
-import { runBench, type Contender } from '../src/core/bench/runner'
+import { FAIL_FAST_AFTER, runBench, type Contender } from '../src/core/bench/runner'
 import { buildScenario } from '../src/core/bench/scenarios'
 import type { Decision, DecisionEvent, DecisionProvider } from '../src/core/decisions/types'
 import { createRulesProvider, mockDecision } from '../src/providers/mock'
@@ -55,6 +55,22 @@ describe('benchmark', () => {
     expect(flaky.format.issues['texto fuera del JSON']).toBe(flaky.trials)
     expect(flaky.metrics.inputTokens).toBe(100 * flaky.trials)
     expect(report.agreement['rules|fickle']).toBeGreaterThanOrEqual(0)
+  })
+
+  it('gives up on a contender whose first requests all fail', async () => {
+    const broken: DecisionProvider = {
+      id: 'broken',
+      label: 'broken',
+      async *decide(): AsyncIterable<DecisionEvent> {
+        throw new Error('El host rechazó la autenticación (401): no se envió ninguna key.')
+      },
+    }
+    const scenarios = [buildScenario(content, content.examples[0], 7)]
+    const { trials, stopped } = await runBench({ scenarios, repetitions: 2, contenders: [{ ...contender('broken', broken), concurrency: 1 }, contender('rules', createRulesProvider(content.vocabulary))] })
+    expect(stopped).toEqual(['broken'])
+    expect(trials.filter((t) => t.contender === 'broken')).toHaveLength(FAIL_FAST_AFTER)
+    expect(trials.filter((t) => t.contender === 'rules').length).toBeGreaterThan(FAIL_FAST_AFTER)
+    expect(errorSummary(trials).get('broken')).toEqual([['El host rechazó la autenticación (401): no se envió ninguna key.', FAIL_FAST_AFTER]])
   })
 
   it('stops when cancelled', async () => {
