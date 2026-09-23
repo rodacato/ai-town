@@ -207,10 +207,35 @@ function carveToStreet(tiles: Tile[][], door: Point) {
   }
 }
 
-function buildPlaces(world: World): Place[] {
+/** Walkable tiles connected to the plaza, so no place can send someone into a pocket enclosed by trees. */
+function reachableTiles(world: World): Point[] {
   const { tiles, size: N } = world
-  const walkable: Point[] = []
-  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (isWalkable(tiles[y][x])) walkable.push({ x, y })
+  const start = { x: PLAZA.x0, y: PLAZA.y0 + 1 }
+  const seen = new Uint8Array(N * N)
+  const out: Point[] = []
+  const queue = [start]
+  seen[start.y * N + start.x] = 1
+  while (queue.length) {
+    const p = queue.pop()!
+    out.push(p)
+    for (const [dx, dy] of [
+      [1, 0],
+      [-1, 0],
+      [0, 1],
+      [0, -1],
+    ]) {
+      const n = { x: p.x + dx, y: p.y + dy }
+      if (n.x < 0 || n.y < 0 || n.x >= N || n.y >= N || seen[n.y * N + n.x] || !isWalkable(tiles[n.y][n.x])) continue
+      seen[n.y * N + n.x] = 1
+      queue.push(n)
+    }
+  }
+  return out
+}
+
+function buildPlaces(world: World): Place[] {
+  const { tiles } = world
+  const walkable = reachableTiles(world)
   const where = (pred: (p: Point, t: Tile) => boolean) => walkable.filter((p) => pred(p, tiles[p.y][p.x]))
   const around = (c: Point, r: number) =>
     where((p) => Math.abs(p.x - c.x) <= r && Math.abs(p.y - c.y) <= r && tiles[p.y][p.x].kind !== 'grass')

@@ -10,7 +10,8 @@
     "typecheck": "tsc -b --noEmit",
     "map": "tsx scripts/print-map.ts",
     "sim:smoke": "tsx scripts/sim-smoke.ts",
-    "fake-llm": "tsx scripts/fake-llm.ts"
+    "fake-llm": "tsx scripts/fake-llm.ts",
+    "test": "vitest run"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.128.0",
@@ -26,6 +27,7 @@
     "@vitejs/plugin-react": "^6.1.1",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
-    "vite": "^8.3.0"
+    "vite": "^8.3.0",
+    "vitest": "^5.0.1"
   }
 }
