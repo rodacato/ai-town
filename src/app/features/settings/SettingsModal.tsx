@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { PRESETS, keyRing, withKeys, type Connection, type LlmSettings, type ProviderKind } from '../../../providers/llm/config'
 import { MAX_CONCURRENCY } from '../../../providers'
+import { knownPrice } from '../../../providers/llm/pricing'
 import { fetchModels, streamChat, transportMode, type TransportMode } from '../../../providers/llm/client'
 import { useTown } from '../../store'
 import { town } from '../../town'
@@ -253,6 +254,8 @@ function Dialog({ onClose }: { onClose: () => void }) {
                 )}
               </div>
 
+              <PriceFields key={kind} conn={conn} onChange={update} />
+
               {kind === 'shellm' && (
                 <div className="notice">
                   <Alert width={16} height={16} />
@@ -339,5 +342,41 @@ function VaultUnlock({ onUnlocked }: { onUnlocked: () => void }) {
         Olvidar las keys guardadas
       </button>
     </form>
+  )
+}
+
+/** Keeps the typed text so partial numbers like «0.» survive; the connection gets the parsed value. */
+function PriceInput({ label, value, placeholder, onChange }: { label: string; value?: number; placeholder: string; onChange: (v: number | undefined) => void }) {
+  const [text, setText] = useState(value === undefined ? '' : String(value))
+  const set = (raw: string) => {
+    setText(raw)
+    const n = Number(raw.replace(',', '.'))
+    if (raw.trim() === '') onChange(undefined)
+    else if (Number.isFinite(n) && n >= 0) onChange(n)
+  }
+  return (
+    <label>
+      <span>{label}</span>
+      <input className="input mono" inputMode="decimal" value={text} placeholder={placeholder} onChange={(e) => set(e.target.value)} />
+    </label>
+  )
+}
+
+/** Per-million-token prices for estimating cost when the host does not report it. */
+function PriceFields({ conn, onChange }: { conn: Connection; onChange: (patch: Partial<Connection>) => void }) {
+  const known = conn.kind === 'anthropic' ? knownPrice(conn.model) : null
+  return (
+    <fieldset className="field price-fields">
+      <legend className="field-label">Precio por millón de tokens (USD)</legend>
+      <div className="price-inputs">
+        <PriceInput label="Entrada" value={conn.priceIn} placeholder={known ? String(known.input) : '—'} onChange={(priceIn) => onChange({ priceIn })} />
+        <PriceInput label="Salida" value={conn.priceOut} placeholder={known ? String(known.output) : '—'} onChange={(priceOut) => onChange({ priceOut })} />
+      </div>
+      <span className="field-hint">
+        {known
+          ? 'Vacío usa el precio de lista de este modelo. Solo sirve para estimar; tu factura manda.'
+          : 'Para estimar el costo de cada decisión cuando el host no lo reporta. Déjalo vacío para no estimar.'}
+      </span>
+    </fieldset>
   )
 }

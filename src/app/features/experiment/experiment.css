@@ -482,3 +482,42 @@
 .log-empty {
   color: var(--ink-3);
 }
+
+.usage-card {
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface-sunk);
+}
+
+.usage-card dl {
+  margin: 8px 0 0;
+}
+
+.usage-card dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 5px 0;
+  font-size: 13px;
+  border-top: 1px dashed var(--border);
+}
+
+.usage-card dt {
+  color: var(--ink-2);
+}
+
+.usage-card dd {
+  margin: 0;
+  text-align: right;
+}
+
+.export-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.export-row .section-label {
+  margin-right: auto;
+}

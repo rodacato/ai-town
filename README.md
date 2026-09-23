@@ -39,6 +39,10 @@ El engrane de la barra superior abre la configuración. Opciones:
 - Todas tus páginas de `usuario.github.io` comparten origen: evita scripts de terceros en ellas.
 - Usa keys dedicadas, con tope de gasto, y rótalas al terminar.
 
+### Métricas y exportación
+
+Cada petición al modelo queda registrada: tiempo en cola, hasta la primera palabra, respuesta completa, tokens y costo. El panel **Consumo** muestra totales y percentiles (p50/p95); el inspector, los de cada residente. El costo viene del host cuando lo reporta (SheLLM) o se estima con el precio por millón de tokens que pongas en Configuración (Claude trae precios de lista para algunos modelos). Al terminar un pregón puedes exportar la corrida en **JSON** (configuración sin key, decisiones y métricas) o **CSV** (una fila por petición).
+
 ## Publicar en GitHub Pages
 
 El workflow `.github/workflows/deploy.yml` corre typecheck, tests y build en cada push a `main` y publica `dist/`. En el repo, activa **Settings → Pages → Source: GitHub Actions**. El build usa rutas relativas, así que funciona con cualquier nombre de repositorio.

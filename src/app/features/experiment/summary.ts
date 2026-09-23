@@ -7,6 +7,8 @@ import { town } from '../../town'
 export const firstName = (id: string) => town.content.residents.find((r) => r.id === id)?.name.split(' ')[0] ?? id
 const list = (names: string[]) => (names.length > 1 ? `${names.slice(0, -1).join(', ')} y ${names[names.length - 1]}` : (names[0] ?? ''))
 export const seconds = (ms: number) => `${(ms / 1000).toFixed(1)} s`
+export const tokens = (n: number) => (n >= 10000 ? `${(n / 1000).toFixed(0)}k` : n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(Math.round(n)))
+export const usd = (n: number) => `$${n < 0.01 ? n.toFixed(4) : n.toFixed(2)}`
 
 export interface Stats {
   listeners: Reaction[]

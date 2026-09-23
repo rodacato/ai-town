@@ -8,6 +8,9 @@ export interface Connection {
   apiKey: string
   model: string
   concurrency: number
+  /** USD per million tokens, overriding the known list price; used to estimate cost when the host does not report it. */
+  priceIn?: number
+  priceOut?: number
 }
 
 export interface LlmSettings {

@@ -55,8 +55,9 @@ export interface DecisionContext {
 export interface TokenUsage {
   inputTokens?: number
   outputTokens?: number
-  /** Cost the host reported itself, when it does (SheLLM does). */
   costUsd?: number
+  /** 'host' when the provider reported the cost, 'table' when it was estimated from a price list. */
+  costSource?: 'host' | 'table'
 }
 
 export type DecisionEvent =

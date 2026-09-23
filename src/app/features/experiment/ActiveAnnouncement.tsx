@@ -6,12 +6,14 @@ import { formatClock } from '../../../core/sim/clock'
 import { useTown } from '../../store'
 import { ActionPill } from '../../shared/ActionPill'
 import { Avatar } from '../../shared/Avatar'
-import { Alert, Reset, Sparkle } from '../../shared/icons'
+import { Alert, Download, Reset, Sparkle } from '../../shared/icons'
 import { PlaceChip } from '../../shared/PlaceChip'
 import { SpeakerBadge } from '../../shared/SpeakerBadge'
 import { RequestLog } from './RequestLog'
 import { STAGE_LABEL, queuePosition, thinkingStage } from './stages'
-import { computeStats, seconds, summarize } from './summary'
+import { computeStats, seconds, summarize, tokens, usd } from './summary'
+import { allCalls, runMetrics } from '../../../core/reactions/metrics'
+import { callsCsv, download, runReport, stamp } from './export'
 import { town } from '../../town'
 import './experiment.css'
 
@@ -83,12 +85,60 @@ export function ActiveAnnouncement({ announcement }: { announcement: Announcemen
         <LatencyChart reactions={stats.decided} />
       </div>
 
+      <Usage reactions={stats.listeners} />
+
       <Feed reactions={stats.listeners} />
       <RequestLog />
+      {complete && <ExportRun announcement={announcement} reactions={reactions} />}
 
       <button className="btn-secondary" onClick={() => town.reset()}>
         <Reset width={15} height={15} />
         Reiniciar y probar otro {town.content.copy.noun}
+      </button>
+    </div>
+  )
+}
+
+/** Tokens, cost and latency percentiles across every call, the numbers a benchmark compares. */
+function Usage({ reactions }: { reactions: Reaction[] }) {
+  const calls = allCalls(reactions)
+  // The simulated mode has no tokens or real latency worth comparing.
+  if (!calls.some((c) => c.usage)) return null
+  const m = runMetrics(calls)
+  const rows: [string, string, string?][] = [
+    ['Peticiones', m.errors ? `${m.calls} (${m.errors} con error)` : String(m.calls)],
+    ['Tokens', `${tokens(m.inputTokens)} → ${tokens(m.outputTokens)}`, 'Entrada → salida'],
+    ['Costo', m.costUsd === null ? '—' : `${m.costEstimated ? '≈ ' : ''}${usd(m.costUsd)}`, m.costUsd === null ? 'Ni el host ni la tabla de precios dan un costo; ponlo en Configuración.' : m.costEstimated ? 'Estimado con la tabla de precios.' : 'Reportado por el host.'],
+    ['Primera palabra', m.ttft ? `${seconds(m.ttft.p50)} · p95 ${seconds(m.ttft.p95)}` : '—', 'Mediana y percentil 95'],
+    ['Respuesta', m.total ? `${seconds(m.total.p50)} · p95 ${seconds(m.total.p95)}` : '—', 'Mediana y percentil 95'],
+    ['En cola', m.queue ? `${seconds(m.queue.p50)} · máx ${seconds(m.queue.max)}` : '—'],
+    ['Velocidad', m.tokensPerSecond ? `${m.tokensPerSecond.toFixed(0)} tokens/s` : '—', 'Tokens de salida por segundo, sin contar la espera'],
+  ]
+  return (
+    <section className="usage-card">
+      <h3 className="section-label">Consumo</h3>
+      <dl>
+        {rows.map(([k, v, hint]) => (
+          <div key={k} title={hint}>
+            <dt>{k}</dt>
+            <dd className="mono">{v}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  )
+}
+
+function ExportRun({ announcement, reactions }: { announcement: Announcement; reactions: Record<string, Reaction> }) {
+  const name = `${town.content.id}-${stamp()}`
+  return (
+    <div className="export-row">
+      <span className="section-label">Exportar</span>
+      <button className="btn-secondary compact" onClick={() => download(`${name}.json`, JSON.stringify(runReport(announcement, reactions, useTown.getState().llm), null, 2), 'application/json')}>
+        <Download width={14} height={14} /> JSON
+      </button>
+      <button className="btn-secondary compact" onClick={() => download(`${name}.csv`, callsCsv(reactions), 'text/csv')}>
+        <Download width={14} height={14} /> CSV
       </button>
     </div>
   )

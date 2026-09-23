@@ -2,6 +2,7 @@ import type { DecisionContext, DecisionEvent, DecisionProvider, TokenUsage } fro
 import { streamChat } from './client'
 import { PRESETS, type Connection } from './config'
 import { parseDecision, partialStringField } from './parse'
+import { estimateCost, priceFor } from './pricing'
 import { buildPrompt, buildSystemPrompt } from './prompt'
 
 export function createLlmProvider(connection: Connection): DecisionProvider {
@@ -17,7 +18,11 @@ export function createLlmProvider(connection: Connection): DecisionProvider {
       yield { type: 'request', system, prompt }
       for await (const event of streamChat(connection, system, prompt, signal, { tag: ctx.resident.name, timeoutMs: 110_000 })) {
         if (event.type === 'done') {
-          usage = event.usage
+          const estimated = estimateCost(priceFor(connection), event.usage.inputTokens, event.usage.outputTokens)
+          usage =
+            event.usage.costUsd !== undefined
+              ? { ...event.usage, costSource: 'host' }
+              : { ...event.usage, costUsd: estimated, costSource: estimated === undefined ? undefined : 'table' }
           continue
         }
         text += event.text

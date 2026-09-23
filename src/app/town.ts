@@ -169,7 +169,7 @@ class TownController {
     this.snapshotFrame = requestAnimationFrame(() => {
       this.snapshotFrame = 0
       const reactions: Record<string, Reaction> = {}
-      for (const [id, r] of this.engine.reactions) reactions[id] = { ...r, rumors: [...r.rumors], told: [...r.told] }
+      for (const [id, r] of this.engine.reactions) reactions[id] = { ...r, rumors: [...r.rumors], told: [...r.told], calls: [...r.calls] }
       const log = this.pendingLog.length ? [...useTown.getState().log, ...this.pendingLog.splice(0)].slice(-LOG_LIMIT) : useTown.getState().log
       useTown.setState({ reactions, complete: this.engine.settled, log })
       this.flushReasoning()

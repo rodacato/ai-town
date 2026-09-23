@@ -32,6 +32,22 @@ export interface Reaction {
   rumors: Rumor[]
   told: string[]
   error: string | null
+  calls: CallRecord[]
+}
+
+/** One round trip to the decision provider; a resident who reconsiders makes several. */
+export interface CallRecord {
+  provider: string
+  /** Relative to when the announcement was made. */
+  at: number
+  queueMs: number
+  ttftMs: number | null
+  totalMs: number | null
+  usage: TokenUsage | null
+  action: Decision['action'] | null
+  believes: boolean | null
+  error: string | null
+  revision: boolean
 }
 
 export interface LogEntry {
@@ -66,6 +82,7 @@ export class ReactionEngine {
   private listeners = new Set<(e: EngineEvent) => void>()
   private clock = 0
   private completed = false
+  startedAt = 0
 
   constructor(
     private sim: Simulation,
@@ -91,6 +108,7 @@ export class ReactionEngine {
     this.stop()
     this.announcement = a
     this.completed = false
+    this.startedAt = performance.now()
     this.origin = this.originFor(a)
     this.waveRadius = 0
     this.waveMax = Math.max(...this.sim.residents.map((r) => Math.hypot(r.x - this.origin.x, r.y - this.origin.y))) + INDOOR_DELAY * WAVE_SPEED
@@ -111,6 +129,7 @@ export class ReactionEngine {
         request: null,
         response: null,
         usage: null,
+        calls: [],
         decidedBy: null,
         reasoning: '',
         decision: null,
@@ -245,9 +264,11 @@ export class ReactionEngine {
       },
       onDecision: (decision) => {
         reaction.decidedBy = provider.label
+        this.record(reaction, provider.label, { action: decision.action, believes: decision.believes })
         this.decided(r, reaction, decision)
       },
       onError: (message) => {
+        this.record(reaction, provider.label, { error: message })
         reaction.phase = 'error'
         reaction.error = message
         this.log(reaction.id, 'error', message)
@@ -255,6 +276,25 @@ export class ReactionEngine {
         this.emit({ type: 'change', id: reaction.id })
         this.checkComplete()
       },
+    })
+  }
+
+  private record(reaction: Reaction, provider: string, outcome: Partial<CallRecord>) {
+    const now = performance.now()
+    const queued = reaction.queuedAt ?? now
+    const started = reaction.startedAt
+    reaction.calls.push({
+      provider,
+      at: queued - this.startedAt,
+      queueMs: (started ?? now) - queued,
+      ttftMs: started !== null && reaction.firstTokenAt !== null ? reaction.firstTokenAt - started : null,
+      totalMs: started !== null ? now - started : null,
+      usage: reaction.usage,
+      action: null,
+      believes: null,
+      error: null,
+      revision: reaction.decision !== null,
+      ...outcome,
     })
   }
 
