@@ -16,6 +16,9 @@ export interface Look {
   shirt: number
   pants: number
   accessory?: string
+  /** Body type the sprite adapts to, e.g. 'human', 'elf', 'dwarf', 'halfling', 'gnome', 'halforc', 'tiefling'. */
+  ancestry?: string
+  beard?: number
 }
 
 export interface ResidentProfile {
@@ -25,6 +28,8 @@ export interface ResidentProfile {
   occupation: string
   bio: string
   traits: string[]
+  /** Moral compass in D&D terms ("legal bueno", "caótico neutral"…); both providers weigh it when present. */
+  alignment?: string
   relationships: { id: string; label: string }[]
   home: string
   /** Weights over place ids, plus the special keys 'home' and 'visit'. */
@@ -115,4 +120,10 @@ export interface WorldContent {
   }
   /** One paragraph that sets the scene for an LLM playing a resident. */
   promptSetting: string
+  copy: {
+    composerTitle: string
+    composerSubtitle: string
+    broadcast: string
+    onAir: string
+  }
 }

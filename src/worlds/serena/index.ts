@@ -63,5 +63,6 @@ export const serena: WorldContent = {
       ['efectivo', 'dinero en efectivo'],
     ],
   },
+  copy: { composerTitle: 'Nuevo anuncio', composerSubtitle: 'Lo que digas se escuchará en todo el pueblo.', broadcast: 'Transmitir anuncio', onAir: 'En el aire' },
   promptSetting: 'Villa Serena es un pueblo pequeño y tranquilo de unos pocos cientos de habitantes, con una plaza con fuente, un río, un bosque y comercios familiares. Todos se conocen y los chismes corren rápido.',
 }

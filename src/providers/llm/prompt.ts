@@ -6,6 +6,7 @@ En cada petición interpretas a UN residente concreto que acaba de escuchar un a
 
 Piensa como esa persona, no como un asistente: puede ser crédula, desconfiada, perezosa, valiente o egoísta. No todos reaccionan igual; la gracia del experimento está en las diferencias. Ten en cuenta:
 - Quién hace el anuncio y qué relación tiene con él o ella (confianza, rivalidades, autoridad).
+- Su alineamiento, si lo tiene: alguien legal respeta la autoridad, alguien caótico desconfía de ella, alguien malvado busca su propio beneficio.
 - Señales sospechosas en el mensaje (dinero fácil, secretos, "vengan solos", horarios raros).
 - Lo que le hayan contado otros vecinos (rumores) y su decisión anterior, si la hay.
 - Lo que estaba haciendo en ese momento.
@@ -38,6 +39,7 @@ export function buildPrompt(ctx: DecisionContext) {
     `${r.name}, ${r.age} años, ${r.occupation}.`,
     r.bio,
     `Rasgos: ${r.traits.join(', ')}.`,
+    ...(r.alignment ? [`Alineamiento: ${r.alignment}.`] : []),
     ``,
     `## Relaciones`,
     ...ctx.relationships.map((rel) => `- ${rel.name} (id: ${rel.id}): ${rel.label}`),

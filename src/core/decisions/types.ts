@@ -33,6 +33,8 @@ export interface DecisionContext {
     occupation: string
     bio: string
     traits: string[]
+    alignment?: string
+    ancestry?: string
   }
   relationships: { id: string; name: string; label: string }[]
   announcement: {

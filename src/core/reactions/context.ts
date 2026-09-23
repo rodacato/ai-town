@@ -11,7 +11,7 @@ export function buildContext(sim: Simulation, a: Announcement, r: Resident, rumo
   const clock = formatClock(sim.minutes)
   return {
     world: { name: content.name, setting: content.promptSetting },
-    resident: { id: p.id, name: p.name, age: p.age, occupation: p.occupation, bio: p.bio, traits: p.traits },
+    resident: { id: p.id, name: p.name, age: p.age, occupation: p.occupation, bio: p.bio, traits: p.traits, alignment: p.alignment, ancestry: p.look.ancestry },
     relationships: p.relationships.map((rel) => ({ id: rel.id, name: nameOf(rel.id), label: rel.label })),
     announcement: {
       id: a.id,

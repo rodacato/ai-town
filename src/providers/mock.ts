@@ -6,6 +6,8 @@ import { createRng, type Rng } from '../core/world/rng'
 
 export type Vocabulary = WorldContent['vocabulary']
 
+/** Rough life expectancy per ancestry, so a 142-year-old dwarf is not treated as frail. */
+const LIFESPAN: Record<string, number> = { human: 90, halfling: 140, halforc: 75, tiefling: 100, gnome: 350, dwarf: 350, elf: 700 }
 const NEGATIVE_RELATION = ['rival', 'no le cae', 'critica', 'usurpadora', 'desconfianza', 'vigila']
 
 const hashString = (s: string) => [...s].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) | 0, 7)
@@ -46,6 +48,8 @@ export function mockDecision(ctx: DecisionContext, vocab: Vocabulary): Decision 
   if (a.speakerKind === 'stranger' && has('forastero')) trust -= 0.25
   if (a.speakerKind === 'authority' && has('leal', 'formal')) trust += 0.15
   if (a.speakerKind === 'authority' && has('orgullos')) trust -= 0.12
+  const alignment = normalize(ctx.resident.alignment ?? '')
+  if (a.speakerKind === 'authority') trust += alignment.includes('legal') ? 0.12 : alignment.includes('caotic') ? -0.15 : 0
   trust -= 0.22 * r.cues.length
   trust += rng.range(-0.1, 0.1)
 
@@ -57,14 +61,14 @@ export function mockDecision(ctx: DecisionContext, vocab: Vocabulary): Decision 
   }
   trust = clamp(trust)
 
-  const curious = has('curios', 'impulsiv', 'inquiet', 'sonador')
-  const social = has('chismos', 'hablador', 'sociable', 'protector', 'responsable', 'altruista', 'conoce a todos')
-  const greedy = has('oportunista', 'tacan', 'ahorrador')
-  const solitary = has('solitari', 'reservad', 'independiente')
+  const curious = has('curios', 'impulsiv', 'inquiet', 'sonador', 'aventurer')
+  const social = has('chismos', 'hablador', 'sociable', 'protector', 'responsable', 'altruista', 'conoce a todos', 'leal')
+  const greedy = has('oportunista', 'tacan', 'ahorrador', 'codicios') || alignment.includes('maligno') || alignment.includes('malvad')
+  const solitary = has('solitari', 'reservad', 'independiente', 'huran')
   const guard = has('metodic') && has('responsable')
   const skeptic = has('desconfiad', 'esceptic', 'cautelos')
   const busy = has('trabajador')
-  const frail = ctx.resident.age >= 75
+  const frail = ctx.resident.age / (LIFESPAN[ctx.resident.ancestry ?? 'human'] ?? LIFESPAN.human) >= 0.8
   const believes = trust >= 0.5
   let excuse: string | null = null
 
@@ -111,7 +115,7 @@ export function mockDecision(ctx: DecisionContext, vocab: Vocabulary): Decision 
     believes,
     tell,
     reasoning,
-    speech: excuse && busy ? 'Tengo mucho trabajo.' : speechFor(action, place, tellNames, believes, rng),
+    speech: excuse && busy ? 'Tengo mucho trabajo.' : speechFor(action, place, tellNames, believes, r.danger, rng),
     emoji: emojiFor(action, believes, normalize(a.text)),
     confidence: Math.round(clamp(Math.abs(trust - 0.5) * 1.6 + 0.25, 0.3, 0.95) * 100) / 100,
   }
@@ -189,7 +193,7 @@ function actionLine(action: Action, place: string, tell: string[], believes: boo
   }
 }
 
-function speechFor(action: Action, place: string, tell: string[], believes: boolean, rng: Rng) {
+function speechFor(action: Action, place: string, tell: string[], believes: boolean, danger: boolean, rng: Rng) {
   switch (action) {
     case 'go':
       return rng.pick([`¡Voy ${toPlace(place)}!`, '¡No me lo pierdo!', '¡Allá voy!'])
@@ -200,7 +204,8 @@ function speechFor(action: Action, place: string, tell: string[], believes: bool
     case 'investigate':
       return rng.pick(['Voy a ver qué pasa…', 'Esto hay que comprobarlo.', 'Echaré un vistazo…'])
     case 'ignore':
-      return believes ? rng.pick(['Sigo con lo mío.', `Mejor evito ${place}.`]) : rng.pick(['Bah, no me lo creo.', 'Paso de eso.', 'Qué cosas dice la gente…'])
+      if (believes && danger) return `Mejor evito ${place}.`
+      return believes ? rng.pick(['Sigo con lo mío.', 'Otro día será.', 'Hoy no me apetece.']) : rng.pick(['Bah, no me lo creo.', 'Paso de eso.', 'Qué cosas dice la gente…'])
   }
 }
 
