@@ -8,7 +8,7 @@ import { formatClock } from '../sim/clock'
 import { useTown } from '../store'
 import { ActionPill } from './ActionPill'
 import { Avatar } from './Avatar'
-import { Reset, Sparkle } from './icons'
+import { Alert, Reset, Sparkle } from './icons'
 import { PlaceChip } from './PlaceChip'
 import { SpeakerBadge } from './SpeakerBadge'
 import { computeStats, seconds, summarize } from './summary'
@@ -40,6 +40,7 @@ export function ActiveAnnouncement({ announcement }: { announcement: Announcemen
       </figure>
       <PlaceChip place={announcement.place} />
 
+      <FailureBanner reactions={stats.listeners} />
       {complete && <Summary announcement={announcement} reactions={reactions} />}
 
       <div className="progress-card">
@@ -87,6 +88,37 @@ export function ActiveAnnouncement({ announcement }: { announcement: Announcemen
         <Reset width={15} height={15} />
         Reiniciar y probar otro anuncio
       </button>
+    </div>
+  )
+}
+
+function FailureBanner({ reactions }: { reactions: Reaction[] }) {
+  const { llm, applyLlm, setSettingsOpen, engine } = useTown.getState()
+  const failed = reactions.filter((r) => r.phase === 'error')
+  if (failed.length < 2) return null
+  const useMock = () => {
+    applyLlm({ ...llm, active: 'mock' })
+    for (const r of failed) engine.retry(r.id)
+  }
+  return (
+    <div className="failure-banner" role="alert">
+      <Alert width={16} height={16} />
+      <div>
+        <p>
+          <b>{failed.length} residentes no pudieron decidir.</b> {failed[0].error}
+        </p>
+        <div className="failure-actions">
+          <button className="btn-link" onClick={() => failed.forEach((r) => engine.retry(r.id))}>
+            Reintentar
+          </button>
+          <button className="btn-link" onClick={useMock}>
+            Usar modo simulado
+          </button>
+          <button className="btn-link" onClick={() => setSettingsOpen(true)}>
+            Revisar configuración
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

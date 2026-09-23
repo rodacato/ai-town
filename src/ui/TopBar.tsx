@@ -1,13 +1,16 @@
 import { TOWN_NAME } from '../data/town'
 import { formatClock } from '../sim/clock'
 import { useTown } from '../store'
-import { Reset, Sun, TownMark, Users } from './icons'
+import { activeLabel } from '../agents/llm/config'
+import { Gear, Reset, Sun, TownMark, Users } from './icons'
 
 export function TopBar() {
   const minutes = useTown((s) => s.minutes)
   const outside = useTown((s) => s.outside)
   const total = useTown((s) => s.sim.residents.length)
   const resetTown = useTown((s) => s.resetTown)
+  const llm = useTown((s) => s.llm)
+  const openSettings = () => useTown.getState().setSettingsOpen(true)
   const { day, time } = formatClock(minutes)
 
   return (
@@ -30,10 +33,13 @@ export function TopBar() {
           <span className="mono">{outside}</span>
           <span className="pill-label">de {total} en la calle</span>
         </div>
-        <div className="pill panel mode" title="Las decisiones se simulan localmente, sin llamar a ningún modelo">
+        <button className={`pill panel btn-pill mode ${llm.active === 'mock' ? '' : 'is-llm'}`} onClick={openSettings} title="Cambiar quién decide por los residentes">
           <span className="dot" />
-          <span className="pill-label">Modo simulado</span>
-        </div>
+          <span className="pill-label">{activeLabel(llm)}</span>
+        </button>
+        <button className="pill panel btn-pill icon-only" onClick={openSettings} aria-label="Configurar modelo de decisiones" title="Configurar modelo de decisiones">
+          <Gear className="pill-icon gear" />
+        </button>
         <button className="pill panel btn-pill" onClick={resetTown} title="Devuelve a todos a su rutina y borra el anuncio">
           <Reset className="pill-icon" />
           Reiniciar

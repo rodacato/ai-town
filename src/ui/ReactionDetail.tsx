@@ -71,6 +71,7 @@ export function ReactionDetail({ reaction, name }: { reaction: Reaction | undefi
           </div>
           <ul className="decision-meta">
             <li>Se enteró {via}.</li>
+            {reaction.decidedBy && <li>Decidido por {reaction.decidedBy}.</li>}
             {d.tell.length > 0 && (
               <li>
                 Decidió avisar a{' '}
