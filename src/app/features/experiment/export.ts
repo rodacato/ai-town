@@ -64,8 +64,10 @@ export function callsCsv(reactions: Record<string, Reaction>) {
     c.believes,
     c.error,
   ])
-  return [CSV_COLUMNS, ...rows].map((row) => row.map(cell).join(',')).join('\n')
+  return toCsv(CSV_COLUMNS, rows)
 }
+
+export const toCsv = (columns: string[], rows: unknown[][]) => [columns, ...rows].map((row) => row.map(cell).join(',')).join('\n')
 
 export function download(filename: string, body: string, type: string) {
   const url = URL.createObjectURL(new Blob([body], { type }))
