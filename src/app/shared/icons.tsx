@@ -61,12 +61,17 @@ export const Home = (p: SVGProps<SVGSVGElement>) => (
 export function TownMark({ size = 28 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden>
-      <path d="M32 30 58 45 32 60 6 45z" fill="#A8C69F" />
-      <path d="M14 26v14l14 8V34z" fill="#F7ECDD" />
-      <path d="M42 26v14l-14 8V34z" fill="#E4D3BB" />
-      <path d="M28 10 10 24l18 10 18-10z" fill="#E09A7B" />
-      <path d="M28 10 46 24l-18 10z" fill="#C97C5D" />
-      <path d="M19 37.5v6l4.5 2.6v-6z" fill="#8E5B3D" />
+      <path d="M32 40 58 53 32 64 6 53z" fill="#9FC48F" />
+      <path d="M28 30h8v20h-8z" fill="#7D5A3F" />
+      <path d="M32 30h4v20h-4z" fill="#654832" />
+      <circle cx="20" cy="26" r="11" fill="#63995C" />
+      <circle cx="44" cy="26" r="11" fill="#6FA564" />
+      <circle cx="32" cy="17" r="14" fill="#7DB06C" />
+      <circle cx="27" cy="11" r="5" fill="#B4D6A4" />
+      <path d="M46 10v-9" stroke="#4F4A44" strokeWidth="1.8" />
+      <path d="M46 1l9 2.5-9 2.5z" fill="#B23A48" />
+      <circle cx="14" cy="34" r="2" fill="#FFD98A" />
+      <circle cx="50" cy="35" r="2" fill="#FFD98A" />
     </svg>
   )
 }
@@ -74,12 +79,6 @@ export function TownMark({ size = 28 }: { size?: number }) {
 export const Megaphone = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base(p)}>
     <path d="M3 10v4a1 1 0 0 0 1 1h2l5 4V5L6 9H4a1 1 0 0 0-1 1zM15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" />
-  </svg>
-)
-
-export const Landmark = (p: SVGProps<SVGSVGElement>) => (
-  <svg {...base(p)}>
-    <path d="M3 21h18M5 21V10M19 21V10M9.5 21V10M14.5 21V10M2.5 10 12 4l9.5 6z" />
   </svg>
 )
 
@@ -165,5 +164,11 @@ export const Alert = (p: SVGProps<SVGSVGElement>) => (
 export const Refresh = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base(p)}>
     <path d="M21 12a9 9 0 0 1-15.5 6.2L3 16M3 12a9 9 0 0 1 15.5-6.2L21 8M21 3v5h-5M3 21v-5h5" />
+  </svg>
+)
+
+export const Castle = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <path d="M4 21V9h3v2h2V9h3v2h2V9h3v2h2V9h3v12zM10 21v-4a2 2 0 0 1 4 0v4M12 9V3l4 1.5-4 1.5" />
   </svg>
 )

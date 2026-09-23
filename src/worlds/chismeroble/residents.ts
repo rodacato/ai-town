@@ -64,7 +64,7 @@ export const RESIDENTS: ResidentProfile[] = [
     traits: ['responsable', 'desconfiado', 'metódico'],
     alignment: 'legal bueno',
     relationships: [
-      { id: 'kael', label: 'lo vigila de cerca' },
+      { id: 'kael', label: 'la vigila de cerca' },
       { id: 'clemencia', label: 'su confesora' },
       { id: 'brunhilda', label: 'le forja las armas' },
     ],
@@ -257,7 +257,7 @@ export const RESIDENTS: ResidentProfile[] = [
     ],
     home: 'hunter',
     routine: { forest: 4, bridge: 2, riverbank: 2, tavern: 1, home: 1 },
-    look: { skin: SKIN.tiefling, hair: HAIR.violet, hairStyle: 'long', shirt: 0x4f5a4a, pants: 0x3b3531, accessory: 'bow', ancestry: 'tiefling' },
+    look: { skin: SKIN.tiefling, hair: HAIR.violet, hairStyle: 'long', shirt: 0x4f5a4a, pants: 0x3b3531, accessory: 'longbow', ancestry: 'tiefling' },
   },
   {
     id: 'rosalinda',

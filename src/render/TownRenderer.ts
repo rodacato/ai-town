@@ -100,6 +100,7 @@ export class TownRenderer {
         s.view.zIndex = s.depth
         this.objects.addChild(s.view)
         if (s.sway) this.swaying.push(s.sway)
+        if (s.update) this.animated.push(s.update)
       }
     for (const l of W.landmarks) {
       const s = art.landmark(l)
@@ -194,7 +195,7 @@ export class TownRenderer {
     const r = this.sim.get(id)
     if (!r) return null
     const p = iso(r.x, r.y)
-    const g = this.world.toGlobal({ x: p.x, y: p.y - (r.profile.age < 14 ? 33 : 42) })
+    const g = this.world.toGlobal({ x: p.x, y: p.y - this.sprites.get(id)!.headHeight - 4 })
     return { x: g.x, y: g.y, visible: r.mode !== 'inside' }
   }
 

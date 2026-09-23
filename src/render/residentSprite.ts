@@ -13,6 +13,22 @@ export interface ReactionVisual {
 
 const NO_REACTION: ReactionVisual = { bubble: { kind: 'none' }, ring: null, pulse: false }
 
+/** Height and build per ancestry; `wide` stretches the body sideways for stocky folk. */
+const BUILD: Record<string, { scale: number; wide: number }> = {
+  human: { scale: 1.1, wide: 1 },
+  elf: { scale: 1.14, wide: 0.9 },
+  dwarf: { scale: 0.9, wide: 1.25 },
+  halfling: { scale: 0.8, wide: 1.02 },
+  gnome: { scale: 0.72, wide: 1 },
+  halforc: { scale: 1.22, wide: 1.14 },
+  tiefling: { scale: 1.1, wide: 1 },
+}
+
+export function buildOf(look: Look, age: number) {
+  const b = BUILD[look.ancestry ?? 'human'] ?? BUILD.human
+  return { scale: b.scale * (age < 14 ? 0.8 : 1), wide: b.wide }
+}
+
 export class ResidentSprite {
   readonly view = new Container()
   private stateRing = new Graphics()
@@ -29,16 +45,19 @@ export class ResidentSprite {
   private bubbleOffset = 0
   hovered = false
   selected = false
+  /** Distance from the feet to just above the head, in world pixels. */
+  readonly headHeight: number
 
   constructor(
     readonly resident: Resident,
     private overlay: Container,
   ) {
     const { look, age } = resident.profile
-    const scale = age < 14 ? 0.85 : 1.1
+    const { scale, wide } = buildOf(look, age)
+    this.headHeight = 38 * scale
     this.view.eventMode = 'static'
     this.view.cursor = 'pointer'
-    this.view.hitArea = new Rectangle(-11, -36, 22, 40)
+    this.view.hitArea = new Rectangle(-11, -this.headHeight, 22, this.headHeight + 4)
 
     this.ring.ellipse(0, 0, 13, 6.5).stroke({ width: 2.5, color: PAL.accent, alpha: 0.9 })
     this.ring.ellipse(0, 0, 13, 6.5).fill({ color: PAL.accent, alpha: 0.15 })
@@ -51,7 +70,7 @@ export class ResidentSprite {
     const shadow = new Graphics().ellipse(0, 0, 7.5 * scale, 3.4 * scale).fill({ color: PAL.shadow, alpha: 0.2 })
     this.view.addChild(shadow)
 
-    this.body.scale.set(scale)
+    this.body.scale.set(scale * wide, scale)
     this.view.addChild(this.body)
     for (const [leg, lx] of [
       [this.legL, -3.4],
@@ -62,6 +81,7 @@ export class ResidentSprite {
       leg.x = lx
       this.body.addChild(leg)
     }
+    this.body.addChild(drawBack(look))
     this.armL.roundRect(-1.3, 0, 2.6, 8, 1.3).fill(shade(look.shirt, -0.12))
     this.armL.position.set(-5.6, -17)
     this.body.addChild(this.armL)
@@ -142,6 +162,35 @@ function drawTorso(look: Look) {
     g.roundRect(2, -10.5, 6, 5, 1.5).fill(0x8a5f40)
   }
   if (look.accessory === 'cane') g.moveTo(8, -9).lineTo(9, 0).stroke({ width: 1.4, color: 0x6b4a33, cap: 'round' })
+  if (look.accessory === 'holy-symbol') {
+    g.circle(2, -13.5, 2).fill(0xe3b94f)
+    g.circle(2, -13.5, 0.9).fill(0xfff3c4)
+  }
+  if (look.accessory === 'wooden-sword') {
+    g.moveTo(7.5, -7).lineTo(10.5, -21).stroke({ width: 1.8, color: 0xb98b63, cap: 'round' })
+    g.moveTo(6, -9.5).lineTo(10, -8.5).stroke({ width: 1.4, color: 0x6b4a33, cap: 'round' })
+  }
+  return g
+}
+
+/** Things carried on the back, drawn behind the torso. */
+function drawBack(look: Look) {
+  const g = new Graphics()
+  switch (look.accessory) {
+    case 'longbow':
+      g.moveTo(-6, -25).quadraticCurveTo(-12, -14, -6, -2).stroke({ width: 1.6, color: 0x8a5f40, cap: 'round' })
+      g.moveTo(-6, -25).lineTo(-6, -2).stroke({ width: 0.6, color: 0xf3eadb })
+      break
+    case 'lute':
+      g.moveTo(-4, -12).lineTo(1, -27).stroke({ width: 1.6, color: 0x6b4a33, cap: 'round' })
+      g.ellipse(-5, -10, 4.2, 5.2).fill(0xb98b63)
+      g.circle(-5, -11, 1.2).fill(0x4a3526)
+      break
+    case 'axe':
+      g.moveTo(-7, -4).lineTo(3, -27).stroke({ width: 1.8, color: 0x8a5f40, cap: 'round' })
+      g.poly([1, -28, 7, -30, 7, -21, 2, -23]).fill(0x9aa3ad)
+      break
+  }
   return g
 }
 
@@ -154,7 +203,13 @@ function drawHead(look: Look, age: number) {
   g.circle(0, hy, 5.2).fill(look.skin)
   g.circle(3.3, hy + 1.8, 1.1).fill({ color: 0xe88b7a, alpha: 0.35 })
   g.circle(2.5, hy + 0.6, 0.85).fill(PAL.ink)
-  if (age >= 60) g.moveTo(1.5, hy + 2.8).lineTo(3.4, hy + 2.6).stroke({ width: 0.6, color: shade(look.skin, -0.3) })
+  if (age >= 60 && !look.beard) g.moveTo(1.5, hy + 2.8).lineTo(3.4, hy + 2.6).stroke({ width: 0.6, color: shade(look.skin, -0.3) })
+  if (look.ancestry === 'gnome') g.circle(5, hy + 1.4, 1.7).fill(shade(look.skin, -0.08))
+  if (look.ancestry === 'halforc') {
+    g.poly([2.6, hy + 3.2, 3.4, hy + 1.2, 4, hy + 3.2]).fill(0xfbf6ee)
+    g.poly([3.9, hy + 3.2, 4.6, hy + 1.6, 5, hy + 3.2]).fill(0xfbf6ee)
+  }
+  if (look.beard) g.poly([-0.8, hy + 1.4, 5.4, hy + 1, 4.6, hy + 5.5, 1.6, hy + 9, -2.2, hy + 5]).fill(look.beard)
 
   const cap = () => g.poly(arcPoints(0, hy, 5.6, Math.PI * 0.98, Math.PI * 1.9)).fill(hair)
   switch (look.hairStyle) {
@@ -186,7 +241,41 @@ function drawHead(look: Look, age: number) {
       break
   }
 
+  if (look.ancestry === 'elf') g.poly([-3.4, hy - 0.8, -8.2, hy - 5.6, -3, hy + 1.6]).fill(look.skin)
+  if (look.ancestry === 'tiefling') {
+    g.moveTo(-0.5, hy - 4.6).quadraticCurveTo(-3.5, hy - 10, -6.5, hy - 8).stroke({ width: 2.2, color: 0x3a2a3a, cap: 'round' })
+    g.moveTo(2.5, hy - 4.8).quadraticCurveTo(1, hy - 10.5, -1.8, hy - 9.8).stroke({ width: 2, color: 0x3a2a3a, cap: 'round' })
+  }
+
   switch (look.accessory) {
+    case 'helmet':
+      g.poly(arcPoints(0, hy - 0.4, 6, Math.PI, Math.PI * 2)).fill(0x9aa3ad)
+      g.rect(-6, hy - 0.9, 12, 1.8).fill(0x7d8690)
+      g.rect(2.8, hy - 1, 1.3, 4.2).fill(0x7d8690)
+      g.circle(0, hy - 6.3, 1.2).fill(0xb23a48)
+      break
+    case 'wizard-hat':
+      g.ellipse(0, hy - 3.8, 10, 2.8).fill(0x34467f)
+      g.poly([-5, hy - 4.5, 5, hy - 4.5, 2, hy - 13, -4, hy - 21]).fill(0x3f5395)
+      g.circle(0.5, hy - 9, 1.1).fill(0xe3b94f)
+      break
+    case 'straw-hat':
+      g.ellipse(0, hy - 3.5, 9.5, 2.6).fill(0xd9b36c)
+      g.roundRect(-4.6, hy - 9, 9.2, 6, 3).fill(0xe3c07e)
+      g.rect(-4.6, hy - 5, 9.2, 1.5).fill(0xb23a48)
+      break
+    case 'leaf-crown':
+      for (let i = 0; i < 6; i++) g.ellipse(-5 + i * 2, hy - 4.8 + Math.abs(i - 2.5) * 0.6, 1.6, 1).fill(i % 2 ? 0x7fa876 : 0x9cc184)
+      g.circle(1, hy - 6, 1).fill(0xf2a7a0)
+      break
+    case 'tiara':
+      g.poly([-3.5, hy - 5, -2.5, hy - 8, -1, hy - 5.8, 0.5, hy - 9, 2, hy - 5.8, 3.5, hy - 8, 4.5, hy - 5]).fill(0xe3b94f)
+      g.circle(0.5, hy - 7.2, 0.8).fill(0xb23a48)
+      break
+    case 'monocle':
+      g.circle(2.6, hy + 0.6, 1.9).stroke({ width: 0.8, color: 0xe3b94f })
+      g.moveTo(4.2, hy + 1.6).quadraticCurveTo(5, hy + 5, 3, hy + 7).stroke({ width: 0.5, color: 0xe3b94f })
+      break
     case 'hat':
       g.ellipse(0, hy - 3.5, 9, 2.6).fill(0xd9b36c)
       g.roundRect(-4.6, hy - 9, 9.2, 6, 3).fill(0xe3c07e)

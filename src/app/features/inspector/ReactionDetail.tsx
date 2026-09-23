@@ -9,13 +9,14 @@ export function ReactionDetail({ reaction, name }: { reaction: Reaction | undefi
   const now = useNow(reaction?.phase === 'thinking')
   const streamed = useTown((s) => (reaction ? s.reasoning[reaction.id] : undefined))
   const first = name.split(' ')[0]
+  const noun = town.content.copy.noun
 
-  if (!reaction) return <div className="reaction-body is-empty">Todavía no hay anuncio. Cuando transmitas uno, aquí verás qué decide {first} y por qué.</div>
-  if (reaction.isSpeaker) return <div className="reaction-body is-empty">{first} hizo el anuncio.</div>
+  if (!reaction) return <div className="reaction-body is-empty">Todavía no hay {noun}. Cuando haya uno, aquí verás qué decide {first} y por qué.</div>
+  if (reaction.isSpeaker) return <div className="reaction-body is-empty">{first} hizo el {noun}.</div>
 
   switch (reaction.phase) {
     case 'unaware':
-      return <div className="reaction-body is-empty">Todavía no le ha llegado el anuncio.</div>
+      return <div className="reaction-body is-empty">Todavía no le ha llegado el {noun}.</div>
     case 'heard':
       return <div className="reaction-body is-waiting">Acaba de escucharlo…</div>
     case 'thinking':
@@ -49,7 +50,7 @@ export function ReactionDetail({ reaction, name }: { reaction: Reaction | undefi
       )
     case 'decided': {
       const d = reaction.decision!
-      const via = reaction.heardVia && reaction.heardVia !== 'broadcast' ? `de boca de ${firstName(reaction.heardVia)}` : 'por el anuncio'
+      const via = reaction.heardVia && reaction.heardVia !== 'broadcast' ? `de boca de ${firstName(reaction.heardVia)}` : `por el ${noun}`
       return (
         <div className="reaction-body is-decided">
           <div className="decision-top">

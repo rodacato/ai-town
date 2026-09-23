@@ -17,12 +17,12 @@ export function Timeline() {
   const thinking = stats.listeners.filter((r) => r.phase === 'thinking').length
 
   const subtitle = !announcement
-    ? 'Transmite un anuncio para ver cómo decide cada residente.'
+    ? town.content.copy.emptyHint
     : complete
       ? 'Todos han decidido. Haz clic en cualquiera para ver por qué.'
       : thinking
         ? `${thinking} ${thinking === 1 ? 'residente está pensando' : 'residentes están pensando'}…`
-        : 'El anuncio se está propagando…'
+        : `El ${town.content.copy.noun} se está propagando…`
 
   return (
     <section className="timeline panel" aria-label="Reacciones de los residentes">
@@ -52,7 +52,7 @@ export function Timeline() {
           const rx = reactions[r.id]
           const action = rx?.decision?.action
           const phase = rx?.isSpeaker ? 'speaker' : (rx?.phase ?? 'idle')
-          const tip = rx?.isSpeaker ? 'hizo el anuncio' : action ? ACTION_META[action].short.toLowerCase() : rx ? PHASE_TIP[rx.phase as keyof typeof PHASE_TIP] : ''
+          const tip = rx?.isSpeaker ? `hizo el ${town.content.copy.noun}` : action ? ACTION_META[action].short.toLowerCase() : rx ? PHASE_TIP[rx.phase as keyof typeof PHASE_TIP] : ''
           return (
             <li key={r.id}>
               <button

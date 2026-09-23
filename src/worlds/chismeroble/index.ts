@@ -105,5 +105,7 @@ export const chismeroble: WorldContent = {
     composerSubtitle: 'Lo que pregones se oirá en toda la aldea.',
     broadcast: 'Pregonar',
     onAir: 'Pregonando',
+    noun: 'pregón',
+    emptyHint: 'Haz un pregón para ver cómo decide cada residente.',
   },
 }

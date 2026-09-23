@@ -39,8 +39,8 @@ export function Composer() {
   return (
     <div className="panel-view composer">
       <header className="panel-header">
-        <h2>Nuevo anuncio</h2>
-        <p>Lo que digas se escuchará en todo el pueblo.</p>
+        <h2>{town.content.copy.composerTitle}</h2>
+        <p>{town.content.copy.composerSubtitle}</p>
       </header>
 
       <div className="field">
@@ -78,7 +78,7 @@ export function Composer() {
 
       <button className="btn-primary" disabled={!canSend} onClick={() => town.transmit()}>
         <Megaphone width={17} height={17} />
-        Transmitir anuncio
+        {town.content.copy.broadcast}
         <kbd>{isMac ? '⌘' : 'Ctrl'} ↵</kbd>
       </button>
 

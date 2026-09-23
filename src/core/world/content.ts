@@ -125,5 +125,8 @@ export interface WorldContent {
     composerSubtitle: string
     broadcast: string
     onAir: string
+    /** Masculine noun for one announcement, e.g. "anuncio" or "pregón". */
+    noun: string
+    emptyHint: string
   }
 }

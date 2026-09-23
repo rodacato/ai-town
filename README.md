@@ -1,6 +1,6 @@
 # AI Town
 
-Simulación de un pueblo isométrico habitado por residentes con personalidad propia. Haces un anuncio público y ves cómo decide y reacciona cada uno.
+Simulación de **Chismeroble**, una aldea de fantasía al estilo D&D ("donde los rumores crecen más rápido que los robles"), habitada por residentes con personalidad propia. Haces un pregón público y ves cómo decide y reacciona cada uno.
 
 ## Desarrollo
 

@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import type { Speaker, SpeakerKind } from '../../../core/reactions/announcement'
 import { useTown } from '../../store'
 import { Avatar } from '../../shared/Avatar'
-import { ChevronDown, Landmark, Stranger, User } from '../../shared/icons'
+import { ChevronDown, Castle, Stranger, User } from '../../shared/icons'
 import { town } from '../../town'
 
-const ICONS = { authority: Landmark, neighbor: User, stranger: Stranger }
+const ICONS = { authority: Castle, neighbor: User, stranger: Stranger }
 const KINDS: SpeakerKind[] = ['authority', 'neighbor', 'stranger']
 
 export function SpeakerPicker() {

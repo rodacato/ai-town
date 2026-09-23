@@ -24,7 +24,7 @@ export function ActiveAnnouncement({ announcement }: { announcement: Announcemen
     <div className="panel-view active-announcement">
       <div className={`on-air ${complete ? 'is-complete' : ''}`}>
         <span className="on-air-dot" />
-        {complete ? 'Experimento completo' : 'En el aire'}
+        {complete ? 'Experimento completo' : town.content.copy.onAir}
         <span className="on-air-time mono">
           {day} · {time}
         </span>
@@ -85,7 +85,7 @@ export function ActiveAnnouncement({ announcement }: { announcement: Announcemen
 
       <button className="btn-secondary" onClick={() => town.reset()}>
         <Reset width={15} height={15} />
-        Reiniciar y probar otro anuncio
+        Reiniciar y probar otro {town.content.copy.noun}
       </button>
     </div>
   )
@@ -206,6 +206,6 @@ function feedSub(r: Reaction, streamed: string | undefined) {
   if (r.phase === 'decided' && r.decision) return `${r.decision.emoji} «${r.decision.speech}»`
   if (r.phase === 'thinking') return streamed ? `…${streamed.slice(-60).replace(/^\S*\s/, '')}` : 'Pensando qué hacer…'
   if (r.phase === 'error') return r.error ?? 'No pudo decidir.'
-  if (r.phase === 'heard') return 'Acaba de escuchar el anuncio.'
-  return 'Todavía no le llega el anuncio.'
+  if (r.phase === 'heard') return `Acaba de escuchar el ${town.content.copy.noun}.`
+  return `Todavía no le llega el ${town.content.copy.noun}.`
 }
