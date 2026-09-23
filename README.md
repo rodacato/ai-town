@@ -26,9 +26,22 @@ El engrane de la barra superior abre la configuración. Opciones:
 | SheLLM | Cualquiera de los dos | Tu suscripción de Claude Code o Codex vía [SheLLM](https://rodacato.github.io/SheLLM/). Mantén la concurrencia baja. |
 | Personalizado | Compatible con OpenAI | Ollama, LM Studio, OpenRouter… |
 
-Las peticiones pasan por un proxy dentro del servidor de Vite (`/api/llm`), así el navegador no necesita CORS ni ve credenciales de terceros. Si dejas la key vacía en el modal, el proxy usa la del archivo `.env` (ver `.env.example`). La configuración se guarda en `localStorage`.
+### Dos formas de conectar
 
-El proxy está pensado para uso local. Si publicas la app, las keys deben quedarse solo en el servidor.
+- **Local (`npm run dev`)**: las peticiones pasan por un proxy dentro del servidor de Vite (`/api/llm`). El navegador mantiene un solo stream abierto y cada decisión es un POST corto, así que no aplica el límite de ~6 conexiones por host del navegador. Si dejas la key vacía, el proxy usa la de `.env` (ver `.env.example`). La terminal registra cada petición.
+- **Estática (GitHub Pages)**: no hay proxy. Tu navegador llama directo al proveedor con tu propia key. Anthropic y OpenAI lo permiten; Ollama y LM Studio necesitan habilitar CORS; SheLLM necesita CORS y, para más de 6 peticiones a la vez, HTTPS con HTTP/2 (por ejemplo, Caddy delante).
+
+### Keys
+
+- Por defecto viven solo en memoria: se borran al cerrar la pestaña.
+- Opcionalmente se recuerdan **cifradas** (PBKDF2 + AES-GCM) con una frase; nunca se guardan en claro.
+- El build de producción lleva una Content-Security-Policy estricta: sin scripts externos ni `eval`.
+- Todas tus páginas de `usuario.github.io` comparten origen: evita scripts de terceros en ellas.
+- Usa keys dedicadas, con tope de gasto, y rótalas al terminar.
+
+## Publicar en GitHub Pages
+
+El workflow `.github/workflows/deploy.yml` corre typecheck, tests y build en cada push a `main` y publica `dist/`. En el repo, activa **Settings → Pages → Source: GitHub Actions**. El build usa rutas relativas, así que funciona con cualquier nombre de repositorio.
 
 ## Estructura
 

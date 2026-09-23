@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { PRESETS, type Connection, type LlmSettings, type ProviderKind } from '../../../providers/llm/config'
+import { PRESETS, keyRing, withKeys, type Connection, type LlmSettings, type ProviderKind } from '../../../providers/llm/config'
 import { MAX_CONCURRENCY } from '../../../providers'
-import { fetchModels, streamChat } from '../../../providers/llm/client'
+import { fetchModels, streamChat, transportMode, type TransportMode } from '../../../providers/llm/client'
 import { useTown } from '../../store'
 import { town } from '../../town'
 import { Alert, Check, Close, Eye, EyeOff, Refresh } from '../../shared/icons'
@@ -27,6 +27,14 @@ function Dialog({ onClose }: { onClose: () => void }) {
   const [test, setTest] = useState<TestState>({ status: 'idle' })
   const [models, setModels] = useState<ModelsState>({ status: 'idle' })
   const [showKey, setShowKey] = useState(false)
+  const [mode, setMode] = useState<TransportMode | null>(null)
+  const [remember, setRemember] = useState(false)
+  const [passphrase, setPassphrase] = useState('')
+  const vaultLocked = useTown((s) => s.vaultLocked)
+
+  useEffect(() => {
+    void transportMode().then(setMode)
+  }, [])
   const dialog = useRef<HTMLDivElement>(null)
   const kind = draft.active
   const conn = kind === 'mock' ? null : draft.connections[kind]
@@ -91,14 +99,16 @@ function Dialog({ onClose }: { onClose: () => void }) {
     }
   }
 
-  const save = () => {
+  const save = async () => {
     town.applySettings(draft)
+    if (remember) await town.rememberKeys(passphrase)
     const label = draft.active === 'mock' ? 'el modo simulado' : `${PRESETS[draft.active].label}${conn?.model ? ` (${conn.model})` : ''}`
     toast(announcement ? `Listo: las próximas decisiones las toma ${label}.` : `Listo: ahora decide ${label}.`)
     onClose()
   }
 
-  const canSave = kind === 'mock' || (!!conn?.host.trim() && !!conn.model.trim())
+  const canSave = (kind === 'mock' || (!!conn?.host.trim() && !!conn.model.trim())) && (!remember || passphrase.length >= 8)
+  const direct = mode === 'direct'
   const suggestions = models.status === 'ok' ? models.models.filter((m) => !conn?.model || m.toLowerCase().includes(conn.model.toLowerCase())).slice(0, 14) : []
 
   return (
@@ -115,6 +125,14 @@ function Dialog({ onClose }: { onClose: () => void }) {
         </header>
 
         <div className="modal-body">
+          {mode && (
+            <p className={`mode-note ${direct ? 'is-direct' : ''}`}>
+              {direct
+                ? 'Conexión directa: tu navegador habla con el proveedor sin pasar por ningún servidor. El host debe permitir CORS desde esta página.'
+                : 'Vía servidor local: las peticiones salen desde el servidor de Vite en tu máquina, sin límite de conexiones del navegador.'}
+            </p>
+          )}
+          {vaultLocked && <VaultUnlock onUnlocked={() => setDraft((d) => withKeys(d, keyRing(useTown.getState().llm)))} />}
           <div className="provider-grid" role="radiogroup" aria-label="Proveedor">
             {KINDS.map((k) => (
               <button
@@ -166,7 +184,7 @@ function Dialog({ onClose }: { onClose: () => void }) {
                     className="input mono"
                     type={showKey ? 'text' : 'password'}
                     value={conn.apiKey}
-                    placeholder={`Vacía = usa ${PRESETS[kind].envKey} del archivo .env`}
+                    placeholder={direct ? (PRESETS[kind].protocolLocked ? 'Necesaria en conexión directa' : 'Si tu host la pide') : `Vacía = usa ${PRESETS[kind].envKey} del archivo .env`}
                     onChange={(e) => update({ apiKey: e.target.value })}
                     autoComplete="off"
                     spellCheck={false}
@@ -175,6 +193,24 @@ function Dialog({ onClose }: { onClose: () => void }) {
                     {showKey ? <EyeOff /> : <Eye />}
                   </button>
                 </div>
+                <label className="check">
+                  <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
+                  Recordar mis keys en este navegador, cifradas con una frase
+                </label>
+                {remember && (
+                  <input
+                    className="input"
+                    type="password"
+                    value={passphrase}
+                    placeholder="Frase secreta (8 caracteres o más); te la pediré al volver"
+                    onChange={(e) => setPassphrase(e.target.value)}
+                    autoComplete="new-password"
+                    aria-label="Frase para cifrar las keys"
+                  />
+                )}
+                <p className="field-hint">
+                  Sin marcar, la key vive solo en esta pestaña y se borra al cerrarla. Usa keys dedicadas, con tope de gasto, y rótalas al terminar.
+                </p>
               </div>
 
               <div className="field">
@@ -250,7 +286,9 @@ function Dialog({ onClose }: { onClose: () => void }) {
         </div>
 
         <footer className="modal-footer">
-          <p className="privacy">La configuración y las keys se guardan solo en este navegador. Las peticiones pasan por el servidor local de Vite.</p>
+          <p className="privacy">
+            Nada se envía a servidores de AI Town: no existen. {direct ? 'Tu navegador llama directo al proveedor.' : 'Las peticiones pasan por el servidor local de Vite.'}
+          </p>
           <div className="modal-actions">
             <button className="btn-secondary compact" onClick={onClose}>
               Cancelar
@@ -262,5 +300,44 @@ function Dialog({ onClose }: { onClose: () => void }) {
         </footer>
       </div>
     </div>
+  )
+}
+
+function VaultUnlock({ onUnlocked }: { onUnlocked: () => void }) {
+  const [pass, setPass] = useState('')
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const unlock = async () => {
+    setBusy(true)
+    setError('')
+    try {
+      await town.unlockKeys(pass)
+      onUnlocked()
+      useTown.getState().toast('Keys desbloqueadas para esta pestaña.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudieron abrir.')
+    }
+    setBusy(false)
+  }
+  return (
+    <form
+      className="vault-unlock"
+      onSubmit={(e) => {
+        e.preventDefault()
+        void unlock()
+      }}
+    >
+      <p>Tienes keys guardadas y cifradas en este navegador.</p>
+      <div className="input-group">
+        <input className="input" type="password" value={pass} placeholder="Tu frase secreta" onChange={(e) => setPass(e.target.value)} aria-label="Frase secreta" autoComplete="current-password" />
+        <button className="btn-secondary compact" type="submit" disabled={!pass || busy}>
+          {busy ? 'Abriendo…' : 'Desbloquear'}
+        </button>
+      </div>
+      {error && <p className="field-error">{error}</p>}
+      <button type="button" className="btn-link small" onClick={() => town.forgetRememberedKeys()}>
+        Olvidar las keys guardadas
+      </button>
+    </form>
   )
 }

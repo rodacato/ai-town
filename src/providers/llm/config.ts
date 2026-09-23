@@ -79,27 +79,42 @@ export const DEFAULT_SETTINGS: LlmSettings = {
 
 const STORAGE_KEY = 'ai-town:llm-settings'
 
-export function loadSettings(): LlmSettings {
+/** Settings without keys; `hadPlaintextKeys` flags keys saved in clear by older versions, which the caller should scrub. */
+export function loadSettings(): { settings: LlmSettings; hadPlaintextKeys: boolean } {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return DEFAULT_SETTINGS
+    if (!raw) return { settings: DEFAULT_SETTINGS, hadPlaintextKeys: false }
     const saved = JSON.parse(raw) as Partial<LlmSettings>
-    return {
+    const settings: LlmSettings = {
       active: saved.active ?? 'mock',
       connections: Object.fromEntries(
         Object.entries(DEFAULT_SETTINGS.connections).map(([k, def]) => [k, { ...def, ...saved.connections?.[k as keyof LlmSettings['connections']] }]),
       ) as LlmSettings['connections'],
     }
+    return { settings, hadPlaintextKeys: Object.values(settings.connections).some((c) => c.apiKey) }
   } catch {
-    return DEFAULT_SETTINGS
+    return { settings: DEFAULT_SETTINGS, hadPlaintextKeys: false }
   }
 }
 
+/** Keys are never written here; they live in memory or, if the user opts in, encrypted in the vault. */
 export function saveSettings(settings: LlmSettings) {
+  const withoutKeys = { ...settings, connections: Object.fromEntries(Object.entries(settings.connections).map(([k, c]) => [k, { ...c, apiKey: '' }])) }
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(withoutKeys))
   } catch {
     /* storage can be unavailable in private windows; settings then last for the session */
+  }
+}
+
+export function keyRing(settings: LlmSettings) {
+  return Object.fromEntries(Object.entries(settings.connections).filter(([, c]) => c.apiKey).map(([k, c]) => [k, c.apiKey]))
+}
+
+export function withKeys(settings: LlmSettings, keys: Record<string, string>): LlmSettings {
+  return {
+    ...settings,
+    connections: Object.fromEntries(Object.entries(settings.connections).map(([k, c]) => [k, { ...c, apiKey: keys[k] ?? c.apiKey }])) as LlmSettings['connections'],
   }
 }
 

@@ -8,6 +8,12 @@ let active = 0
 let peak = 0
 
 createServer(async (req, res) => {
+  res.setHeader('access-control-allow-origin', '*')
+  res.setHeader('access-control-allow-headers', 'authorization, content-type')
+  if (req.method === 'OPTIONS') {
+    res.statusCode = 204
+    return res.end()
+  }
   if (req.url === '/v1/models') {
     res.setHeader('content-type', 'application/json')
     return res.end(JSON.stringify({ data: [{ id: 'fake-town-1' }, { id: 'fake-town-mini' }] }))

@@ -3,11 +3,13 @@ import { detectPlace, type Announcement } from '../core/reactions/announcement'
 import { ReactionEngine, type LogEntry, type Reaction } from '../core/reactions/engine'
 import { Simulation } from '../core/sim/simulation'
 import { createProvider } from '../providers'
-import { saveSettings, type LlmSettings } from '../providers/llm/config'
+import { keyRing, saveSettings, withKeys, type LlmSettings } from '../providers/llm/config'
+import { forgetKeys, openKeys, sealKeys } from '../providers/llm/vault'
 import { TownRenderer } from '../render/TownRenderer'
 import { activeWorld } from '../worlds'
 import { useTown } from './store'
 import { EMPTY_DRAFT } from './store/composer'
+import { HAD_PLAINTEXT_KEYS } from './store/settings'
 
 export const LAYOUT = { panelWidth: 380, gutter: 24, timelineHeight: 92 }
 const MAP_INSETS = { right: LAYOUT.panelWidth + LAYOUT.gutter + 16, bottom: LAYOUT.timelineHeight + LAYOUT.gutter + 12 }
@@ -53,6 +55,10 @@ class TownController {
       useTown.setState({ ready: true })
     })
     this.syncClock()
+    if (HAD_PLAINTEXT_KEYS) {
+      saveSettings(useTown.getState().llm)
+      useTown.getState().toast('Por seguridad, tus keys ya no se guardan sin cifrar. Siguen activas en esta pestaña.')
+    }
     const clock = window.setInterval(() => this.syncClock(), 1000)
     return () => {
       disposed = true
@@ -135,6 +141,23 @@ class TownController {
     this.engine.scheduler.setConcurrency(concurrency)
     saveSettings(llm)
     useTown.setState({ llm })
+  }
+
+  /** Keeps the current keys encrypted with a passphrase so they survive reloads. */
+  async rememberKeys(passphrase: string) {
+    await sealKeys(keyRing(useTown.getState().llm), passphrase)
+    useTown.setState({ vaultLocked: false })
+  }
+
+  async unlockKeys(passphrase: string) {
+    const keys = await openKeys(passphrase)
+    this.applySettings(withKeys(useTown.getState().llm, keys))
+    useTown.setState({ vaultLocked: false })
+  }
+
+  forgetRememberedKeys() {
+    forgetKeys()
+    useTown.setState({ vaultLocked: false })
   }
 
   private syncClock() {

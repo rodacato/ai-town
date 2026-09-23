@@ -1,3 +1,4 @@
+import 'pixi.js/unsafe-eval'
 import { Application, ColorMatrixFilter, Container, Graphics } from 'pixi.js'
 import type { ReactionEngine } from '../core/reactions/engine'
 import { ACTION_META } from '../theme/actions'
