@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { PRESETS, keyRing, withKeys, type Connection, type LlmSettings, type ProviderKind } from '../../../providers/llm/config'
 import { MAX_CONCURRENCY } from '../../../providers'
 import { knownPrice } from '../../../providers/llm/pricing'
@@ -6,6 +6,7 @@ import { fetchModels, streamChat, transportMode, type TransportMode } from '../.
 import { useTown } from '../../store'
 import { town } from '../../town'
 import { Alert, Check, Close, Eye, EyeOff, Refresh } from '../../shared/icons'
+import { useDialog } from '../../shared/useDialog'
 import './settings.css'
 
 const KINDS: ProviderKind[] = ['mock', 'anthropic', 'openai', 'shellm', 'custom']
@@ -36,33 +37,9 @@ function Dialog({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     void transportMode().then(setMode)
   }, [])
-  const dialog = useRef<HTMLDivElement>(null)
+  const dialog = useDialog<HTMLDivElement>(onClose, '[aria-checked="true"]')
   const kind = draft.active
   const conn = kind === 'mock' ? null : draft.connections[kind]
-
-  useEffect(() => {
-    const previous = document.activeElement as HTMLElement | null
-    dialog.current?.querySelector<HTMLElement>('[aria-checked="true"]')?.focus()
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') return onClose()
-      if (e.key !== 'Tab' || !dialog.current) return
-      const focusable = [...dialog.current.querySelectorAll<HTMLElement>('button:not([disabled]), input, [tabindex]:not([tabindex="-1"])')]
-      const first = focusable[0]
-      const last = focusable[focusable.length - 1]
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault()
-        last.focus()
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault()
-        first.focus()
-      }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => {
-      window.removeEventListener('keydown', onKey)
-      previous?.focus()
-    }
-  }, [onClose])
 
   useEffect(() => {
     setTest({ status: 'idle' })

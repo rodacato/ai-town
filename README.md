@@ -43,6 +43,29 @@ El engrane de la barra superior abre la configuración. Opciones:
 
 Cada petición al modelo queda registrada: tiempo en cola, hasta la primera palabra, respuesta completa, tokens y costo. El panel **Consumo** muestra totales y percentiles (p50/p95); el inspector, los de cada residente. El costo viene del host cuando lo reporta (SheLLM) o se estima con el precio por millón de tokens que pongas en Configuración (Claude trae precios de lista para algunos modelos). Al terminar un pregón puedes exportar la corrida en **JSON** (configuración sin key, decisiones y métricas) o **CSV** (una fila por petición).
 
+### Banco de pruebas
+
+El botón **Pruebas** compara modelos con los mismos pregones y residentes. Una semilla fija reconstruye el mismo pueblo en el mismo momento, así que todos los contendientes reciben prompts idénticos, hoy o dentro de un mes. Mide:
+
+- **Formato**: respuestas con el JSON pedido sin que la app tenga que arreglar nada (y qué falló cuando no).
+- **Consistencia**: con 2+ repeticiones, qué tanto repite cada residente su decisión.
+- **Como las reglas**: coincidencia con el modo simulado. Es una referencia para detectar cambios, no la respuesta correcta.
+- **Acuerdo** entre contendientes, reparto de acciones por pregón, latencia (p50/p95), tokens/s, tokens y costo.
+
+Solo cuenta la primera reacción (sin boca en boca) y cada contendiente corre por separado para no competir por el mismo host. Las pruebas se guardan en este navegador (IndexedDB) y se exportan en JSON o CSV.
+
+### Desde la terminal
+
+`npm run bench` corre el mismo banco sin navegador, directo desde Node: sin proxy ni límite de conexiones, útil para saturar SheLLM. Las keys y hosts salen de `.env` / `.env.local` (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `SHELLM_HOST`, `SHELLM_KEY`, `CUSTOM_LLM_HOST`, `CUSTOM_LLM_KEY`, `CUSTOM_LLM_PROTOCOL`).
+
+```bash
+npm run bench -- -m shellm:claude -m shellm:codex -r 3 -c 16
+npm run bench -- -m custom:llama3.2:3b@http://localhost:11434 -s banquet,troll --price 0/0
+npm run bench -- --help
+```
+
+Muestra el progreso en vivo, imprime la misma tabla que el navegador (más peticiones por segundo) y guarda la corrida en `bench-results/`. Ese JSON se importa en el historial del Banco de pruebas. Ctrl+C cancela y guarda lo que alcanzó a correr.
+
 ## Publicar en GitHub Pages
 
 El workflow `.github/workflows/deploy.yml` corre typecheck, tests y build en cada push a `main` y publica `dist/`. En el repo, activa **Settings → Pages → Source: GitHub Actions**. El build usa rutas relativas, así que funciona con cualquier nombre de repositorio.

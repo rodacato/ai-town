@@ -184,3 +184,9 @@ export const Download = (p: SVGProps<SVGSVGElement>) => (
     <path d="M12 4v11M7 10l5 5 5-5M5 20h14" />
   </svg>
 )
+
+export const Gauge = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <path d="M4 17a8 8 0 1 1 16 0M12 17l4-5" />
+  </svg>
+)

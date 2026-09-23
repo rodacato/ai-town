@@ -1,11 +1,12 @@
 import type { DecisionContext, DecisionEvent, DecisionProvider, TokenUsage } from '../../core/decisions/types'
-import { streamChat } from './client'
+import { streamChat, type ChatStream } from './client'
 import { PRESETS, type Connection } from './config'
 import { parseDecision, partialStringField } from './parse'
 import { estimateCost, priceFor } from './pricing'
 import { buildPrompt, buildSystemPrompt } from './prompt'
 
-export function createLlmProvider(connection: Connection): DecisionProvider {
+/** `stream` defaults to the browser's route (local proxy or direct); the CLI passes a plain Node one. */
+export function createLlmProvider(connection: Connection, stream: ChatStream = streamChat): DecisionProvider {
   return {
     id: connection.kind,
     label: `${PRESETS[connection.kind].label}${connection.model ? ` · ${connection.model}` : ''}`,
@@ -16,7 +17,7 @@ export function createLlmProvider(connection: Connection): DecisionProvider {
       const system = buildSystemPrompt(ctx.world)
       const prompt = buildPrompt(ctx)
       yield { type: 'request', system, prompt }
-      for await (const event of streamChat(connection, system, prompt, signal, { tag: ctx.resident.name, timeoutMs: 110_000 })) {
+      for await (const event of stream(connection, system, prompt, signal, { tag: ctx.resident.name, timeoutMs: 110_000 })) {
         if (event.type === 'done') {
           const estimated = estimateCost(priceFor(connection), event.usage.inputTokens, event.usage.outputTokens)
           usage =

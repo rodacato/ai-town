@@ -1,9 +1,9 @@
 import type { Connection } from './config'
-import { describeError, listModels, normalizeHost, streamCompletion, type CompletionRequest, type Usage } from './transport'
+import { completionEvents, describeError, listModels, normalizeHost, pushQueue, type CompletionRequest, type StreamEvent, type Usage } from './transport'
 
 export type TransportMode = 'proxy' | 'direct'
 
-export type StreamEvent = { type: 'delta'; text: string } | { type: 'done'; usage: Usage }
+export type { StreamEvent }
 
 const api = (path: string) => `${import.meta.env.BASE_URL}api/llm/${path}`
 
@@ -16,31 +16,6 @@ export function transportMode(): Promise<TransportMode> {
     .then((body: { ok?: boolean } | null) => (body?.ok ? 'proxy' : 'direct') as TransportMode)
     .catch(() => 'direct' as TransportMode)
   return modePromise
-}
-
-/** Async-iterable queue fed by callbacks, so push-based transports read like a stream. */
-function pushQueue<T>() {
-  const items: T[] = []
-  let wake: (() => void) | null = null
-  let error: Error | null = null
-  let closed = false
-  const notify = () => {
-    wake?.()
-    wake = null
-  }
-  return {
-    push: (item: T) => (items.push(item), notify()),
-    fail: (err: Error) => ((error = err), notify()),
-    close: () => ((closed = true), notify()),
-    async *[Symbol.asyncIterator]() {
-      for (;;) {
-        if (items.length) yield items.shift()!
-        else if (error) throw error
-        else if (closed) return
-        else await new Promise<void>((r) => (wake = r))
-      }
-    },
-  }
 }
 
 type Sink = ReturnType<typeof pushQueue<StreamEvent>>
@@ -102,19 +77,19 @@ class ProxyChannel {
 
 const channel = new ProxyChannel()
 
-async function* direct(connection: Connection, req: CompletionRequest, signal: AbortSignal): AsyncGenerator<StreamEvent> {
-  const sink = pushQueue<StreamEvent>()
-  streamCompletion({ ...connection, host: normalizeHost(connection.host) }, req, (text) => sink.push({ type: 'delta', text }), signal, { browser: true })
-    .then((usage) => (sink.push({ type: 'done', usage }), sink.close()))
-    .catch((err) => sink.fail(new Error(describeError(err, { browser: true }))))
-  yield* sink
+export interface ChatOptions {
+  maxTokens?: number
+  tag?: string
+  timeoutMs?: number
 }
 
+export type ChatStream = (connection: Connection, system: string, prompt: string, signal: AbortSignal, opts?: ChatOptions) => AsyncGenerator<StreamEvent>
+
 /** Streams a completion through the local proxy when there is one, or straight from the browser otherwise. */
-export async function* streamChat(connection: Connection, system: string, prompt: string, signal: AbortSignal, opts: { maxTokens?: number; tag?: string; timeoutMs?: number } = {}): AsyncGenerator<StreamEvent> {
+export async function* streamChat(connection: Connection, system: string, prompt: string, signal: AbortSignal, opts: ChatOptions = {}): AsyncGenerator<StreamEvent> {
   const req: CompletionRequest = { system, prompt, maxTokens: opts.maxTokens, timeoutMs: opts.timeoutMs }
   if ((await transportMode()) === 'proxy') yield* channel.stream(connection, req, signal, opts.tag)
-  else yield* direct(connection, req, signal)
+  else yield* completionEvents(connection, req, signal, { browser: true })
 }
 
 export async function fetchModels(connection: Connection): Promise<string[]> {

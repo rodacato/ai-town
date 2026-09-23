@@ -184,3 +184,39 @@ export async function listModels(t: Target, opts: TransportOptions = {}): Promis
   const json = (await response.json()) as { data?: { id: string }[] }
   return (json.data ?? []).map((m) => m.id)
 }
+
+export type StreamEvent = { type: 'delta'; text: string } | { type: 'done'; usage: Usage }
+
+/** Async-iterable queue fed by callbacks, so push-based transports read like a stream. */
+export function pushQueue<T>() {
+  const items: T[] = []
+  let wake: (() => void) | null = null
+  let error: Error | null = null
+  let closed = false
+  const notify = () => {
+    wake?.()
+    wake = null
+  }
+  return {
+    push: (item: T) => (items.push(item), notify()),
+    fail: (err: Error) => ((error = err), notify()),
+    close: () => ((closed = true), notify()),
+    async *[Symbol.asyncIterator]() {
+      for (;;) {
+        if (items.length) yield items.shift()!
+        else if (error) throw error
+        else if (closed) return
+        else await new Promise<void>((r) => (wake = r))
+      }
+    },
+  }
+}
+
+/** streamCompletion as an event stream: text deltas, then the usage. */
+export async function* completionEvents(t: Target, req: CompletionRequest, signal: AbortSignal, opts: TransportOptions = {}): AsyncGenerator<StreamEvent> {
+  const sink = pushQueue<StreamEvent>()
+  streamCompletion({ ...t, host: normalizeHost(t.host) }, req, (text) => sink.push({ type: 'delta', text }), signal, opts)
+    .then((usage) => (sink.push({ type: 'done', usage }), sink.close()))
+    .catch((err) => sink.fail(new Error(describeError(err, opts))))
+  yield* sink
+}

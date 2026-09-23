@@ -7,6 +7,7 @@ import './app/styles/tokens.css'
 import './app/styles/base.css'
 import './app/styles/controls.css'
 import './app/styles/components.css'
+import './app/styles/forms.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
