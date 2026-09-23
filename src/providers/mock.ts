@@ -252,3 +252,12 @@ export const createMockProvider = (vocab: Vocabulary): DecisionProvider => ({
     yield { type: 'final', decision }
   },
 })
+
+/** The same rules without the theatrical delay: the benchmark's instant baseline and reference. */
+export const createRulesProvider = (vocab: Vocabulary): DecisionProvider => ({
+  id: 'rules',
+  label: 'Reglas',
+  async *decide(ctx): AsyncIterable<DecisionEvent> {
+    yield { type: 'final', decision: mockDecision(ctx, vocab) }
+  },
+})

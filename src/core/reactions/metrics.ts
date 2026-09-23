@@ -31,9 +31,12 @@ export function percentiles(values: number[]): Percentiles | null {
 
 export const allCalls = (reactions: Iterable<Reaction>) => [...reactions].flatMap((r) => r.calls.map((c) => ({ id: r.id, ...c })))
 
-export function runMetrics(calls: CallRecord[]): RunMetrics {
+/** The fields metrics need, shared by live calls and benchmark trials. */
+export type Timed = Pick<CallRecord, 'queueMs' | 'ttftMs' | 'totalMs' | 'usage' | 'error'>
+
+export function runMetrics(calls: Timed[]): RunMetrics {
   const ok = calls.filter((c) => !c.error)
-  const sum = (f: (c: CallRecord) => number | undefined) => calls.reduce((n, c) => n + (f(c) ?? 0), 0)
+  const sum = (f: (c: Timed) => number | undefined) => calls.reduce((n, c) => n + (f(c) ?? 0), 0)
   const priced = calls.filter((c) => c.usage?.costUsd !== undefined)
   const generating = ok.filter((c) => c.usage?.outputTokens && c.totalMs && c.ttftMs !== null)
   const genSeconds = generating.reduce((n, c) => n + (c.totalMs! - c.ttftMs!) / 1000, 0)
