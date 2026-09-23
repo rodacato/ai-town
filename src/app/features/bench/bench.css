@@ -355,3 +355,38 @@
 .segmented.reps .segmented-thumb {
   width: 44px;
 }
+
+.history-empty,
+.history-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.history-empty {
+  align-items: center;
+}
+
+.history-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.import-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.import-btn input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.import-btn:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

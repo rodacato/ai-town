@@ -54,6 +54,18 @@ El botón **Pruebas** compara modelos con los mismos pregones y residentes. Una 
 
 Solo cuenta la primera reacción (sin boca en boca) y cada contendiente corre por separado para no competir por el mismo host. Las pruebas se guardan en este navegador (IndexedDB) y se exportan en JSON o CSV.
 
+### Desde la terminal
+
+`npm run bench` corre el mismo banco sin navegador, directo desde Node: sin proxy ni límite de conexiones, útil para saturar SheLLM. Las keys y hosts salen de `.env` / `.env.local` (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `SHELLM_HOST`, `SHELLM_KEY`, `CUSTOM_LLM_HOST`, `CUSTOM_LLM_KEY`, `CUSTOM_LLM_PROTOCOL`).
+
+```bash
+npm run bench -- -m shellm:claude -m shellm:codex -r 3 -c 16
+npm run bench -- -m custom:llama3.2:3b@http://localhost:11434 -s banquet,troll --price 0/0
+npm run bench -- --help
+```
+
+Muestra el progreso en vivo, imprime la misma tabla que el navegador (más peticiones por segundo) y guarda la corrida en `bench-results/`. Ese JSON se importa en el historial del Banco de pruebas. Ctrl+C cancela y guarda lo que alcanzó a correr.
+
 ## Publicar en GitHub Pages
 
 El workflow `.github/workflows/deploy.yml` corre typecheck, tests y build en cada push a `main` y publica `dist/`. En el repo, activa **Settings → Pages → Source: GitHub Actions**. El build usa rutas relativas, así que funciona con cualquier nombre de repositorio.

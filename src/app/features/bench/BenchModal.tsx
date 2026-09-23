@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import { ACTIONS } from '../../../core/decisions/types'
+import { trialsPerContender } from '../../../core/bench/run'
 import type { ContenderReport } from '../../../core/bench/analysis'
 import { PRESETS } from '../../../providers/llm/config'
 import { ACTION_META } from '../../../theme/actions'
@@ -80,10 +81,7 @@ function NewRun() {
   const ids = specs.map(specId)
   const duplicate = ids.find((id, i) => ids.indexOf(id) !== i)
   const missingModel = specs.some((s) => s.kind !== 'rules' && !s.model.trim())
-  const residents = town.content.examples
-    .filter((e) => scenarioIds.includes(e.id))
-    .reduce((n, e) => n + town.content.residents.length - (e.speaker.kind === 'neighbor' ? 1 : 0), 0)
-  const perModel = residents * repetitions
+  const perModel = trialsPerContender(town.content, town.content.examples.filter((e) => scenarioIds.includes(e.id)), repetitions)
   const llmCount = specs.filter((s) => s.kind !== 'rules').length
   const problem = !specs.length
     ? 'Añade al menos un contendiente.'
@@ -235,6 +233,7 @@ function Result({ run }: { run: BenchRun }) {
               {hasRef && <th scope="col" title="Acción más común igual a la de las reglas locales; una referencia, no la verdad">Como las reglas</th>}
               <th scope="col">Errores</th>
               <th scope="col" title="Mediana y percentil 95 de la respuesta completa">Respuesta</th>
+              <th scope="col" title="Peticiones terminadas por segundo, contando la espera">Pet/s</th>
               <th scope="col">Tokens/s</th>
               <th scope="col" title="Entrada → salida">Tokens</th>
               <th scope="col">Costo</th>
@@ -242,7 +241,7 @@ function Result({ run }: { run: BenchRun }) {
           </thead>
           <tbody>
             {reports.map((r) => (
-              <Row key={r.contender} r={r} label={label(r.contender)} hasRef={hasRef} />
+              <Row key={r.contender} r={r} label={label(r.contender)} hasRef={hasRef} ms={run.durations?.[r.contender]} />
             ))}
           </tbody>
         </table>
@@ -335,7 +334,7 @@ function Result({ run }: { run: BenchRun }) {
   )
 }
 
-function Row({ r, label, hasRef }: { r: ContenderReport; label: string; hasRef: boolean }) {
+function Row({ r, label, hasRef, ms }: { r: ContenderReport; label: string; hasRef: boolean; ms?: number }) {
   const m = r.metrics
   const decided = r.trials - r.errors
   return (
@@ -346,6 +345,7 @@ function Row({ r, label, hasRef }: { r: ContenderReport; label: string; hasRef: 
       {hasRef && <td className="mono">{r.contender === 'rules' ? '—' : pct(r.referenceAgreement)}</td>}
       <td className={`mono ${r.errors ? 'is-bad' : ''}`}>{r.errors ? `${r.errors}/${r.trials}` : '0'}</td>
       <td className="mono">{m.total && r.contender !== 'rules' ? `${seconds(m.total.p50)} · ${seconds(m.total.p95)}` : '—'}</td>
+      <td className="mono">{ms && r.contender !== 'rules' ? (r.trials / (ms / 1000)).toFixed(1) : '—'}</td>
       <td className="mono">{m.tokensPerSecond ? m.tokensPerSecond.toFixed(0) : '—'}</td>
       <td className="mono">{m.inputTokens ? `${tokens(m.inputTokens)} → ${tokens(m.outputTokens)}` : '—'}</td>
       <td className="mono" title={m.costUsd !== null && decided ? `${usd(m.costUsd / decided)} por decisión` : undefined}>
@@ -359,9 +359,32 @@ function History() {
   const runs = useBench((s) => s.runs)
   const show = useBench((s) => s.show)
   const remove = useBench((s) => s.remove)
-  if (!runs.length) return <p className="empty-note">Aún no hay pruebas guardadas. Se guardan solo en este navegador.</p>
+  const importRun = useBench((s) => s.importRun)
+  const picker = (
+    <label className="btn-secondary compact import-btn">
+      Importar JSON
+      <input
+        type="file"
+        accept="application/json,.json"
+        onChange={(e) => {
+          const file = e.target.files?.[0]
+          if (file) void importRun(file)
+          e.target.value = ''
+        }}
+      />
+    </label>
+  )
+  if (!runs.length)
+    return (
+      <div className="history-empty">
+        <p className="empty-note">Aún no hay pruebas guardadas. Se guardan solo en este navegador; también puedes importar las de «npm run bench».</p>
+        {picker}
+      </div>
+    )
   return (
-    <ul className="history">
+    <div className="history-wrap">
+      <div className="history-actions">{picker}</div>
+      <ul className="history">
       {runs.map((run) => (
         <li key={run.id}>
           <button className="history-open" onClick={() => show(run)}>
@@ -378,6 +401,7 @@ function History() {
           </button>
         </li>
       ))}
-    </ul>
+      </ul>
+    </div>
   )
 }
