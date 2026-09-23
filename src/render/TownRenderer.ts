@@ -1,10 +1,12 @@
 import { Application, Container } from 'pixi.js'
+import type { AnnouncementPlace } from '../sim/announcement'
 import type { Simulation } from '../sim/simulation'
 import { Birds, Butterflies, CloudShadows, FountainSpray, Smoke, WaterShimmer } from './ambient'
 import { drawBuilding } from './buildings'
 import { Camera } from './camera'
 import { ISLAND_DEPTH, TILE_H, TILE_W, iso } from './iso'
 import { drawFountain, drawProp, type PropSprite } from './props'
+import { PlaceMarker } from './placeMarker'
 import { ResidentSprite } from './residentSprite'
 import { drawTerrain, islandMask } from './terrain'
 
@@ -14,8 +16,8 @@ export interface RendererEvents {
 }
 
 export interface RendererOptions {
-  /** Width of UI panels floating over the right edge, so the camera centers on the visible map. */
-  insetRight: () => number
+  /** Space covered by floating UI panels, so the camera centers on the visible part of the map. */
+  insets: () => { right: number; bottom: number }
 }
 
 export class TownRenderer {
@@ -34,6 +36,8 @@ export class TownRenderer {
   private butterflies: Butterflies
   private time = 0
   private hovered: string | null = null
+  private highlighted: string | null = null
+  private marker = new PlaceMarker()
   private selected: string | null = null
 
   static async create(host: HTMLElement, sim: Simulation, events: RendererEvents, options: RendererOptions) {
@@ -113,6 +117,7 @@ export class TownRenderer {
     this.clouds.view.mask = mask
     this.birds = new Birds(span)
     this.world.addChild(this.birds.view, this.overlay)
+    this.overlay.addChildAt(this.marker.view, 0)
     app.stage.addChild(this.world)
 
     app.stage.eventMode = 'static'
@@ -125,9 +130,10 @@ export class TownRenderer {
     this.camera = new Camera(this.world, app.canvas, bounds, () => ({
       w: app.screen.width,
       h: app.screen.height,
-      insetRight: options.insetRight(),
+      ...options.insets(),
     }))
     this.camera.fit(false)
+    app.renderer.on('resize', () => this.camera.handleResize())
 
     app.ticker.add((t) => this.tick(Math.min(t.deltaMS / 1000, 0.05)))
   }
@@ -141,6 +147,22 @@ export class TownRenderer {
       this.camera.follow(() => iso(r.x, r.y, 20))
     } else this.camera.unfollow()
     this.events.onSelect(id)
+  }
+
+  /** Highlights a resident from outside the map, e.g. when hovering their avatar in a panel. */
+  highlight(id: string | null) {
+    if (this.highlighted && this.highlighted !== this.hovered) this.sprites.get(this.highlighted)!.hovered = false
+    this.highlighted = id
+    if (id) this.sprites.get(id)!.hovered = true
+  }
+
+  markPlace(place: AnnouncementPlace | null) {
+    const spots = place && place !== 'home' ? this.sim.world.places.find((p) => p.id === place)?.spots : undefined
+    if (!spots?.length) return this.marker.show(null)
+    const cx = spots.reduce((s, p) => s + p.x, 0) / spots.length
+    const cy = spots.reduce((s, p) => s + p.y, 0) / spots.length
+    const nearest = spots.reduce((a, b) => (Math.hypot(a.x - cx, a.y - cy) <= Math.hypot(b.x - cx, b.y - cy) ? a : b))
+    this.marker.show(iso(nearest.x + 0.5, nearest.y + 0.5))
   }
 
   /** Screen position (CSS px, relative to the canvas) of a point just above a resident's head. */
@@ -177,6 +199,7 @@ export class TownRenderer {
     this.clouds.update(dt)
     this.birds.update(dt, t)
     this.butterflies.update(t)
+    this.marker.update(dt)
     this.camera.update(dt)
   }
 }

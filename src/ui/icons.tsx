@@ -70,3 +70,62 @@ export function TownMark({ size = 28 }: { size?: number }) {
     </svg>
   )
 }
+
+export const Megaphone = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <path d="M3 10v4a1 1 0 0 0 1 1h2l5 4V5L6 9H4a1 1 0 0 0-1 1zM15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" />
+  </svg>
+)
+
+export const Landmark = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <path d="M3 21h18M5 21V10M19 21V10M9.5 21V10M14.5 21V10M2.5 10 12 4l9.5 6z" />
+  </svg>
+)
+
+export const User = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <circle cx="12" cy="8" r="4" />
+    <path d="M4 21a8 8 0 0 1 16 0" />
+  </svg>
+)
+
+export const Stranger = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <path d="M3 10.5h18M6 10.5 7.5 4h9l1.5 6.5" />
+    <circle cx="8" cy="16" r="3" />
+    <circle cx="16" cy="16" r="3" />
+    <path d="M11 16h2" />
+  </svg>
+)
+
+export const MapPin = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z" />
+    <circle cx="12" cy="9.5" r="2.5" />
+  </svg>
+)
+
+export const Reset = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5" />
+  </svg>
+)
+
+export const ChevronDown = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <path d="m6 9 6 6 6-6" />
+  </svg>
+)
+
+export const Sparkle = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6" />
+  </svg>
+)
+
+export const Brain = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <path d="M9 4a3 3 0 0 0-3 3 3 3 0 0 0-2 5 3 3 0 0 0 2 5 3 3 0 0 0 6 1V5a2 2 0 0 0-3-1zM15 4a3 3 0 0 1 3 3 3 3 0 0 1 2 5 3 3 0 0 1-2 5 3 3 0 0 1-6 1" />
+  </svg>
+)

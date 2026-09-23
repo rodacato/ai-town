@@ -1,23 +1,35 @@
 import { useEffect } from 'react'
-import { useTown } from './store'
+import { LAYOUT, useTown } from './store'
 import { HoverTag } from './ui/HoverTag'
 import { Loader } from './ui/Loader'
 import { MapControls } from './ui/MapControls'
 import { MapHint } from './ui/MapHint'
-import { ResidentCard } from './ui/ResidentCard'
+import { RightPanel } from './ui/RightPanel'
+import { Timeline } from './ui/Timeline'
+import { ResetVeil, Toasts } from './ui/Toasts'
 import { TopBar } from './ui/TopBar'
 import { TownCanvas } from './ui/TownCanvas'
 
 export function App() {
   useKeyboardShortcuts()
   return (
-    <div className="app">
+    <div
+      className="app"
+      style={{
+        ['--panel-w' as string]: `${LAYOUT.panelWidth}px`,
+        ['--gutter' as string]: `${LAYOUT.gutter}px`,
+        ['--timeline-h' as string]: `${LAYOUT.timelineHeight}px`,
+      }}
+    >
       <TownCanvas />
       <TopBar />
       <MapControls />
       <MapHint />
       <HoverTag />
-      <ResidentCard />
+      <Timeline />
+      <RightPanel />
+      <Toasts />
+      <ResetVeil />
       <Loader />
     </div>
   )

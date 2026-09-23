@@ -1,6 +1,6 @@
 import { TOWN_NAME } from '../data/town'
 import { useTown } from '../store'
-import { Sun, TownMark, Users } from './icons'
+import { Reset, Sun, TownMark, Users } from './icons'
 
 const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
 
@@ -16,6 +16,7 @@ export function TopBar() {
   const minutes = useTown((s) => s.minutes)
   const outside = useTown((s) => s.outside)
   const total = useTown((s) => s.sim.residents.length)
+  const resetTown = useTown((s) => s.resetTown)
   const { day, time } = formatClock(minutes)
 
   return (
@@ -42,6 +43,10 @@ export function TopBar() {
           <span className="dot" />
           <span className="pill-label">Modo simulado</span>
         </div>
+        <button className="pill panel btn-pill" onClick={resetTown} title="Devuelve a todos a su rutina y borra el anuncio">
+          <Reset className="pill-icon" />
+          Reiniciar
+        </button>
       </div>
     </header>
   )

@@ -38,6 +38,14 @@ export class Simulation {
     for (const profile of RESIDENTS) this.residents.push(this.spawn(profile))
   }
 
+  /** Respawns everyone in place so renderer sprites keep pointing at the same Resident objects. */
+  reset(seed = Date.now()) {
+    this.rng = createRng(seed)
+    this.minutes = START_MINUTES
+    const fresh = this.residents.map((r) => this.spawn(r.profile))
+    fresh.forEach((f, i) => Object.assign(this.residents[i], f))
+  }
+
   get(id: string) {
     return this.residents.find((r) => r.profile.id === id)
   }

@@ -28,6 +28,7 @@ export class Camera {
   private flight: Flight | null = null
   private following: (() => { x: number; y: number }) | null = null
   private moved = false
+  private touched = false
   private listeners: [string, EventListener][] = []
   onInteract?: () => void
 
@@ -35,7 +36,7 @@ export class Camera {
     private view: Container,
     private el: HTMLElement,
     private bounds: Rect,
-    private viewport: () => { w: number; h: number; insetRight: number },
+    private viewport: () => { w: number; h: number; right: number; bottom: number },
   ) {
     this.on('pointerdown', (e) => this.pointerDown(e as PointerEvent))
     this.on('pointermove', (e) => this.pointerMove(e as PointerEvent))
@@ -53,13 +54,20 @@ export class Camera {
     return this.moved
   }
 
+  /** Keeps the whole town framed on resize until the user has moved the camera themselves. */
+  handleResize() {
+    if (!this.touched && !this.following) this.fit(false)
+  }
+
   fit(animate = true) {
-    const { w, h, insetRight } = this.viewport()
-    const pad = 48
-    const scale = clampZoom(Math.min((w - insetRight - pad * 2) / this.bounds.w, (h - pad * 2 - 40) / this.bounds.h) * 1.08)
+    this.touched = false
+    const { w, h, right, bottom } = this.viewport()
+    const pad = 40
+    const top = 76
+    const scale = clampZoom(Math.min((w - right - pad * 2) / this.bounds.w, (h - top - bottom - pad) / this.bounds.h) * 1.1)
     const cx = this.bounds.x + this.bounds.w / 2
     const cy = this.bounds.y + this.bounds.h / 2
-    const target = { scale, x: (w - insetRight) / 2 - cx * scale, y: h / 2 + 20 - cy * scale }
+    const target = { scale, x: (w - right) / 2 - cx * scale, y: top + (h - top - bottom) / 2 - cy * scale }
     if (!animate) {
       this.view.scale.set(scale)
       this.view.position.set(target.x, target.y)
@@ -72,6 +80,7 @@ export class Camera {
 
   /** Fly to a moving world point and keep it centered until the user takes over the camera. */
   follow(target: () => { x: number; y: number }, minScale = 1.5) {
+    this.touched = true
     const scale = clampZoom(Math.max(this.targetScale, minScale))
     const screen = this.focusPoint()
     const p = target()
@@ -84,8 +93,8 @@ export class Camera {
   }
 
   zoomBy(factor: number, around?: { x: number; y: number }) {
-    const { w, h, insetRight } = this.viewport()
-    const screen = around ?? (this.following ? this.focusPoint() : { x: (w - insetRight) / 2, y: h / 2 })
+    this.touched = true
+    const screen = around ?? this.focusPoint()
     if (around) this.following = null
     this.flight = null
     this.targetScale = clampZoom(this.targetScale * factor)
@@ -145,8 +154,8 @@ export class Camera {
   }
 
   private focusPoint() {
-    const { w, h, insetRight } = this.viewport()
-    return { x: (w - insetRight) / 2, y: h / 2 + 20 }
+    const { w, h, right, bottom } = this.viewport()
+    return { x: (w - right) / 2, y: 76 + (h - 76 - bottom) / 2 }
   }
 
   private toWorld(p: { x: number; y: number }) {
@@ -173,6 +182,7 @@ export class Camera {
     const p = this.local(e)
     if (!this.moved && Math.hypot(p.x - this.drag.start.x, p.y - this.drag.start.y) > 5) {
       this.moved = true
+      this.touched = true
       this.following = null
       this.el.setPointerCapture(e.pointerId)
       this.el.style.cursor = 'grabbing'

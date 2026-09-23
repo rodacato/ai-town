@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { TownRenderer } from '../render/TownRenderer'
-import { useTown } from '../store'
+import { MAP_INSETS, useTown } from '../store'
 
 export function TownCanvas() {
   const host = useRef<HTMLDivElement>(null)
@@ -11,7 +11,7 @@ export function TownCanvas() {
     const { setHovered, setSelected, setRenderer, syncClock, markInteracted } = useTown.getState()
     let disposed = false
     let instance: TownRenderer | null = null
-    TownRenderer.create(el, sim, { onHover: setHovered, onSelect: setSelected }, { insetRight: () => (useTown.getState().selectedId ? 380 : 0) }).then((r) => {
+    TownRenderer.create(el, sim, { onHover: setHovered, onSelect: setSelected }, { insets: () => MAP_INSETS }).then((r) => {
       if (disposed) return r.destroy()
       instance = r
       r.camera.onInteract = markInteracted
