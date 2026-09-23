@@ -1,28 +1,6 @@
-import type { BenchReport } from '../../../core/bench/analysis'
-import type { Trial } from '../../../core/bench/runner'
+import type { BenchRun } from '../../../core/bench/run'
 
-export interface ContenderInfo {
-  id: string
-  label: string
-  kind: string
-  model: string
-  host: string
-  concurrency: number
-}
-
-export interface BenchRun {
-  id: string
-  createdAt: number
-  world: string
-  seed: number
-  repetitions: number
-  scenarios: { id: string; text: string; tone: string }[]
-  contenders: ContenderInfo[]
-  durationMs: number
-  cancelled: boolean
-  trials: Trial[]
-  report: BenchReport
-}
+export type { BenchRun }
 
 const DB = 'ai-town'
 const STORE = 'bench-runs'

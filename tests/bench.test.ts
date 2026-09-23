@@ -39,9 +39,10 @@ describe('benchmark', () => {
 
   it('scores consistency, format and agreement with the reference', async () => {
     const scenarios = content.examples.slice(0, 2).map((ex) => buildScenario(content, ex, 7))
-    const trials = await runBench({ scenarios, repetitions: 2, contenders: [contender('rules', createRulesProvider(content.vocabulary)), contender('fickle', fickle())] })
+    const { trials, durations } = await runBench({ scenarios, repetitions: 2, contenders: [contender('rules', createRulesProvider(content.vocabulary)), contender('fickle', fickle())] })
     const cells = scenarios.reduce((n, s) => n + s.contexts.length, 0)
     expect(trials).toHaveLength(cells * 2 * 2)
+    expect(Object.keys(durations)).toEqual(['rules', 'fickle'])
 
     const reference = new Map(scenarios.flatMap((s) => s.contexts.map((ctx) => [cellKey(s.id, ctx.resident.id), mockDecision(ctx, content.vocabulary)] as const)))
     const report = analyze(trials, ['rules', 'fickle'], reference)
@@ -68,7 +69,7 @@ describe('benchmark', () => {
     }
     const run = runBench({ scenarios, repetitions: 1, contenders: [contender('slow', slow)] }, { signal: controller.signal })
     controller.abort()
-    expect(await run).toEqual([])
+    expect((await run).trials).toEqual([])
   })
 })
 

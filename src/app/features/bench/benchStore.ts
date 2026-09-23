@@ -1,13 +1,12 @@
 import { create } from 'zustand'
-import { analyze, cellKey } from '../../../core/bench/analysis'
-import { runBench, type BenchProgress, type Contender } from '../../../core/bench/runner'
-import { buildScenario } from '../../../core/bench/scenarios'
+import { executeRun, RUN_FORMAT, trialsPerContender, type ContenderInfo } from '../../../core/bench/run'
+import type { BenchProgress, Contender } from '../../../core/bench/runner'
 import { createProvider } from '../../../providers'
 import { PRESETS, type Connection, type LlmSettings } from '../../../providers/llm/config'
 import { createRulesProvider, mockDecision } from '../../../providers/mock'
 import { useTown } from '../../store'
 import { town } from '../../town'
-import { history, type BenchRun, type ContenderInfo } from './history'
+import { history, type BenchRun } from './history'
 
 export type ContenderKind = 'rules' | Connection['kind']
 
@@ -37,6 +36,7 @@ interface BenchState extends Prefs {
   loadHistory: () => Promise<void>
   show: (run: BenchRun) => void
   remove: (id: string) => Promise<void>
+  importRun: (file: File) => Promise<void>
 }
 
 const PREFS_KEY = 'ai-town:bench-prefs'
@@ -104,15 +104,12 @@ export const useBench = create<BenchState>((set, get) => ({
   start: async () => {
     const { specs, scenarioIds, repetitions, seed } = get()
     const llm = useTown.getState().llm
-    const built = specs.map((s) => contenderFor(s, llm))
+    const contenders = specs.map((s) => contenderFor(s, llm))
     const examples = town.content.examples.filter((e) => scenarioIds.includes(e.id))
-    const scenarios = examples.map((e) => buildScenario(town.content, e, seed))
-    const reference = new Map(scenarios.flatMap((s) => s.contexts.map((ctx) => [cellKey(s.id, ctx.resident.id), mockDecision(ctx, town.content.vocabulary)] as const)))
     const controller = new AbortController()
-    const startedAt = performance.now()
-    const perContender = scenarios.reduce((n, s) => n + s.contexts.length, 0) * repetitions
-    const progress = Object.fromEntries(built.map(({ contender }) => [contender.id, { contender: contender.id, done: 0, total: perContender, errors: 0 }]))
-    set({ running: { startedAt, progress, controller }, view: 'new' })
+    const total = trialsPerContender(town.content, examples, repetitions)
+    const progress = Object.fromEntries(contenders.map(({ contender }) => [contender.id, { contender: contender.id, done: 0, total, errors: 0 }]))
+    set({ running: { startedAt: performance.now(), progress, controller }, view: 'new' })
 
     let pending: Record<string, BenchProgress> = {}
     let frame = 0
@@ -122,8 +119,8 @@ export const useBench = create<BenchState>((set, get) => ({
       if (running) set({ running: { ...running, progress: { ...running.progress, ...pending } } })
       pending = {}
     }
-    const trials = await runBench(
-      { scenarios, contenders: built.map((b) => b.contender), repetitions },
+    const run = await executeRun(
+      { content: town.content, examples, seed, repetitions, contenders, reference: (ctx) => mockDecision(ctx, town.content.vocabulary) },
       {
         signal: controller.signal,
         onTrial: (_t, p) => {
@@ -133,22 +130,8 @@ export const useBench = create<BenchState>((set, get) => ({
       },
     )
     cancelAnimationFrame(frame)
-    const ids = built.map((b) => b.contender.id)
-    const run: BenchRun = {
-      id: crypto.randomUUID(),
-      createdAt: Date.now(),
-      world: town.content.id,
-      seed,
-      repetitions,
-      scenarios: examples.map((e) => ({ id: e.id, text: e.text, tone: e.tone })),
-      contenders: built.map((b) => b.info),
-      durationMs: performance.now() - startedAt,
-      cancelled: controller.signal.aborted,
-      trials,
-      report: analyze(trials, ids, reference),
-    }
     set({ running: null, current: run, view: 'result' })
-    if (trials.length) {
+    if (run.trials.length) {
       await history.save(run).catch(() => useTown.getState().toast('No se pudo guardar la prueba en este navegador; expórtala para no perderla.'))
       void get().loadHistory()
     }
@@ -162,6 +145,18 @@ export const useBench = create<BenchState>((set, get) => ({
     }
   },
   show: (run) => set({ current: run, view: 'result' }),
+  importRun: async (file) => {
+    const { toast } = useTown.getState()
+    try {
+      const run = JSON.parse(await file.text()) as BenchRun
+      if (run?.format !== RUN_FORMAT || !Array.isArray(run.trials) || !run.report?.contenders) throw new Error('format')
+      await history.save(run)
+      await get().loadHistory()
+      set({ current: run, view: 'result' })
+    } catch {
+      toast('Ese archivo no es una prueba de AI Town (JSON de «npm run bench» o exportado de aquí).')
+    }
+  },
   remove: async (id) => {
     await history.remove(id)
     if (get().current?.id === id) set({ current: null, view: 'history' })
