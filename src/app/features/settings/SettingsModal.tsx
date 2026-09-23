@@ -237,7 +237,7 @@ function Dialog({ onClose }: { onClose: () => void }) {
                 <div className="notice">
                   <Alert width={16} height={16} />
                   <p>
-                    SheLLM atiende tantos procesos a la vez como diga su <span className="mono">MAX_CONCURRENT</span> (2 por defecto; Codex, uno). Si aquí pides más, el resto espera en la cola de SheLLM y lo verás como «Esperando al modelo». En Codex, su propio aviso advierte que los filtros anti-abuso pueden suspender la cuenta. Para usar Codex, pon un modelo <span className="mono">codex</span> o <span className="mono">codex-…</span>.
+                    SheLLM atiende tantos procesos a la vez como diga su <span className="mono">MAX_CONCURRENT</span> (5 por defecto; Codex, uno). Si aquí pides más, el resto espera en la cola de SheLLM y lo verás como «Esperando al modelo». En Codex, su propio aviso advierte que los filtros anti-abuso pueden suspender la cuenta. Para usar Codex, pon un modelo <span className="mono">codex</span> o <span className="mono">codex-…</span>.
                   </p>
                 </div>
               )}

@@ -75,7 +75,7 @@ export const DEFAULT_SETTINGS: LlmSettings = {
   connections: {
     anthropic: { kind: 'anthropic', protocol: 'anthropic', host: 'https://api.anthropic.com', apiKey: '', model: 'claude-opus-5', concurrency: 6 },
     openai: { kind: 'openai', protocol: 'openai', host: 'https://api.openai.com', apiKey: '', model: '', concurrency: 6 },
-    shellm: { kind: 'shellm', protocol: 'openai', host: 'http://127.0.0.1:6100', apiKey: '', model: 'claude', concurrency: 2 },
+    shellm: { kind: 'shellm', protocol: 'openai', host: 'http://127.0.0.1:6100', apiKey: '', model: 'claude', concurrency: 5 },
     custom: { kind: 'custom', protocol: 'openai', host: 'http://localhost:11434', apiKey: '', model: '', concurrency: 3 },
   },
 }
