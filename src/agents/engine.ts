@@ -18,6 +18,7 @@ export interface Reaction {
   startedAt: number | null
   decidedAt: number | null
   latencyMs: number | null
+  decidedBy: string | null
   reasoning: string
   decision: Decision | null
   previous: Decision | null
@@ -90,6 +91,7 @@ export class ReactionEngine {
         startedAt: null,
         decidedAt: null,
         latencyMs: null,
+        decidedBy: null,
         reasoning: '',
         decision: null,
         previous: null,
@@ -188,6 +190,7 @@ export class ReactionEngine {
     r.frozen = true
     this.emit({ type: 'change', id: reaction.id })
     const ctx = buildContext(a, r, this.sim.minutes, reaction.rumors, reaction.decision)
+    const provider = this.scheduler.provider
     this.scheduler.enqueue({
       ctx,
       onStart: () => {
@@ -198,7 +201,10 @@ export class ReactionEngine {
         reaction.reasoning += delta
         this.emit({ type: 'change', id: reaction.id })
       },
-      onDecision: (decision) => this.decided(r, reaction, decision),
+      onDecision: (decision) => {
+        reaction.decidedBy = provider.label
+        this.decided(r, reaction, decision)
+      },
       onError: (message) => {
         reaction.phase = 'error'
         reaction.error = message

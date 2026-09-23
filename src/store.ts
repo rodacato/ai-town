@@ -5,6 +5,9 @@ import { detectPlace, type Announcement, type Speaker } from './sim/announcement
 import { ReactionEngine, type Reaction } from './agents/engine'
 import { mockProvider } from './agents/mock'
 import { DecisionScheduler } from './agents/scheduler'
+import { loadSettings, saveSettings, type LlmSettings } from './agents/llm/config'
+import { createLlmProvider } from './agents/llm/provider'
+import type { DecisionProvider } from './agents/types'
 import { Simulation } from './sim/simulation'
 
 export const LAYOUT = { panelWidth: 380, gutter: 24, timelineHeight: 92 }
@@ -35,6 +38,10 @@ interface TownState {
   announcement: Announcement | null
   resetting: boolean
   toasts: Toast[]
+  llm: LlmSettings
+  settingsOpen: boolean
+  setSettingsOpen: (open: boolean) => void
+  applyLlm: (settings: LlmSettings) => void
   setRenderer: (r: TownRenderer | null) => void
   setHovered: (id: string | null) => void
   setSelected: (id: string | null) => void
@@ -50,7 +57,14 @@ interface TownState {
 
 let toastId = 0
 const sim = new Simulation()
-const engine = new ReactionEngine(sim, new DecisionScheduler(mockProvider))
+const initialLlm = loadSettings()
+const engine = new ReactionEngine(sim, new DecisionScheduler(...providerFor(initialLlm)))
+
+function providerFor(settings: LlmSettings): [DecisionProvider, number] {
+  if (settings.active === 'mock') return [mockProvider, 6]
+  const c = settings.connections[settings.active]
+  return [createLlmProvider(c), Math.max(1, Math.min(8, c.concurrency))]
+}
 
 export const useTown = create<TownState>((set, get) => ({
   sim,
@@ -68,6 +82,16 @@ export const useTown = create<TownState>((set, get) => ({
   announcement: null,
   resetting: false,
   toasts: [],
+  llm: initialLlm,
+  settingsOpen: false,
+  setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
+  applyLlm: (llm) => {
+    const [provider, concurrency] = providerFor(llm)
+    engine.scheduler.provider = provider
+    engine.scheduler.concurrency = concurrency
+    saveSettings(llm)
+    set({ llm })
+  },
 
   setRenderer: (renderer) => set({ renderer, ready: !!renderer }),
   setHovered: (hoveredId) => set({ hoveredId }),

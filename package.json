@@ -9,9 +9,11 @@
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
     "map": "tsx scripts/print-map.ts",
-    "sim:smoke": "tsx scripts/sim-smoke.ts"
+    "sim:smoke": "tsx scripts/sim-smoke.ts",
+    "fake-llm": "tsx scripts/fake-llm.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.128.0",
     "pixi.js": "^8.21.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",

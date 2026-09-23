@@ -19,7 +19,7 @@ export class DecisionScheduler {
 
   constructor(
     public provider: DecisionProvider,
-    private concurrency = 6,
+    public concurrency = 6,
     private timeoutMs = 25000,
   ) {}
 
