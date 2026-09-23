@@ -1,4 +1,4 @@
-import { createWorld } from '../src/sim/world'
+import { createWorld } from '../src/core/world/world'
 
 const world = createWorld()
 const KIND: Record<string, string> = { grass: '.', path: '=', plaza: '#', water: '~', bridge: 'H', field: ',', sand: ':' }

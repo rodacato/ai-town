@@ -1,6 +1,6 @@
 import { Container, Graphics } from 'pixi.js'
-import { createRng, hash2 } from '../sim/rng'
-import type { World } from '../sim/world'
+import { createRng, hash2 } from '../core/world/rng'
+import type { World } from '../core/world/world'
 import { ISLAND_DEPTH, iso, isoFlat } from './iso'
 import { PAL } from './palette'
 

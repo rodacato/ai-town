@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { buildContext } from '../src/agents/context'
-import { mockDecision } from '../src/agents/mock'
-import { partialStringField, parseDecision } from '../src/agents/llm/parse'
-import { EXAMPLES } from '../src/data/announcements'
-import { detectPlace } from '../src/sim/announcement'
-import { Simulation } from '../src/sim/simulation'
+import { buildContext } from '../src/core/reactions/context'
+import { mockDecision } from '../src/providers/mock'
+import { partialStringField, parseDecision } from '../src/providers/llm/parse'
+import { EXAMPLES } from '../src/worlds/serena/announcements'
+import { detectPlace } from '../src/core/reactions/announcement'
+import { Simulation } from '../src/core/sim/simulation'
 
 const sim = new Simulation()
 

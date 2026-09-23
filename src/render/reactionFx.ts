@@ -1,5 +1,5 @@
 import { Container, Graphics } from 'pixi.js'
-import type { ReactionEngine } from '../agents/engine'
+import type { ReactionEngine } from '../core/reactions/engine'
 import { iso } from './iso'
 import { PAL } from './palette'
 

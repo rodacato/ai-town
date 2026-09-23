@@ -1,6 +1,6 @@
 import { Container, Graphics, Rectangle } from 'pixi.js'
-import type { Look } from '../data/residents'
-import type { Resident } from '../sim/simulation'
+import type { Look } from '../worlds/serena/residents'
+import type { Resident } from '../core/sim/simulation'
 import { Bubble, type BubbleState } from './bubble'
 import { iso } from './iso'
 import { PAL, shade } from './palette'

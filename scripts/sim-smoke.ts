@@ -1,4 +1,4 @@
-import { Simulation } from '../src/sim/simulation'
+import { Simulation } from '../src/core/sim/simulation'
 
 const sim = new Simulation()
 const t0 = performance.now()

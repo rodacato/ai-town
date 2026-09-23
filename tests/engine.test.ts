@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { ReactionEngine } from '../src/agents/engine'
-import { mockDecision } from '../src/agents/mock'
-import { DecisionScheduler } from '../src/agents/scheduler'
-import type { DecisionProvider } from '../src/agents/types'
-import { EXAMPLES } from '../src/data/announcements'
-import { detectPlace } from '../src/sim/announcement'
-import { Simulation } from '../src/sim/simulation'
+import { ReactionEngine } from '../src/core/reactions/engine'
+import { mockDecision } from '../src/providers/mock'
+import { DecisionScheduler } from '../src/core/decisions/scheduler'
+import type { DecisionProvider } from '../src/core/decisions/types'
+import { EXAMPLES } from '../src/worlds/serena/announcements'
+import { detectPlace } from '../src/core/reactions/announcement'
+import { Simulation } from '../src/core/sim/simulation'
 
 const instant: DecisionProvider = {
   id: 'instant',

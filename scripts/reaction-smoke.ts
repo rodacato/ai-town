@@ -1,9 +1,9 @@
-import { ReactionEngine } from '../src/agents/engine'
-import { mockProvider } from '../src/agents/mock'
-import { DecisionScheduler } from '../src/agents/scheduler'
-import { EXAMPLES } from '../src/data/announcements'
-import { detectPlace } from '../src/sim/announcement'
-import { Simulation } from '../src/sim/simulation'
+import { ReactionEngine } from '../src/core/reactions/engine'
+import { mockProvider } from '../src/providers/mock'
+import { DecisionScheduler } from '../src/core/decisions/scheduler'
+import { EXAMPLES } from '../src/worlds/serena/announcements'
+import { detectPlace } from '../src/core/reactions/announcement'
+import { Simulation } from '../src/core/sim/simulation'
 
 const sim = new Simulation()
 const engine = new ReactionEngine(sim, new DecisionScheduler(mockProvider))

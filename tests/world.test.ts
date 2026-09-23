@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { findPath } from '../src/sim/pathfinding'
-import { createWorld, isWalkable } from '../src/sim/world'
+import { findPath } from '../src/core/world/pathfinding'
+import { createWorld, isWalkable } from '../src/core/world/world'
 
 describe('world generation', () => {
   const world = createWorld()
