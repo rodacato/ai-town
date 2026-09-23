@@ -25,7 +25,7 @@ interface Prefs {
 interface BenchState extends Prefs {
   open: boolean
   view: 'new' | 'history' | 'result'
-  running: { startedAt: number; progress: Record<string, BenchProgress>; controller: AbortController } | null
+  running: { startedAt: number; progress: Record<string, BenchProgress>; lastError: Record<string, string>; controller: AbortController } | null
   current: BenchRun | null
   runs: BenchRun[]
   setOpen: (open: boolean) => void
@@ -109,22 +109,25 @@ export const useBench = create<BenchState>((set, get) => ({
     const controller = new AbortController()
     const total = trialsPerContender(town.content, examples, repetitions)
     const progress = Object.fromEntries(contenders.map(({ contender }) => [contender.id, { contender: contender.id, done: 0, total, errors: 0 }]))
-    set({ running: { startedAt: performance.now(), progress, controller }, view: 'new' })
+    set({ running: { startedAt: performance.now(), progress, lastError: {}, controller }, view: 'new' })
 
     let pending: Record<string, BenchProgress> = {}
+    let errors: Record<string, string> = {}
     let frame = 0
     const flush = () => {
       frame = 0
       const running = get().running
-      if (running) set({ running: { ...running, progress: { ...running.progress, ...pending } } })
+      if (running) set({ running: { ...running, progress: { ...running.progress, ...pending }, lastError: { ...running.lastError, ...errors } } })
       pending = {}
+      errors = {}
     }
     const run = await executeRun(
       { content: town.content, examples, seed, repetitions, contenders, reference: (ctx) => mockDecision(ctx, town.content.vocabulary) },
       {
         signal: controller.signal,
-        onTrial: (_t, p) => {
+        onTrial: (t, p) => {
           pending[p.contender] = p
+          if (t.error) errors[p.contender] = t.error
           frame ||= requestAnimationFrame(flush)
         },
       },

@@ -1,6 +1,7 @@
 import { createServer } from 'node:http'
 
 // OpenAI-compatible stand-in for exercising the proxy and streaming path without spending tokens.
+// FAKE_KEY=… makes it demand that bearer key, to rehearse auth failures.
 const PORT = Number(process.env.PORT ?? 6199)
 const ACTIONS = ['go', 'stay_home', 'investigate', 'ignore'] as const
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
@@ -13,6 +14,10 @@ createServer(async (req, res) => {
   if (req.method === 'OPTIONS') {
     res.statusCode = 204
     return res.end()
+  }
+  if (process.env.FAKE_KEY && req.headers.authorization !== `Bearer ${process.env.FAKE_KEY}`) {
+    res.statusCode = 401
+    return res.end(JSON.stringify({ error: { message: 'Invalid API key' } }))
   }
   if (req.url === '/v1/models') {
     res.setHeader('content-type', 'application/json')

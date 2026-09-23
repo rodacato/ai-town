@@ -1,9 +1,9 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { parseArgs } from 'node:util'
-import type { ContenderReport } from '../src/core/bench/analysis'
+import { errorSummary, type ContenderReport } from '../src/core/bench/analysis'
 import { executeRun, trialsPerContender, type BenchRun, type RunSetup } from '../src/core/bench/run'
-import type { BenchProgress } from '../src/core/bench/runner'
+import { FAIL_FAST_AFTER, type BenchProgress } from '../src/core/bench/runner'
 import { MAX_CONCURRENCY } from '../src/providers'
 import type { ChatStream } from '../src/providers/llm/client'
 import { DEFAULT_SETTINGS, PRESETS, type Connection } from '../src/providers/llm/config'
@@ -196,7 +196,7 @@ if (run.trials.length) {
   console.log(dim(`\nGuardado en ${out}${run.cancelled ? ' (parcial)' : ''}`))
 }
 const dead = run.report.contenders.filter((r) => r.trials && r.errors === r.trials)
-if (dead.length) console.error(red(`\n✗ Todas las peticiones fallaron en: ${dead.map((r) => r.contender).join(', ')}. Primer error: ${run.trials.find((t) => t.contender === dead[0].contender)?.error}`))
+if (dead.length) console.error(red(`\n✗ Todas las peticiones fallaron en: ${dead.map((r) => r.contender).join(', ')}.`))
 process.exit(run.cancelled ? 130 : dead.length ? 1 : 0)
 
 function printReport(run: BenchRun) {
@@ -215,7 +215,7 @@ function printReport(run: BenchRun) {
       rules ? '—' : pct(r.referenceAgreement),
       r.errors ? `${r.errors}/${r.trials}` : '0',
       m.total && !rules ? `${s(m.total.p50)} / ${s(m.total.p95)}` : '—',
-      !rules && secs ? (r.trials / secs).toFixed(1) : '—',
+      !rules && secs && r.errors < r.trials ? (r.trials / secs).toFixed(1) : '—',
       m.tokensPerSecond ? m.tokensPerSecond.toFixed(0) : '—',
       m.inputTokens ? `${k(m.inputTokens)} → ${k(m.outputTokens)}` : '—',
       m.costUsd === null ? '—' : `${m.costEstimated ? '≈' : ''}$${m.costUsd.toFixed(m.costUsd < 0.01 ? 4 : 2)}`,
@@ -227,6 +227,15 @@ function printReport(run: BenchRun) {
   const fmt = (cells: string[]) => cells.map((c, i) => (i ? c.padStart(widths[i]) : c.padEnd(widths[i]))).join('  ')
   console.log(bold(fmt(head)))
   for (const r of rows) console.log(fmt(r))
+
+  const errors = errorSummary(run.trials)
+  if (errors.size) {
+    console.log(bold('\nErrores'))
+    for (const [id, list] of errors) {
+      console.log(`  ${label(id)}${run.stopped?.includes(id) ? red(` · se detuvo: sus primeras ${FAIL_FAST_AFTER} peticiones fallaron`) : ''}`)
+      for (const [message, n] of list) console.log(`    ${red(`${n}×`)} ${message}`)
+    }
+  }
 
   const pairs = Object.entries(run.report.agreement)
   if (pairs.length) {

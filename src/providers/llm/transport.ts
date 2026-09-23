@@ -135,6 +135,8 @@ async function streamOpenAI(t: Target, req: CompletionRequest, onText: (text: st
   if (!response.ok) {
     const text = await response.text()
     if (includeUsage && response.status === 400 && /stream_options/.test(text)) return streamOpenAI(t, req, onText, signal, false)
+    if (response.status === 401 || response.status === 403)
+      throw new Error(`El host rechazó la autenticación (${response.status}): ${t.apiKey ? 'revisa que la key sea la correcta' : 'no se envió ninguna key'}.`)
     throw new Error(`Error ${response.status} del proveedor: ${text.slice(0, 300)}`)
   }
   const usage: Usage = {}
