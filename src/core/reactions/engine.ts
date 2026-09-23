@@ -1,5 +1,5 @@
 import type { DecisionScheduler } from '../decisions/scheduler'
-import type { Decision, Rumor } from '../decisions/types'
+import type { Decision, Rumor, TokenUsage } from '../decisions/types'
 import { toPlace } from '../lang'
 import type { Resident, Simulation, Task } from '../sim/simulation'
 import type { Point } from '../world/types'
@@ -23,6 +23,7 @@ export interface Reaction {
   /** The exact exchange with the provider, kept for the inspector. */
   request: { system: string; prompt: string } | null
   response: string | null
+  usage: TokenUsage | null
   decidedBy: string | null
   reasoning: string
   decision: Decision | null
@@ -109,6 +110,7 @@ export class ReactionEngine {
         firstTokenAt: null,
         request: null,
         response: null,
+        usage: null,
         decidedBy: null,
         reasoning: '',
         decision: null,
@@ -214,6 +216,7 @@ export class ReactionEngine {
     reaction.queuedAt = performance.now()
     reaction.request = null
     reaction.response = null
+    reaction.usage = null
     r.frozen = true
     this.emit({ type: 'change', id: reaction.id })
     const ctx = buildContext(this.sim, a, r, reaction.rumors, reaction.decision)
@@ -227,7 +230,10 @@ export class ReactionEngine {
         this.emit({ type: 'change', id: reaction.id })
       },
       onRequest: (system, prompt) => (reaction.request = { system, prompt }),
-      onResponse: (text) => (reaction.response = text),
+      onResponse: (text, usage) => {
+        reaction.response = text
+        reaction.usage = usage ?? null
+      },
       onReasoning: (delta) => {
         reaction.reasoning += delta
         if (reaction.firstTokenAt === null) {

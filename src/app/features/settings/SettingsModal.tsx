@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { PRESETS, type Connection, type LlmSettings, type ProviderKind } from '../../../providers/llm/config'
 import { MAX_CONCURRENCY } from '../../../providers'
-import { streamChat } from '../../../providers/llm/provider'
+import { fetchModels, streamChat } from '../../../providers/llm/client'
 import { useTown } from '../../store'
 import { town } from '../../town'
 import { Alert, Check, Close, Eye, EyeOff, Refresh } from '../../shared/icons'
@@ -70,10 +70,7 @@ function Dialog({ onClose }: { onClose: () => void }) {
     if (!conn) return
     setModels({ status: 'loading' })
     try {
-      const res = await fetch('/api/llm/models', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ connection: conn }) })
-      const json = (await res.json()) as { models?: string[]; error?: string }
-      if (!res.ok || json.error) throw new Error(json.error ?? `Error ${res.status}`)
-      setModels({ status: 'ok', models: json.models ?? [] })
+      setModels({ status: 'ok', models: await fetchModels(conn) })
     } catch (err) {
       setModels({ status: 'error', message: err instanceof Error ? err.message : 'No se pudo cargar la lista.' })
     }
@@ -86,7 +83,8 @@ function Dialog({ onClose }: { onClose: () => void }) {
     try {
       let reply = ''
       const signal = AbortSignal.timeout(60000)
-      for await (const delta of streamChat(conn, 'Responde únicamente con la palabra: listo', 'Prueba de conexión.', signal, { maxTokens: 1024, timeoutMs: 20_000 })) reply += delta
+      for await (const event of streamChat(conn, 'Responde únicamente con la palabra: listo', 'Prueba de conexión.', signal, { maxTokens: 1024, timeoutMs: 20_000 }))
+        if (event.type === 'delta') reply += event.text
       setTest({ status: 'ok', ms: performance.now() - t0, reply: reply.trim().slice(0, 40) })
     } catch (err) {
       setTest({ status: 'error', message: err instanceof Error ? err.message : 'Falló la conexión.' })

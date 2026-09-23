@@ -52,12 +52,19 @@ export interface DecisionContext {
   townsfolk: { id: string; name: string }[]
 }
 
+export interface TokenUsage {
+  inputTokens?: number
+  outputTokens?: number
+  /** Cost the host reported itself, when it does (SheLLM does). */
+  costUsd?: number
+}
+
 export type DecisionEvent =
   | { type: 'reasoning'; delta: string }
   | { type: 'final'; decision: Decision }
   /** What the provider sent and got back, surfaced for transparency; optional for providers. */
   | { type: 'request'; system: string; prompt: string }
-  | { type: 'response'; text: string }
+  | { type: 'response'; text: string; usage?: TokenUsage }
 
 export interface DecisionProvider {
   readonly id: string

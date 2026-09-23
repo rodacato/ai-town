@@ -1,11 +1,11 @@
-import { ACTIONS, type Decision, type DecisionContext, type DecisionProvider } from './types'
+import { ACTIONS, type Decision, type DecisionContext, type DecisionProvider, type TokenUsage } from './types'
 
 export interface DecisionJob {
   ctx: DecisionContext
   onStart: () => void
   onReasoning: (delta: string) => void
   onRequest?: (system: string, prompt: string) => void
-  onResponse?: (text: string) => void
+  onResponse?: (text: string, usage?: TokenUsage) => void
   onDecision: (decision: Decision) => void
   onError: (message: string) => void
 }
@@ -69,7 +69,7 @@ export class DecisionScheduler {
         if (controller.signal.aborted) return
         if (event.type === 'reasoning') job.onReasoning(event.delta)
         else if (event.type === 'request') job.onRequest?.(event.system, event.prompt)
-        else if (event.type === 'response') job.onResponse?.(event.text)
+        else if (event.type === 'response') job.onResponse?.(event.text, event.usage)
         else return job.onDecision(sanitize(event.decision, job.ctx))
       }
       throw new Error('El modelo terminó sin dar una decisión.')
