@@ -1,13 +1,12 @@
 import { Application, Container } from 'pixi.js'
 import type { ReactionEngine } from '../core/reactions/engine'
 import { ACTION_META } from '../theme/actions'
-import type { AnnouncementPlace } from '../core/reactions/announcement'
 import type { Simulation } from '../core/sim/simulation'
-import { Birds, Butterflies, CloudShadows, FountainSpray, Smoke, WaterShimmer } from './ambient'
-import { drawBuilding } from '../worlds/serena/art/buildings'
+import type { WorldArt } from './art'
+import { Birds, Butterflies, CloudShadows, Smoke, WaterShimmer } from './ambient'
 import { Camera } from './camera'
 import { ISLAND_DEPTH, TILE_H, TILE_W, iso } from './iso'
-import { drawFountain, drawProp, type PropSprite } from '../worlds/serena/art/props'
+import type { PropSprite } from './art'
 import { PlaceMarker } from './placeMarker'
 import { OriginBeacon, WaveFx } from './reactionFx'
 import { ResidentSprite, type ReactionVisual } from './residentSprite'
@@ -30,10 +29,9 @@ export class TownRenderer {
   private overlay = new Container()
   private sprites = new Map<string, ResidentSprite>()
   private swaying: NonNullable<PropSprite['sway']>[] = []
-  private flags: Container[] = []
+  private animated: ((time: number, dt: number) => void)[] = []
   private smoke: Smoke
   private water: WaterShimmer
-  private spray: FountainSpray
   private clouds: CloudShadows
   private birds: Birds
   private butterflies: Butterflies
@@ -49,7 +47,7 @@ export class TownRenderer {
   private offEngine: () => void
   private selected: string | null = null
 
-  static async create(host: HTMLElement, sim: Simulation, engine: ReactionEngine, events: RendererEvents, options: RendererOptions) {
+  static async create(host: HTMLElement, sim: Simulation, engine: ReactionEngine, art: WorldArt, events: RendererEvents, options: RendererOptions) {
     const app = new Application()
     await app.init({
       resizeTo: host,
@@ -58,7 +56,7 @@ export class TownRenderer {
       autoDensity: true,
       resolution: Math.min(window.devicePixelRatio || 1, 2),
     })
-    return new TownRenderer(app, host, sim, engine, events, options)
+    return new TownRenderer(app, host, sim, engine, art, events, options)
   }
 
   private constructor(
@@ -66,6 +64,7 @@ export class TownRenderer {
     host: HTMLElement,
     private sim: Simulation,
     private engine: ReactionEngine,
+    art: WorldArt,
     private events: RendererEvents,
     options: RendererOptions,
   ) {
@@ -73,7 +72,7 @@ export class TownRenderer {
     const N = sim.world.size
     const W = sim.world
 
-    this.world.addChild(drawTerrain(W))
+    this.world.addChild(drawTerrain(W, art.terrain))
     this.water = new WaterShimmer(W)
     this.world.addChild(this.water.view)
     this.wave = new WaveFx(engine)
@@ -86,26 +85,28 @@ export class TownRenderer {
 
     const chimneys: { x: number; y: number }[] = []
     for (const b of W.buildings) {
-      const s = drawBuilding(b)
+      const s = art.building(b)
       s.view.zIndex = s.depth
       this.objects.addChild(s.view)
       chimneys.push(...s.chimneys)
-      if (s.flag) this.flags.push(s.flag)
+      if (s.update) this.animated.push(s.update)
     }
     for (let y = 0; y < N; y++)
       for (let x = 0; x < N; x++) {
         const prop = W.tiles[y][x].prop
         if (!prop) continue
-        const s = drawProp(prop, x, y)
+        const s = art.prop(prop, x, y)
         if (!s) continue
         s.view.zIndex = s.depth
         this.objects.addChild(s.view)
         if (s.sway) this.swaying.push(s.sway)
       }
-    const fountain = drawFountain(W.fountain.x, W.fountain.y, W.fountain.size)
-    fountain.view.zIndex = fountain.depth
-    this.objects.addChild(fountain.view)
-    this.spray = new FountainSpray(fountain.water)
+    for (const l of W.landmarks) {
+      const s = art.landmark(l)
+      s.view.zIndex = s.depth
+      this.objects.addChild(s.view)
+      if (s.update) this.animated.push(s.update)
+    }
 
     for (const r of sim.residents) {
       const sprite = new ResidentSprite(r, this.overlay)
@@ -133,7 +134,7 @@ export class TownRenderer {
     this.world.addChild(this.birds.view, this.overlay)
     this.overlay.addChildAt(this.marker.view, 0)
     this.overlay.sortableChildren = true
-    this.beacon = new OriginBeacon(engine)
+    this.beacon = new OriginBeacon(engine, art.stranger())
     this.overlay.addChild(this.beacon.view)
     this.offEngine = engine.on((e) => {
       if (e.type === 'told') {
@@ -179,7 +180,7 @@ export class TownRenderer {
     if (id) this.sprites.get(id)!.hovered = true
   }
 
-  markPlace(place: AnnouncementPlace | null) {
+  markPlace(place: string | null) {
     const spots = place && place !== 'home' ? this.sim.world.places.find((p) => p.id === place)?.spots : undefined
     if (!spots?.length) return this.marker.show(null)
     const cx = spots.reduce((s, p) => s + p.x, 0) / spots.length
@@ -256,9 +257,8 @@ export class TownRenderer {
     const zoom = this.camera.scale
     for (const [id, s] of this.sprites) s.update(t, dt, this.reactionVisual(id), zoom)
     for (const s of this.swaying) s.target.skew.x = Math.sin(t * 1.1 + s.phase) * s.amount + Math.sin(t * 2.3 + s.phase * 2) * s.amount * 0.3
-    for (const f of this.flags) f.scale.x = 0.85 + Math.sin(t * 4) * 0.15
+    for (const update of this.animated) update(t, dt)
     this.water.update(t)
-    this.spray.update(t)
     this.smoke.update(dt)
     this.clouds.update(dt)
     this.birds.update(dt, t)

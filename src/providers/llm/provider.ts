@@ -1,7 +1,7 @@
 import type { DecisionContext, DecisionEvent, DecisionProvider } from '../../core/decisions/types'
 import { PRESETS, type Connection } from './config'
 import { parseDecision, partialStringField } from './parse'
-import { SYSTEM_PROMPT, buildPrompt } from './prompt'
+import { buildPrompt, buildSystemPrompt } from './prompt'
 
 type ProxyEvent = { delta?: string; done?: boolean; error?: string }
 
@@ -40,7 +40,7 @@ export function createLlmProvider(connection: Connection): DecisionProvider {
     async *decide(ctx: DecisionContext, signal: AbortSignal): AsyncIterable<DecisionEvent> {
       let text = ''
       let emitted = 0
-      for await (const delta of streamChat(connection, SYSTEM_PROMPT, buildPrompt(ctx), signal)) {
+      for await (const delta of streamChat(connection, buildSystemPrompt(ctx.world), buildPrompt(ctx), signal)) {
         text += delta
         const reasoning = partialStringField(text, 'reasoning')
         if (reasoning.length > emitted) {

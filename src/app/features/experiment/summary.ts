@@ -1,10 +1,10 @@
 import type { Reaction } from '../../../core/reactions/engine'
 import { ACTIONS, type Action } from '../../../core/decisions/types'
-import { PLACE_LABEL, toPlace } from '../../../worlds/serena/announcements'
-import { RESIDENTS } from '../../../worlds/serena/residents'
-import type { Announcement } from '../../../core/reactions/announcement'
+import { toPlace } from '../../../core/lang'
+import { placeLabel, type Announcement } from '../../../core/reactions/announcement'
+import { town } from '../../town'
 
-export const firstName = (id: string) => RESIDENTS.find((r) => r.id === id)?.name.split(' ')[0] ?? id
+export const firstName = (id: string) => town.content.residents.find((r) => r.id === id)?.name.split(' ')[0] ?? id
 const list = (names: string[]) => (names.length > 1 ? `${names.slice(0, -1).join(', ')} y ${names[names.length - 1]}` : (names[0] ?? ''))
 export const seconds = (ms: number) => `${(ms / 1000).toFixed(1)} s`
 
@@ -41,7 +41,7 @@ export function summarize(reactions: Record<string, Reaction>, a: Announcement) 
   const s = computeStats(reactions)
   const total = s.listeners.length
   const top = ACTIONS.reduce((best, x) => (s.counts[x] > s.counts[best] ? x : best), ACTIONS[0])
-  const place = a.place && a.place !== 'home' ? PLACE_LABEL[a.place] : 'la plaza'
+  const place = (a.place !== 'home' && placeLabel(town.content, a.place)) || placeLabel(town.content, town.content.gatheringPlace)!
   const insights: string[] = []
 
   const doubters = s.decided.filter((r) => !r.decision!.believes)
@@ -66,7 +66,7 @@ export function summarize(reactions: Record<string, Reaction>, a: Announcement) 
     insights.push(`${firstName(fast.id)} decidió en ${seconds(fast.latencyMs ?? 0)}; ${firstName(slow.id)} fue quien más lo pensó (${seconds(slow.latencyMs ?? 0)}).`)
   }
 
-  const ageOf = (r: Reaction) => RESIDENTS.find((p) => p.id === r.id)!.age
+  const ageOf = (r: Reaction) => town.content.residents.find((p) => p.id === r.id)!.age
   const older = s.decided.filter((r) => ageOf(r) >= 60)
   const younger = s.decided.filter((r) => ageOf(r) < 35)
   if (older.length >= 2 && younger.length >= 2) {

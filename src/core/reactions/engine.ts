@@ -1,10 +1,10 @@
-import { PLACE_LABEL, toPlace } from '../../worlds/serena/announcements'
-import type { Announcement } from './announcement'
-import type { Resident, Simulation, Task } from '../sim/simulation'
-import type { Point } from '../world/types'
-import { buildContext } from './context'
 import type { DecisionScheduler } from '../decisions/scheduler'
 import type { Decision, Rumor } from '../decisions/types'
+import { toPlace } from '../lang'
+import type { Resident, Simulation, Task } from '../sim/simulation'
+import type { Point } from '../world/types'
+import type { Announcement } from './announcement'
+import { buildContext } from './context'
 
 export type Phase = 'unaware' | 'heard' | 'thinking' | 'decided' | 'error'
 
@@ -30,6 +30,7 @@ export interface Reaction {
 
 export type EngineEvent =
   | { type: 'change'; id: string }
+  | { type: 'reasoning'; id: string }
   | { type: 'told'; from: string; to: string }
   | { type: 'complete' }
 
@@ -142,11 +143,12 @@ export class ReactionEngine {
       const r = this.sim.get(a.speaker.residentId!)
       if (r) return r.mode === 'inside' ? { x: this.sim.homeDoor(r).x + 0.5, y: this.sim.homeDoor(r).y + 0.5 } : { x: r.x, y: r.y }
     }
-    if (a.speaker.kind === 'mayor') {
-      const d = this.sim.world.buildings.find((b) => b.id === 'townhall')!.door
+    if (a.speaker.kind === 'authority') {
+      const d = this.sim.world.buildings.find((b) => b.id === this.sim.content.authorityOrigin.building)!.door
       return { x: d.x + 0.5, y: d.y + 0.5 }
     }
-    return { x: 13.5, y: 18.5 }
+    const s = this.sim.content.strangerOrigin
+    return { x: s.x + 0.5, y: s.y + 0.5 }
   }
 
   private tick(dt: number) {
@@ -189,7 +191,7 @@ export class ReactionEngine {
     reaction.startedAt = null
     r.frozen = true
     this.emit({ type: 'change', id: reaction.id })
-    const ctx = buildContext(a, r, this.sim.minutes, reaction.rumors, reaction.decision)
+    const ctx = buildContext(this.sim, a, r, reaction.rumors, reaction.decision)
     const provider = this.scheduler.provider
     this.scheduler.enqueue({
       ctx,
@@ -199,7 +201,7 @@ export class ReactionEngine {
       },
       onReasoning: (delta) => {
         reaction.reasoning += delta
-        this.emit({ type: 'change', id: reaction.id })
+        this.emit({ type: 'reasoning', id: reaction.id })
       },
       onDecision: (decision) => {
         reaction.decidedBy = provider.label
@@ -237,8 +239,8 @@ export class ReactionEngine {
 
   private act(r: Resident, reaction: Reaction, d: Decision) {
     const a = this.announcement!
-    const placeId = a.place && a.place !== 'home' ? a.place : 'plaza'
-    const placeLabel = PLACE_LABEL[placeId]
+    const placeId = a.place && a.place !== 'home' ? a.place : this.sim.content.gatheringPlace
+    const placeLabel = this.sim.world.places.find((p) => p.id === placeId)!.name
     const tasks: Task[] = d.tell
       .filter((id) => id !== r.profile.id)
       .map((id) => ({

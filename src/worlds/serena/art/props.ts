@@ -1,16 +1,11 @@
 import { Container, Graphics } from 'pixi.js'
 import { hash2 } from '../../../core/world/rng'
-import type { PropKind } from '../../../core/world/types'
 import { iso, isoFlat, isoPoly } from '../../../render/iso'
-import { PAL, shade } from '../../../render/palette'
+import type { PropSprite } from '../../../render/art'
+import { PAL, shade } from './palette'
 
-export interface PropSprite {
-  view: Container
-  depth: number
-  sway?: { target: Container; phase: number; amount: number }
-}
 
-export function drawProp(kind: PropKind, x: number, y: number): PropSprite | null {
+export function drawProp(kind: string, x: number, y: number): PropSprite | null {
   const h = hash2(x, y, 21)
   const jitter = { x: (hash2(x, y, 22) - 0.5) * 0.3, y: (hash2(x, y, 23) - 0.5) * 0.3 }
   const c = iso(x + 0.5 + jitter.x, y + 0.5 + jitter.y)

@@ -1,4 +1,4 @@
-import type { Look } from '../../worlds/serena/residents'
+import type { Look } from '../../core/world/content'
 
 const hex = (n: number) => `#${n.toString(16).padStart(6, '0')}`
 

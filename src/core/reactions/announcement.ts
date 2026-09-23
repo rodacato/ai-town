@@ -1,46 +1,21 @@
-export type SpeakerKind = 'mayor' | 'neighbor' | 'stranger'
+import type { SpeakerKind, WorldContent } from '../world/content'
+import type { Place } from '../world/types'
+
+export type { SpeakerKind }
 
 export interface Speaker {
   kind: SpeakerKind
   residentId?: string
 }
 
-export type AnnouncementPlace =
-  | 'plaza'
-  | 'fountain'
-  | 'cafe'
-  | 'bakery'
-  | 'shop'
-  | 'townhall'
-  | 'park'
-  | 'riverbank'
-  | 'forest'
-  | 'field'
-  | 'bridge'
-  | 'home'
-
 export interface Announcement {
   id: string
   text: string
   speaker: Speaker
-  place: AnnouncementPlace | null
+  /** A place id, 'home' when it asks people to stay in, or null when it names no place. */
+  place: string | null
   minutes: number
 }
-
-const KEYWORDS: [AnnouncementPlace, string[]][] = [
-  ['fountain', ['fuente']],
-  ['plaza', ['plaza', 'centro del pueblo']],
-  ['cafe', ['cafe', 'cafeteria', 'glorieta']],
-  ['bakery', ['panaderia', 'pan ']],
-  ['shop', ['tienda', 'ferrer']],
-  ['townhall', ['ayuntamiento', 'alcaldia']],
-  ['park', ['parque']],
-  ['bridge', ['puente']],
-  ['riverbank', ['rio', 'orilla']],
-  ['forest', ['bosque']],
-  ['field', ['huerto', 'granja', 'cosecha']],
-  ['home', ['casa', 'hogar', 'refugi', 'encierr']],
-]
 
 export const normalize = (text: string) =>
   text
@@ -49,13 +24,26 @@ export const normalize = (text: string) =>
     .replace(/[̀-ͯ]/g, '')
 
 /** The place mentioned earliest in the text wins, so "el puente del río" resolves to the bridge. */
-export function detectPlace(text: string): AnnouncementPlace | null {
+export function detectPlace(text: string, places: Place[], homeKeywords: string[]): string | null {
   const t = ` ${normalize(text)} `
-  let best: { place: AnnouncementPlace; index: number } | null = null
-  for (const [place, words] of KEYWORDS)
+  let best: { place: string; index: number } | null = null
+  const candidates: [string, string[]][] = [...places.map((p): [string, string[]] => [p.id, p.keywords]), ['home', homeKeywords]]
+  for (const [place, words] of candidates)
     for (const w of words) {
-      const index = t.search(new RegExp(`\\b${w}`))
+      const index = t.search(new RegExp(`\\b${normalize(w)}`))
       if (index >= 0 && (!best || index < best.index)) best = { place, index }
     }
   return best?.place ?? null
+}
+
+export function placeLabel(content: WorldContent, place: string | null) {
+  if (!place) return null
+  if (place === 'home') return content.homeLabel
+  return content.places.find((p) => p.id === place)?.name ?? null
+}
+
+export function speakerName(content: WorldContent, speaker: Speaker) {
+  if (speaker.kind !== 'neighbor') return content.speakers[speaker.kind].name
+  const r = content.residents.find((p) => p.id === speaker.residentId)
+  return r ? `${r.name}, vecino` : content.speakers.neighbor.name
 }

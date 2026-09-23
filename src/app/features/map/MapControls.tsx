@@ -1,9 +1,8 @@
-import { useTown } from '../../store'
+import { town } from '../../town'
 import { Focus, Minus, Plus } from '../../shared/icons'
 
 export function MapControls() {
-  const renderer = useTown((s) => s.renderer)
-  const zoom = (f: number) => renderer?.camera.zoomBy(f)
+  const zoom = (f: number) => town.zoomBy(f)
   return (
     <div className="map-controls panel" role="toolbar" aria-label="Controles del mapa">
       <button className="icon-btn" onClick={() => zoom(1.3)} aria-label="Acercar" data-tip="Acercar  +">
@@ -13,7 +12,7 @@ export function MapControls() {
         <Minus />
       </button>
       <div className="divider" />
-      <button className="icon-btn" onClick={() => renderer?.camera.fit()} aria-label="Recentrar" data-tip="Ver todo el pueblo  0">
+      <button className="icon-btn" onClick={() => town.fit()} aria-label="Recentrar" data-tip="Ver todo el pueblo  0">
         <Focus />
       </button>
     </div>

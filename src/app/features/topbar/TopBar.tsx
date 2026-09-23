@@ -1,14 +1,13 @@
-import { TOWN_NAME } from '../../../worlds/serena/town'
 import { formatClock } from '../../../core/sim/clock'
 import { useTown } from '../../store'
+import { town } from '../../town'
 import { activeLabel } from '../../../providers/llm/config'
 import { Gear, Reset, Sun, TownMark, Users } from '../../shared/icons'
 
 export function TopBar() {
   const minutes = useTown((s) => s.minutes)
   const outside = useTown((s) => s.outside)
-  const total = useTown((s) => s.sim.residents.length)
-  const resetTown = useTown((s) => s.resetTown)
+  const total = town.content.residents.length
   const llm = useTown((s) => s.llm)
   const openSettings = () => useTown.getState().setSettingsOpen(true)
   const { day, time } = formatClock(minutes)
@@ -19,7 +18,7 @@ export function TopBar() {
         <TownMark />
         <div className="brand-text">
           <span className="eyebrow">AI Town</span>
-          <h1>{TOWN_NAME}</h1>
+          <h1>{town.content.name}</h1>
         </div>
       </div>
       <div className="topbar-stats">
@@ -40,7 +39,7 @@ export function TopBar() {
         <button className="pill panel btn-pill icon-only" onClick={openSettings} aria-label="Configurar modelo de decisiones" title="Configurar modelo de decisiones">
           <Gear className="pill-icon gear" />
         </button>
-        <button className="pill panel btn-pill" onClick={resetTown} title="Devuelve a todos a su rutina y borra el anuncio">
+        <button className="pill panel btn-pill" onClick={() => town.reset()} title="Devuelve a todos a su rutina y borra el anuncio">
           <Reset className="pill-icon" />
           Reiniciar
         </button>

@@ -1,7 +1,7 @@
 import { Container, Graphics } from 'pixi.js'
 import type { Building } from '../../../core/world/types'
 import { isoFlat, isoPoly } from '../../../render/iso'
-import { PAL, shade } from '../../../render/palette'
+import { PAL, shade } from './palette'
 
 type V3 = [number, number, number]
 

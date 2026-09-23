@@ -1,6 +1,7 @@
 import { Simulation } from '../src/core/sim/simulation'
+import { activeWorld } from '../src/worlds'
 
-const sim = new Simulation()
+const sim = new Simulation(activeWorld.content)
 const t0 = performance.now()
 for (let i = 0; i < 60 * 180; i++) sim.update(1 / 60)
 const counts: Record<string, number> = {}

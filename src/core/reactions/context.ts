@@ -1,35 +1,30 @@
-import { PLACE_LABEL, speakerName } from '../../worlds/serena/announcements'
-import { RESIDENTS } from '../../worlds/serena/residents'
-import type { Announcement } from './announcement'
-import { formatClock } from '../sim/clock'
-import type { Resident } from '../sim/simulation'
-import { statusOf } from '../sim/status'
 import type { Decision, DecisionContext, Rumor } from '../decisions/types'
+import { formatClock } from '../sim/clock'
+import type { Resident, Simulation } from '../sim/simulation'
+import { statusOf } from '../sim/status'
+import { placeLabel, speakerName, type Announcement } from './announcement'
 
-export function buildContext(
-  a: Announcement,
-  r: Resident,
-  minutes: number,
-  rumors: Rumor[],
-  previous: Decision | null,
-): DecisionContext {
+export function buildContext(sim: Simulation, a: Announcement, r: Resident, rumors: Rumor[], previous: Decision | null): DecisionContext {
+  const { content } = sim
   const p = r.profile
-  const nameOf = (id: string) => RESIDENTS.find((x) => x.id === id)?.name ?? id
+  const nameOf = (id: string) => content.residents.find((x) => x.id === id)?.name ?? id
+  const clock = formatClock(sim.minutes)
   return {
+    world: { name: content.name, setting: content.promptSetting },
     resident: { id: p.id, name: p.name, age: p.age, occupation: p.occupation, bio: p.bio, traits: p.traits },
     relationships: p.relationships.map((rel) => ({ id: rel.id, name: nameOf(rel.id), label: rel.label })),
     announcement: {
       id: a.id,
       text: a.text,
       speakerKind: a.speaker.kind,
-      speakerName: speakerName(a.speaker),
+      speakerName: speakerName(content, a.speaker),
       relationToSpeaker: a.speaker.kind === 'neighbor' ? (p.relationships.find((rel) => rel.id === a.speaker.residentId)?.label ?? null) : null,
       place: a.place,
-      placeLabel: a.place ? PLACE_LABEL[a.place] : null,
+      placeLabel: placeLabel(content, a.place),
     },
-    situation: { activity: statusOf(r), time: `${formatClock(minutes).day} ${formatClock(minutes).time}` },
+    situation: { activity: statusOf(sim, r), time: `${clock.day} ${clock.time}` },
     rumors,
     previous,
-    townsfolk: RESIDENTS.filter((x) => x.id !== p.id).map((x) => ({ id: x.id, name: x.name })),
+    townsfolk: content.residents.filter((x) => x.id !== p.id).map((x) => ({ id: x.id, name: x.name })),
   }
 }

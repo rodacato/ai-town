@@ -1,17 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
-import { SPEAKERS } from '../../../worlds/serena/announcements'
-import { RESIDENTS } from '../../../worlds/serena/residents'
-import type { SpeakerKind } from '../../../core/reactions/announcement'
+import type { Speaker, SpeakerKind } from '../../../core/reactions/announcement'
 import { useTown } from '../../store'
 import { Avatar } from '../../shared/Avatar'
 import { ChevronDown, Landmark, Stranger, User } from '../../shared/icons'
+import { town } from '../../town'
 
-const ICONS = { mayor: Landmark, neighbor: User, stranger: Stranger }
-const KINDS: SpeakerKind[] = ['mayor', 'neighbor', 'stranger']
+const ICONS = { authority: Landmark, neighbor: User, stranger: Stranger }
+const KINDS: SpeakerKind[] = ['authority', 'neighbor', 'stranger']
 
 export function SpeakerPicker() {
   const speaker = useTown((s) => s.draft.speaker)
-  const setSpeaker = useTown((s) => s.setSpeaker)
+  const setDraft = useTown((s) => s.setDraft)
+  const setSpeaker = (speaker: Speaker) => setDraft({ speaker })
   const active = KINDS.indexOf(speaker.kind)
 
   return (
@@ -26,10 +26,10 @@ export function SpeakerPicker() {
               role="radio"
               aria-checked={speaker.kind === kind}
               className={speaker.kind === kind ? 'is-active' : ''}
-              onClick={() => setSpeaker(kind === 'neighbor' ? { kind, residentId: speaker.residentId ?? 'pablo' } : { kind })}
+              onClick={() => setSpeaker(kind === 'neighbor' ? { kind, residentId: speaker.residentId ?? town.content.residents[0].id } : { kind })}
             >
               <Icon width={15} height={15} />
-              {SPEAKERS[kind].label}
+              {town.content.speakers[kind].label}
             </button>
           )
         })}
@@ -40,7 +40,7 @@ export function SpeakerPicker() {
         </div>
       </div>
       <p className="speaker-hint" key={speaker.kind}>
-        {SPEAKERS[speaker.kind].hint}
+        {town.content.speakers[speaker.kind].hint}
       </p>
     </div>
   )
@@ -48,10 +48,11 @@ export function SpeakerPicker() {
 
 function NeighborSelect() {
   const speaker = useTown((s) => s.draft.speaker)
-  const setSpeaker = useTown((s) => s.setSpeaker)
+  const setDraft = useTown((s) => s.setDraft)
+  const setSpeaker = (speaker: Speaker) => setDraft({ speaker })
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
-  const current = RESIDENTS.find((r) => r.id === speaker.residentId) ?? RESIDENTS[0]
+  const current = town.content.residents.find((r) => r.id === speaker.residentId) ?? town.content.residents[0]
 
   useEffect(() => {
     if (!open) return
@@ -76,7 +77,7 @@ function NeighborSelect() {
       </button>
       {open && (
         <ul className="select-menu panel" role="listbox">
-          {RESIDENTS.map((r) => (
+          {town.content.residents.map((r) => (
             <li key={r.id}>
               <button
                 role="option"

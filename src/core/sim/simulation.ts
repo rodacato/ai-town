@@ -1,4 +1,4 @@
-import { RESIDENTS, type ResidentProfile, type RoutineSpot } from '../../worlds/serena/residents'
+import type { ResidentProfile, WorldContent } from '../world/content'
 import { findPath } from '../world/pathfinding'
 import { createRng, type Rng } from '../world/rng'
 import type { Point } from '../world/types'
@@ -27,7 +27,7 @@ export interface Resident {
   facing: 1 | -1
   walkPhase: number
   chatting: string | null
-  destination: RoutineSpot | null
+  destination: string | null
   tasks: Task[]
   /** Stops in place, e.g. while hearing and thinking about an announcement. */
   frozen: boolean
@@ -55,10 +55,13 @@ export class Simulation {
   private chatCheck = 0
   private tickers = new Set<(dt: number) => void>()
 
-  constructor(seed = 7) {
-    this.world = createWorld()
+  constructor(
+    readonly content: WorldContent,
+    seed = 7,
+  ) {
+    this.world = createWorld(content)
     this.rng = createRng(seed)
-    for (const profile of RESIDENTS) this.residents.push(this.spawn(profile))
+    for (const profile of content.residents) this.residents.push(this.spawn(profile))
   }
 
   /** Respawns everyone in place so renderer sprites keep pointing at the same Resident objects. */
@@ -306,22 +309,22 @@ export class Simulation {
     r.timer = 2
   }
 
-  private pickDestination(r: Resident, initial: boolean): { kind: RoutineSpot; tile: Point } | null {
+  private pickDestination(r: Resident, initial: boolean): { kind: string; tile: Point } | null {
     const options = Object.entries(r.profile.routine)
       .filter(([kind]) => !(initial && kind === 'home'))
       .filter(([kind]) => kind !== r.destination || kind === 'street' || kind === 'visit')
-      .map(([kind, weight]) => ({ item: kind as RoutineSpot, weight: weight! }))
+      .map(([kind, weight]) => ({ item: kind, weight }))
     if (!options.length) return null
     const kind = this.rng.weighted(options)
     const tile = this.tileFor(r, kind)
     return tile ? { kind, tile } : null
   }
 
-  private tileFor(r: Resident, kind: RoutineSpot): Point | null {
+  private tileFor(r: Resident, kind: string): Point | null {
     if (kind === 'home') return this.homeDoor(r)
     if (kind === 'visit') {
       const friends = r.profile.relationships
-        .map((rel) => RESIDENTS.find((p) => p.id === rel.id)?.home)
+        .map((rel) => this.content.residents.find((p) => p.id === rel.id)?.home)
         .filter((h): h is string => !!h && h !== r.profile.home)
       const houses = friends.length ? friends : this.world.buildings.map((b) => b.id)
       const houseId = this.rng.pick(houses)

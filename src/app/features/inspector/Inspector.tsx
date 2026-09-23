@@ -1,29 +1,27 @@
 import { useEffect, useState } from 'react'
-import { RESIDENTS } from '../../../worlds/serena/residents'
 import { useTown } from '../../store'
 import { Avatar } from '../../shared/Avatar'
 import { ReactionDetail } from './ReactionDetail'
 import { Brain, Close } from '../../shared/icons'
 import { statusOf } from '../../../core/sim/status'
+import { town } from '../../town'
 
 export function Inspector({ id }: { id: string }) {
-  const renderer = useTown((s) => s.renderer)
-  const sim = useTown((s) => s.sim)
   const reaction = useTown((s) => s.reactions[id])
-  const profile = RESIDENTS.find((r) => r.id === id)!
+  const profile = town.content.residents.find((r) => r.id === id)!
   const [status, setStatus] = useState('')
 
   useEffect(() => {
-    const r = sim.get(id)!
-    const tick = () => setStatus(statusOf(r))
+    const r = town.sim.get(id)!
+    const tick = () => setStatus(statusOf(town.sim, r))
     tick()
     const t = window.setInterval(tick, 400)
     return () => window.clearInterval(t)
-  }, [id, sim])
+  }, [id])
 
   return (
     <div className="panel-view inspector">
-      <button className="icon-btn close" onClick={() => renderer?.select(null)} aria-label="Cerrar ficha" data-tip-left="Cerrar  Esc">
+      <button className="icon-btn close" onClick={() => town.select(null)} aria-label="Cerrar ficha" data-tip-left="Cerrar  Esc">
         <Close />
       </button>
       <div className="inspector-head">
@@ -63,10 +61,10 @@ export function Inspector({ id }: { id: string }) {
         <h3 className="section-label">Relaciones</h3>
         <ul className="relations">
           {profile.relationships.map((rel) => {
-            const other = RESIDENTS.find((p) => p.id === rel.id)!
+            const other = town.content.residents.find((p) => p.id === rel.id)!
             return (
               <li key={rel.id}>
-                <button onClick={() => renderer?.select(rel.id)} onMouseEnter={() => renderer?.highlight(rel.id)} onMouseLeave={() => renderer?.highlight(null)}>
+                <button onClick={() => town.select(rel.id)} onMouseEnter={() => town.highlight(rel.id)} onMouseLeave={() => town.highlight(null)}>
                   <Avatar look={other.look} size={30} />
                   <span className="rel-text">
                     <span className="rel-name">{other.name}</span>

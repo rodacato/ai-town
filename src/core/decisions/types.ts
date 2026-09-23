@@ -1,4 +1,4 @@
-import type { AnnouncementPlace, SpeakerKind } from '../reactions/announcement'
+import type { SpeakerKind } from '../world/content'
 
 export type Action = 'go' | 'stay_home' | 'warn' | 'investigate' | 'ignore'
 
@@ -25,6 +25,7 @@ export interface Rumor {
 }
 
 export interface DecisionContext {
+  world: { name: string; setting: string }
   resident: {
     id: string
     name: string
@@ -40,7 +41,7 @@ export interface DecisionContext {
     speakerKind: SpeakerKind
     speakerName: string
     relationToSpeaker: string | null
-    place: AnnouncementPlace | null
+    place: string | null
     placeLabel: string | null
   }
   situation: { activity: string; time: string }

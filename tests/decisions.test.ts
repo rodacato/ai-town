@@ -1,27 +1,26 @@
 import { describe, expect, it } from 'vitest'
 import { buildContext } from '../src/core/reactions/context'
-import { mockDecision } from '../src/providers/mock'
-import { partialStringField, parseDecision } from '../src/providers/llm/parse'
-import { EXAMPLES } from '../src/worlds/serena/announcements'
 import { detectPlace } from '../src/core/reactions/announcement'
 import { Simulation } from '../src/core/sim/simulation'
+import type { Example } from '../src/core/world/content'
+import { partialStringField, parseDecision } from '../src/providers/llm/parse'
+import { mockDecision } from '../src/providers/mock'
+import { announce, content, exampleByTone } from './helpers'
 
-const sim = new Simulation()
+const sim = new Simulation(content)
 
-function decideAll(exampleId: string) {
-  const ex = EXAMPLES.find((e) => e.id === exampleId)!
-  const a = { id: ex.id, text: ex.text, speaker: ex.speaker, place: detectPlace(ex.text), minutes: 630 }
+function decideAll(ex: Example) {
+  const a = announce(sim, ex)
   return sim.residents
     .filter((r) => !(ex.speaker.kind === 'neighbor' && ex.speaker.residentId === r.profile.id))
-    .map((r) => mockDecision(buildContext(a, r, 630, [], null)))
+    .map((r) => mockDecision(buildContext(sim, a, r, [], null), content.vocabulary))
 }
 
 describe('mock decisions', () => {
   it('produce varied, well-formed reactions for every example', () => {
-    for (const ex of EXAMPLES) {
-      const decisions = decideAll(ex.id)
-      const actions = new Set(decisions.map((d) => d.action))
-      expect(actions.size, ex.id).toBeGreaterThan(1)
+    for (const ex of content.examples) {
+      const decisions = decideAll(ex)
+      expect(new Set(decisions.map((d) => d.action)).size, ex.id).toBeGreaterThan(1)
       for (const d of decisions) {
         expect(d.reasoning.length).toBeGreaterThan(20)
         expect(d.speech.length).toBeGreaterThan(0)
@@ -30,22 +29,36 @@ describe('mock decisions', () => {
     }
   })
 
-  it('mostly distrusts the suspicious stranger', () => {
-    const decisions = decideAll('money')
+  it('mostly distrusts the suspicious example', () => {
+    const decisions = decideAll(exampleByTone('sospechoso'))
     expect(decisions.filter((d) => d.believes).length).toBeLessThan(decisions.length / 3)
   })
 
-  it('mostly shelters from the storm', () => {
-    const decisions = decideAll('storm')
+  it('mostly shelters on the emergency example', () => {
+    const decisions = decideAll(exampleByTone('emergencia'))
     expect(decisions.filter((d) => d.action === 'stay_home' || d.action === 'warn').length).toBeGreaterThan(decisions.length / 2)
+  })
+
+  it('mostly believes the trusted example', () => {
+    const decisions = decideAll(exampleByTone('confiable'))
+    expect(decisions.filter((d) => d.believes).length).toBeGreaterThan(decisions.length / 2)
   })
 })
 
 describe('announcement place detection', () => {
+  const [first, second] = sim.world.places.filter((p) => p.keywords.length)
+
   it('uses the earliest mention', () => {
-    expect(detectPlace('Nos vemos en la fuente de la plaza')).toBe('fountain')
-    expect(detectPlace('El puente del río está roto')).toBe('bridge')
-    expect(detectPlace('Todo bien por aquí')).toBeNull()
+    expect(detectPlace(`Nos vemos en ${first.keywords[0]} y luego en ${second.keywords[0]}`, sim.world.places, content.homeKeywords)).toBe(first.id)
+    expect(detectPlace(`Primero ${second.keywords[0]}, después ${first.keywords[0]}`, sim.world.places, content.homeKeywords)).toBe(second.id)
+  })
+
+  it('returns null when no place is named', () => {
+    expect(detectPlace('Todo bien por aquí', sim.world.places, content.homeKeywords)).toBeNull()
+  })
+
+  it('detects staying home', () => {
+    expect(detectPlace(`Vuelvan a su ${content.homeKeywords[0]}`, sim.world.places, content.homeKeywords)).toBe('home')
   })
 })
 
@@ -53,8 +66,7 @@ describe('LLM output parsing', () => {
   const ctx = { townsfolk: [{ id: 'marta', name: 'Marta Quiroga' }] } as Parameters<typeof parseDecision>[1]
 
   it('streams a string field from incomplete JSON', () => {
-    const json = '{"reasoning": "Hola \\"amigos\\", voy'
-    expect(partialStringField(json, 'reasoning')).toBe('Hola "amigos", voy')
+    expect(partialStringField('{"reasoning": "Hola \\"amigos\\", voy', 'reasoning')).toBe('Hola "amigos", voy')
   })
 
   it('parses fenced JSON and maps names to ids', () => {

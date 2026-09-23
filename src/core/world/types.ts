@@ -5,33 +5,19 @@ export interface Point {
 
 export type TileKind = 'grass' | 'path' | 'plaza' | 'water' | 'bridge' | 'field' | 'sand'
 
-export type PropKind =
-  | 'tree'
-  | 'pine'
-  | 'bush'
-  | 'bench'
-  | 'lamp'
-  | 'flowers'
-  | 'rock'
-  | 'crop'
-  | 'stall'
-  | 'well'
-  | 'fence'
-  | 'reeds'
-
 export interface Tile {
   kind: TileKind
-  prop?: PropKind
-  /** Footprint of a building or a solid prop. */
+  /** Decoration drawn by the world's art kit; blocking ones also set `blocked`. */
+  prop?: string
+  /** Footprint of a building, a landmark or a solid prop. */
   blocked: boolean
   buildingId?: string
 }
 
-export type BuildingKind = 'house' | 'townhall' | 'cafe' | 'bakery' | 'shop' | 'cabin'
-
 export interface Building {
   id: string
-  kind: BuildingKind
+  /** Art kit key, e.g. 'house' or 'tavern'. */
+  kind: string
   name: string
   x: number
   y: number
@@ -44,25 +30,18 @@ export interface Building {
   palette: number
 }
 
-export type PlaceKind =
-  | 'plaza'
-  | 'fountain'
-  | 'bench'
-  | 'cafe'
-  | 'bakery'
-  | 'shop'
-  | 'townhall'
-  | 'park'
-  | 'riverbank'
-  | 'forest'
-  | 'field'
-  | 'bridge'
-  | 'street'
+export interface Landmark {
+  id: string
+  kind: string
+  x: number
+  y: number
+  size: number
+}
 
 export interface Place {
   id: string
   name: string
-  kind: PlaceKind
+  keywords: string[]
   /** Tiles where a resident can stand when visiting this place. */
   spots: Point[]
 }

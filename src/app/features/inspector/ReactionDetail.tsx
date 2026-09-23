@@ -1,14 +1,13 @@
 import type { Reaction } from '../../../core/reactions/engine'
-import { RESIDENTS } from '../../../worlds/serena/residents'
 import { useTown } from '../../store'
 import { ActionPill } from '../../shared/ActionPill'
 import { firstName, seconds } from '../experiment/summary'
 import { useNow } from '../../shared/useNow'
+import { town } from '../../town'
 
 export function ReactionDetail({ reaction, name }: { reaction: Reaction | undefined; name: string }) {
-  const engine = useTown((s) => s.engine)
-  const renderer = useTown((s) => s.renderer)
   const now = useNow(reaction?.phase === 'thinking')
+  const streamed = useTown((s) => (reaction ? s.reasoning[reaction.id] : undefined))
   const first = name.split(' ')[0]
 
   if (!reaction) return <div className="reaction-body is-empty">Todavía no hay anuncio. Cuando transmitas uno, aquí verás qué decide {first} y por qué.</div>
@@ -31,9 +30,9 @@ export function ReactionDetail({ reaction, name }: { reaction: Reaction | undefi
             {reaction.startedAt ? 'Pensando' : 'En cola'}
             {reaction.startedAt && <span className="mono">{seconds(now - reaction.startedAt)}</span>}
           </div>
-          {reaction.reasoning && (
+          {streamed && (
             <p className="reasoning is-streaming">
-              {reaction.reasoning}
+              {streamed}
               <span className="caret" />
             </p>
           )}
@@ -43,7 +42,7 @@ export function ReactionDetail({ reaction, name }: { reaction: Reaction | undefi
       return (
         <div className="reaction-body is-error">
           <p>No pudo decidir: {reaction.error}</p>
-          <button className="btn-link" onClick={() => engine.retry(reaction.id)}>
+          <button className="btn-link" onClick={() => town.retry([reaction.id])}>
             Reintentar
           </button>
         </div>
@@ -78,7 +77,7 @@ export function ReactionDetail({ reaction, name }: { reaction: Reaction | undefi
                 {d.tell.map((id, i) => (
                   <span key={id}>
                     {i > 0 && (i === d.tell.length - 1 ? ' y ' : ', ')}
-                    <button className="inline-link" onClick={() => renderer?.select(id)}>
+                    <button className="inline-link" onClick={() => town.select(id)}>
                       {firstName(id)}
                     </button>
                   </span>
@@ -89,13 +88,13 @@ export function ReactionDetail({ reaction, name }: { reaction: Reaction | undefi
             {reaction.revisedBy && reaction.previous && (
               <li>
                 Cambió de opinión tras hablar con{' '}
-                <button className="inline-link" onClick={() => renderer?.select(reaction.revisedBy!)}>
+                <button className="inline-link" onClick={() => town.select(reaction.revisedBy!)}>
                   {firstName(reaction.revisedBy)}
                 </button>{' '}
                 (antes: «{reaction.previous.speech}»).
               </li>
             )}
-            {!reaction.revisedBy && reaction.previous && <li>{RESIDENTS.find((p) => p.id === reaction.rumors.at(-1)?.fromId)?.name.split(' ')[0]} intentó convencerle, pero no cambió de idea.</li>}
+            {!reaction.revisedBy && reaction.previous && <li>{town.content.residents.find((p) => p.id === reaction.rumors.at(-1)?.fromId)?.name.split(' ')[0]} intentó convencerle, pero no cambió de idea.</li>}
           </ul>
         </div>
       )

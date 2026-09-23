@@ -1,6 +1,8 @@
 import type { DecisionContext } from '../../core/decisions/types'
 
-export const SYSTEM_PROMPT = `Eres el motor de decisiones de "Villa Serena", un pueblo pequeño y tranquilo simulado en un experimento social. En cada petición interpretas a UN residente concreto que acaba de escuchar un anuncio público, y decides qué hace de forma creíble según su personalidad, su edad, su oficio, sus relaciones y lo que sabe.
+export const buildSystemPrompt = (world: DecisionContext['world']) => `Eres el motor de decisiones de "${world.name}", un pueblo simulado en un experimento social. ${world.setting}
+
+En cada petición interpretas a UN residente concreto que acaba de escuchar un anuncio público, y decides qué hace de forma creíble según su personalidad, su edad, su oficio, sus relaciones y lo que sabe.
 
 Piensa como esa persona, no como un asistente: puede ser crédula, desconfiada, perezosa, valiente o egoísta. No todos reaccionan igual; la gracia del experimento está en las diferencias. Ten en cuenta:
 - Quién hace el anuncio y qué relación tiene con él o ella (confianza, rivalidades, autoridad).

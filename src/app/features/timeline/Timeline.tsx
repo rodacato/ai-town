@@ -1,8 +1,8 @@
 import { ACTION_META } from '../../../theme/actions'
-import { RESIDENTS } from '../../../worlds/serena/residents'
 import { useTown } from '../../store'
 import { Avatar } from '../../shared/Avatar'
 import { computeStats, seconds } from '../experiment/summary'
+import { town } from '../../town'
 
 const PHASE_TIP = { unaware: 'sin enterarse', heard: 'escuchó', thinking: 'pensando…', error: 'error' }
 
@@ -10,10 +10,9 @@ export function Timeline() {
   const announcement = useTown((s) => s.announcement)
   const reactions = useTown((s) => s.reactions)
   const complete = useTown((s) => s.complete)
-  const renderer = useTown((s) => s.renderer)
   const selectedId = useTown((s) => s.selectedId)
   const stats = computeStats(reactions)
-  const total = announcement ? stats.listeners.length : RESIDENTS.length
+  const total = announcement ? stats.listeners.length : town.content.residents.length
   const thinking = stats.listeners.filter((r) => r.phase === 'thinking').length
 
   const subtitle = !announcement
@@ -48,7 +47,7 @@ export function Timeline() {
         </div>
       </dl>
       <ul className="tl-people">
-        {RESIDENTS.map((r) => {
+        {town.content.residents.map((r) => {
           const rx = reactions[r.id]
           const action = rx?.decision?.action
           const phase = rx?.isSpeaker ? 'speaker' : (rx?.phase ?? 'idle')
@@ -58,9 +57,9 @@ export function Timeline() {
               <button
                 className={`tl-person phase-${phase} ${selectedId === r.id ? 'is-selected' : ''}`}
                 style={action ? { ['--c' as string]: ACTION_META[action].css } : undefined}
-                onClick={() => renderer?.select(r.id)}
-                onMouseEnter={() => renderer?.highlight(r.id)}
-                onMouseLeave={() => renderer?.highlight(null)}
+                onClick={() => town.select(r.id)}
+                onMouseEnter={() => town.highlight(r.id)}
+                onMouseLeave={() => town.highlight(null)}
                 aria-label={`${r.name}${tip ? `: ${tip}` : ''}`}
                 data-name={`${r.name.split(' ')[0]}${tip ? ` · ${tip}` : ''}`}
               >

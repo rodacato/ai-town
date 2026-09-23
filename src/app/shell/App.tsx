@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
-import { LAYOUT, useTown } from '../store'
+import { useTown } from '../store'
+import { LAYOUT, town } from '../town'
 import { HoverTag } from '../features/map/HoverTag'
 import { Loader } from './Loader'
 import { MapControls } from '../features/map/MapControls'
@@ -13,6 +14,9 @@ import { TownCanvas } from '../features/map/TownCanvas'
 
 export function App() {
   useKeyboardShortcuts()
+  useEffect(() => {
+    document.title = `AI Town · ${town.content.name}`
+  }, [])
   return (
     <div
       className="app"
@@ -41,13 +45,11 @@ function useKeyboardShortcuts() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
-      const { renderer, settingsOpen } = useTown.getState()
-      if (settingsOpen) return
-      if (!renderer) return
-      if (e.key === 'Escape') renderer.select(null)
-      if (e.key === '+' || e.key === '=') renderer.camera.zoomBy(1.25)
-      if (e.key === '-') renderer.camera.zoomBy(0.8)
-      if (e.key === '0') renderer.camera.fit()
+      if (useTown.getState().settingsOpen) return
+      if (e.key === 'Escape') town.select(null)
+      if (e.key === '+' || e.key === '=') town.zoomBy(1.25)
+      if (e.key === '-') town.zoomBy(0.8)
+      if (e.key === '0') town.fit()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)

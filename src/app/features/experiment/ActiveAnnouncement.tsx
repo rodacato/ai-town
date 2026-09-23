@@ -1,9 +1,7 @@
 import type { Reaction } from '../../../core/reactions/engine'
 import { ACTIONS } from '../../../core/decisions/types'
 import { ACTION_META } from '../../../theme/actions'
-import { speakerName } from '../../../worlds/serena/announcements'
-import { RESIDENTS } from '../../../worlds/serena/residents'
-import type { Announcement } from '../../../core/reactions/announcement'
+import { speakerName, type Announcement } from '../../../core/reactions/announcement'
 import { formatClock } from '../../../core/sim/clock'
 import { useTown } from '../../store'
 import { ActionPill } from '../../shared/ActionPill'
@@ -12,11 +10,11 @@ import { Alert, Reset, Sparkle } from '../../shared/icons'
 import { PlaceChip } from '../../shared/PlaceChip'
 import { SpeakerBadge } from '../../shared/SpeakerBadge'
 import { computeStats, seconds, summarize } from './summary'
+import { town } from '../../town'
 
 export function ActiveAnnouncement({ announcement }: { announcement: Announcement }) {
   const reactions = useTown((s) => s.reactions)
   const complete = useTown((s) => s.complete)
-  const resetTown = useTown((s) => s.resetTown)
   const { day, time } = formatClock(announcement.minutes)
   const stats = computeStats(reactions)
   const total = stats.listeners.length
@@ -35,7 +33,7 @@ export function ActiveAnnouncement({ announcement }: { announcement: Announcemen
         <blockquote>“{announcement.text}”</blockquote>
         <figcaption>
           <SpeakerBadge speaker={announcement.speaker} size={32} />
-          <span>{speakerName(announcement.speaker)}</span>
+          <span>{speakerName(town.content, announcement.speaker)}</span>
         </figcaption>
       </figure>
       <PlaceChip place={announcement.place} />
@@ -84,7 +82,7 @@ export function ActiveAnnouncement({ announcement }: { announcement: Announcemen
 
       <Feed reactions={stats.listeners} />
 
-      <button className="btn-secondary" onClick={resetTown}>
+      <button className="btn-secondary" onClick={() => town.reset()}>
         <Reset width={15} height={15} />
         Reiniciar y probar otro anuncio
       </button>
@@ -93,12 +91,12 @@ export function ActiveAnnouncement({ announcement }: { announcement: Announcemen
 }
 
 function FailureBanner({ reactions }: { reactions: Reaction[] }) {
-  const { llm, applyLlm, setSettingsOpen, engine } = useTown.getState()
+  const { llm, setSettingsOpen } = useTown.getState()
   const failed = reactions.filter((r) => r.phase === 'error')
   if (failed.length < 2) return null
   const useMock = () => {
-    applyLlm({ ...llm, active: 'mock' })
-    for (const r of failed) engine.retry(r.id)
+    town.applySettings({ ...llm, active: 'mock' })
+    town.retry(failed.map((r) => r.id))
   }
   return (
     <div className="failure-banner" role="alert">
@@ -108,7 +106,7 @@ function FailureBanner({ reactions }: { reactions: Reaction[] }) {
           <b>{failed.length} residentes no pudieron decidir.</b> {failed[0].error}
         </p>
         <div className="failure-actions">
-          <button className="btn-link" onClick={() => failed.forEach((r) => engine.retry(r.id))}>
+          <button className="btn-link" onClick={() => town.retry(failed.map((r) => r.id))}>
             Reintentar
           </button>
           <button className="btn-link" onClick={useMock}>
@@ -141,7 +139,6 @@ function Summary({ announcement, reactions }: { announcement: Announcement; reac
 }
 
 function LatencyChart({ reactions }: { reactions: Reaction[] }) {
-  const renderer = useTown((s) => s.renderer)
   const ordered = [...reactions].sort((a, b) => (a.decidedAt ?? 0) - (b.decidedAt ?? 0))
   const max = Math.max(1000, ...ordered.map((r) => r.latencyMs ?? 0))
   return (
@@ -156,10 +153,10 @@ function LatencyChart({ reactions }: { reactions: Reaction[] }) {
             key={r.id}
             className="latency-bar"
             style={{ height: `${Math.max(6, ((r.latencyMs ?? 0) / max) * 100)}%`, background: ACTION_META[r.decision!.action].css }}
-            title={`${RESIDENTS.find((p) => p.id === r.id)?.name}: ${seconds(r.latencyMs ?? 0)}`}
-            onClick={() => renderer?.select(r.id)}
-            onMouseEnter={() => renderer?.highlight(r.id)}
-            onMouseLeave={() => renderer?.highlight(null)}
+            title={`${town.content.residents.find((p) => p.id === r.id)?.name}: ${seconds(r.latencyMs ?? 0)}`}
+            onClick={() => town.select(r.id)}
+            onMouseEnter={() => town.highlight(r.id)}
+            onMouseLeave={() => town.highlight(null)}
           />
         ))}
         {!ordered.length && <span className="latency-empty">Las barras aparecen a medida que deciden.</span>}
@@ -171,23 +168,23 @@ function LatencyChart({ reactions }: { reactions: Reaction[] }) {
 const PHASE_ORDER = { thinking: 0, heard: 1, error: 2, decided: 3, unaware: 4 }
 
 function Feed({ reactions }: { reactions: Reaction[] }) {
-  const renderer = useTown((s) => s.renderer)
   const rows = [...reactions].sort((a, b) =>
     a.phase === 'decided' && b.phase === 'decided' ? (b.decidedAt ?? 0) - (a.decidedAt ?? 0) : PHASE_ORDER[a.phase] - PHASE_ORDER[b.phase],
   )
+  const reasoning = useTown((s) => s.reasoning)
   return (
     <section className="feed">
       <h3 className="section-label">Residentes</h3>
       <ul>
         {rows.map((r) => {
-          const p = RESIDENTS.find((x) => x.id === r.id)!
+          const p = town.content.residents.find((x) => x.id === r.id)!
           return (
             <li key={r.id}>
-              <button className={`feed-row phase-${r.phase}`} onClick={() => renderer?.select(r.id)} onMouseEnter={() => renderer?.highlight(r.id)} onMouseLeave={() => renderer?.highlight(null)}>
+              <button className={`feed-row phase-${r.phase}`} onClick={() => town.select(r.id)} onMouseEnter={() => town.highlight(r.id)} onMouseLeave={() => town.highlight(null)}>
                 <Avatar look={p.look} size={30} />
                 <span className="feed-text">
                   <span className="feed-name">{p.name}</span>
-                  <span className="feed-sub">{feedSub(r)}</span>
+                  <span className="feed-sub">{feedSub(r, reasoning[r.id])}</span>
                 </span>
                 <span className="feed-end">
                   {r.decision ? <ActionPill action={r.decision.action} short /> : <span className="feed-state">{PHASE_LABEL[r.phase]}</span>}
@@ -204,9 +201,9 @@ function Feed({ reactions }: { reactions: Reaction[] }) {
 
 const PHASE_LABEL = { unaware: 'Sin enterarse', heard: 'Escuchó', thinking: 'Pensando…', decided: '', error: 'Error' }
 
-function feedSub(r: Reaction) {
+function feedSub(r: Reaction, streamed: string | undefined) {
   if (r.phase === 'decided' && r.decision) return `${r.decision.emoji} «${r.decision.speech}»`
-  if (r.phase === 'thinking') return r.reasoning ? `…${r.reasoning.slice(-60).replace(/^\S*\s/, '')}` : 'Pensando qué hacer…'
+  if (r.phase === 'thinking') return streamed ? `…${streamed.slice(-60).replace(/^\S*\s/, '')}` : 'Pensando qué hacer…'
   if (r.phase === 'error') return r.error ?? 'No pudo decidir.'
   if (r.phase === 'heard') return 'Acaba de escuchar el anuncio.'
   return 'Todavía no le llega el anuncio.'

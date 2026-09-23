@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { PRESETS, type Connection, type LlmSettings, type ProviderKind } from '../../../providers/llm/config'
 import { streamChat } from '../../../providers/llm/provider'
 import { useTown } from '../../store'
+import { town } from '../../town'
 import { Alert, Check, Close, Eye, EyeOff, Refresh } from '../../shared/icons'
 
 const KINDS: ProviderKind[] = ['mock', 'anthropic', 'openai', 'shellm', 'custom']
@@ -18,7 +19,6 @@ export function SettingsModal() {
 
 function Dialog({ onClose }: { onClose: () => void }) {
   const saved = useTown((s) => s.llm)
-  const applyLlm = useTown((s) => s.applyLlm)
   const announcement = useTown((s) => s.announcement)
   const toast = useTown((s) => s.toast)
   const [draft, setDraft] = useState<LlmSettings>(saved)
@@ -79,7 +79,7 @@ function Dialog({ onClose }: { onClose: () => void }) {
   }
 
   const save = () => {
-    applyLlm(draft)
+    town.applySettings(draft)
     const label = draft.active === 'mock' ? 'el modo simulado' : `${PRESETS[draft.active].label}${conn?.model ? ` (${conn.model})` : ''}`
     toast(announcement ? `Listo: las próximas decisiones las toma ${label}.` : `Listo: ahora decide ${label}.`)
     onClose()
@@ -94,7 +94,7 @@ function Dialog({ onClose }: { onClose: () => void }) {
         <header className="modal-header">
           <div>
             <h2 id="settings-title">Modelo de decisiones</h2>
-            <p>Elige quién piensa por los residentes de Villa Serena.</p>
+            <p>Elige quién piensa por los residentes de {town.content.name}.</p>
           </div>
           <button className="icon-btn" onClick={onClose} aria-label="Cerrar">
             <Close />

@@ -1,22 +1,24 @@
-import { ReactionEngine } from '../src/core/reactions/engine'
-import { mockProvider } from '../src/providers/mock'
 import { DecisionScheduler } from '../src/core/decisions/scheduler'
-import { EXAMPLES } from '../src/worlds/serena/announcements'
 import { detectPlace } from '../src/core/reactions/announcement'
+import { ReactionEngine } from '../src/core/reactions/engine'
 import { Simulation } from '../src/core/sim/simulation'
+import { createMockProvider } from '../src/providers/mock'
+import { activeWorld } from '../src/worlds'
 
-const sim = new Simulation()
-const engine = new ReactionEngine(sim, new DecisionScheduler(mockProvider))
+// Runs the active world's examples through the engine with the mock provider: `npx tsx scripts/reaction-smoke.ts [exampleId]`.
+const content = activeWorld.content
+const sim = new Simulation(content)
+const engine = new ReactionEngine(sim, new DecisionScheduler(createMockProvider(content.vocabulary)))
 const pick = process.argv[2]
 
-for (const ex of EXAMPLES.filter((e) => !pick || e.id === pick)) {
+for (const ex of content.examples.filter((e) => !pick || e.id === pick)) {
   sim.reset(1)
   let done = false
   const off = engine.on((e) => {
     if (e.type === 'complete') done = true
     if (e.type === 'told') console.log(`   📣 ${e.from} → ${e.to}`)
   })
-  engine.start({ id: ex.id, text: ex.text, speaker: ex.speaker, place: detectPlace(ex.text), minutes: sim.minutes })
+  engine.start({ id: ex.id, text: ex.text, speaker: ex.speaker, place: detectPlace(ex.text, sim.world.places, content.homeKeywords), minutes: sim.minutes })
   const t0 = Date.now()
   await new Promise<void>((resolve) => {
     const iv = setInterval(() => {
@@ -36,9 +38,8 @@ for (const ex of EXAMPLES.filter((e) => !pick || e.id === pick)) {
     counts[d?.action ?? r.phase] = (counts[d?.action ?? r.phase] ?? 0) + 1
     const rev = r.revisedBy ? ` (cambió tras ${r.revisedBy}: antes ${r.previous?.action})` : ''
     console.log(`${r.id.padEnd(8)} ${String(d?.action).padEnd(11)} ${d?.emoji} ${Math.round(r.latencyMs ?? 0)}ms  «${d?.speech}»${rev}`)
-    if (r.id === 'marta' || r.id === 'mateo') console.log('         ' + r.reasoning)
   }
-  console.log(counts, 'status:', sim.residents.filter((r) => r.tasks.length).map((r) => `${r.profile.id}:${r.tasks[0].label}`).join(', '))
+  console.log(counts)
 }
 engine.stop()
 process.exit(0)

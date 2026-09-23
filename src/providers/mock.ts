@@ -1,24 +1,15 @@
-import { toPlace } from '../worlds/serena/announcements'
 import { normalize } from '../core/reactions/announcement'
-import { createRng, type Rng } from '../core/world/rng'
 import type { Action, Decision, DecisionContext, DecisionEvent, DecisionProvider } from '../core/decisions/types'
+import { firstName as first, listNames, toPlace } from '../core/lang'
+import type { WorldContent } from '../core/world/content'
+import { createRng, type Rng } from '../core/world/rng'
 
-const OPPORTUNITY = ['gratis', 'regalo', 'regal', 'dinero', 'comida', 'fiesta', 'musica', 'premio', 'descuento', 'invitad', 'celebra']
-const DANGER = ['cuidado', 'peligro', 'danad', 'roto', 'tormenta', 'alerta', 'incendio', 'evacu', 'no lo cruce', 'no crucen', 'emergencia', 'inundac']
-const CUES: [string, string][] = [
-  ['solos', 'vengan solos'],
-  ['no se lo cuenten', 'no contárselo a nadie'],
-  ['no se lo digan', 'no contárselo a nadie'],
-  ['secreto', 'guardar el secreto'],
-  ['medianoche', 'a medianoche'],
-  ['efectivo', 'dinero en efectivo'],
-]
+export type Vocabulary = WorldContent['vocabulary']
+
 const NEGATIVE_RELATION = ['rival', 'no le cae', 'critica', 'usurpadora', 'desconfianza', 'vigila']
 
 const hashString = (s: string) => [...s].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) | 0, 7)
 const clamp = (v: number, lo = 0, hi = 1) => Math.min(hi, Math.max(lo, v))
-const first = (name: string) => name.split(' ')[0]
-const listNames = (names: string[]) => (names.length > 1 ? `${names.slice(0, -1).join(', ')} y ${names[names.length - 1]}` : names[0])
 
 export function isPositiveRelation(label: string) {
   return !NEGATIVE_RELATION.some((w) => label.includes(w))
@@ -31,30 +22,30 @@ interface Reading {
   home: boolean
 }
 
-function read(ctx: DecisionContext): Reading {
+function read(ctx: DecisionContext, vocab: Vocabulary): Reading {
   const t = normalize(ctx.announcement.text)
   return {
-    opportunity: OPPORTUNITY.some((w) => t.includes(w)),
-    danger: DANGER.some((w) => t.includes(w)),
-    cues: [...new Set(CUES.filter(([w]) => t.includes(w)).map(([, label]) => label))],
+    opportunity: vocab.opportunity.some((w) => t.includes(normalize(w))),
+    danger: vocab.danger.some((w) => t.includes(normalize(w))),
+    cues: [...new Set(vocab.cues.filter(([w]) => t.includes(normalize(w))).map(([, label]) => label))],
     home: ctx.announcement.place === 'home',
   }
 }
 
-export function mockDecision(ctx: DecisionContext): Decision {
+export function mockDecision(ctx: DecisionContext, vocab: Vocabulary): Decision {
   const rng = createRng(hashString(ctx.resident.id + ctx.announcement.id + ctx.rumors.length))
   const traits = normalize(ctx.resident.traits.join(' '))
   const has = (...words: string[]) => words.some((w) => traits.includes(w))
-  const r = read(ctx)
+  const r = read(ctx, vocab)
   const a = ctx.announcement
 
-  let trust = { mayor: 0.72, neighbor: 0.55, stranger: 0.22 }[a.speakerKind]
+  let trust = { authority: 0.72, neighbor: 0.55, stranger: 0.22 }[a.speakerKind]
   if (a.relationToSpeaker) trust += isPositiveRelation(a.relationToSpeaker) ? 0.3 : -0.3
   if (has('desconfiad', 'esceptic', 'cautelos', 'metodic')) trust -= 0.18
   if (has('credul', 'sonador')) trust += 0.2
   if (a.speakerKind === 'stranger' && has('forastero')) trust -= 0.25
-  if (a.speakerKind === 'mayor' && has('leal', 'formal')) trust += 0.15
-  if (a.speakerKind === 'mayor' && has('orgullos')) trust -= 0.12
+  if (a.speakerKind === 'authority' && has('leal', 'formal')) trust += 0.15
+  if (a.speakerKind === 'authority' && has('orgullos')) trust -= 0.12
   trust -= 0.22 * r.cues.length
   trust += rng.range(-0.1, 0.1)
 
@@ -141,10 +132,10 @@ function rumorLine(rumor: DecisionContext['rumors'][number], previous: Decision 
 
 function sourceLine(ctx: DecisionContext, trust: number, rng: Rng) {
   const a = ctx.announcement
-  if (a.speakerKind === 'mayor')
+  if (a.speakerKind === 'authority')
     return trust >= 0.5
-      ? rng.pick(['Si lo anuncia el alcalde, será verdad.', 'Es un anuncio oficial del alcalde; no hay por qué dudar.'])
-      : rng.pick(['El alcalde dice muchas cosas y no siempre me fío.', 'Que lo diga el alcalde no lo hace cierto.'])
+      ? rng.pick(['Es un anuncio oficial; no hay por qué dudar.', `Si lo dice ${a.speakerName}, será verdad.`])
+      : rng.pick(['Los de arriba dicen muchas cosas y no siempre me fío.', 'Que sea un anuncio oficial no lo hace cierto.'])
   if (a.speakerKind === 'stranger')
     return trust >= 0.5
       ? 'No sé quién es, pero no parece mala persona.'
@@ -235,11 +226,11 @@ const sleep = (ms: number, signal: AbortSignal) =>
     signal.addEventListener('abort', () => (clearTimeout(t), reject(signal.reason)), { once: true })
   })
 
-export const mockProvider: DecisionProvider = {
+export const createMockProvider = (vocab: Vocabulary): DecisionProvider => ({
   id: 'mock',
   label: 'Simulado',
   async *decide(ctx, signal): AsyncIterable<DecisionEvent> {
-    const decision = mockDecision(ctx)
+    const decision = mockDecision(ctx, vocab)
     const rng = createRng(hashString(ctx.resident.id + ctx.announcement.id) ^ 0x5f3759df)
     const slow = /paciente|cautelos|metodic/.test(normalize(ctx.resident.traits.join(' '))) ? 700 : 0
     const total = rng.range(900, 3200) + slow + (ctx.resident.age > 65 ? 450 : 0)
@@ -252,4 +243,4 @@ export const mockProvider: DecisionProvider = {
     }
     yield { type: 'final', decision }
   },
-}
+})

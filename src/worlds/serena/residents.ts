@@ -1,48 +1,4 @@
-export type RoutineSpot =
-  | 'plaza'
-  | 'fountain'
-  | 'benches'
-  | 'cafe'
-  | 'bakery'
-  | 'shop'
-  | 'townhall'
-  | 'park'
-  | 'riverbank'
-  | 'forest'
-  | 'field'
-  | 'bridge'
-  | 'street'
-  | 'home'
-  | 'visit'
-
-export type Accessory = 'hat' | 'cap' | 'apron' | 'glasses' | 'bag' | 'cane' | 'bow' | 'scarf'
-
-export interface Look {
-  skin: number
-  hair: number
-  hairStyle: 'short' | 'long' | 'bun' | 'bald' | 'curly'
-  shirt: number
-  pants: number
-  accessory?: Accessory
-}
-
-export interface Relationship {
-  id: string
-  label: string
-}
-
-export interface ResidentProfile {
-  id: string
-  name: string
-  age: number
-  occupation: string
-  bio: string
-  traits: string[]
-  relationships: Relationship[]
-  home: string
-  routine: Partial<Record<RoutineSpot, number>>
-  look: Look
-}
+import type { ResidentProfile } from '../../core/world/content'
 
 const SKIN = { light: 0xf3d2b6, fair: 0xe9bf9a, tan: 0xd39c72, brown: 0xa8714e, deep: 0x7a4f35 }
 const HAIR = { black: 0x2c2522, brown: 0x6b4430, chestnut: 0x8e5a36, blond: 0xd9b36c, grey: 0xb9b4ad, white: 0xe8e4de, red: 0xa94d2c }
