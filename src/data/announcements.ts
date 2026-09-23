@@ -1,6 +1,14 @@
 import type { AnnouncementPlace, Speaker, SpeakerKind } from '../sim/announcement'
+import { RESIDENTS } from './residents'
 
 export const MAYOR_NAME = 'Ramiro Ibáñez'
+
+export function speakerName(speaker: Speaker) {
+  if (speaker.kind === 'mayor') return `${MAYOR_NAME}, alcalde`
+  if (speaker.kind === 'stranger') return 'Un desconocido'
+  const r = RESIDENTS.find((p) => p.id === speaker.residentId)
+  return r ? `${r.name}, vecino` : 'Un vecino'
+}
 
 export const SPEAKERS: Record<SpeakerKind, { label: string; hint: string }> = {
   mayor: { label: 'Alcalde', hint: `Habla ${MAYOR_NAME}, el alcalde. Autoridad oficial: la mayoría confía, los escépticos no tanto.` },
@@ -65,3 +73,6 @@ export const TONE_LABEL: Record<Tone, string> = {
   sospechoso: 'Sospechoso',
   emergencia: 'Emergencia',
 }
+
+/** "a" + place with Spanish contraction: "a la plaza", "al puente". */
+export const toPlace = (label: string) => (label.startsWith('el ') ? `al ${label.slice(3)}` : `a ${label}`)

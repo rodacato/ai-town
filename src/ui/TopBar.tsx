@@ -1,16 +1,7 @@
 import { TOWN_NAME } from '../data/town'
+import { formatClock } from '../sim/clock'
 import { useTown } from '../store'
 import { Reset, Sun, TownMark, Users } from './icons'
-
-const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
-
-export function formatClock(minutes: number) {
-  const day = DAYS[(1 + Math.floor(minutes / 1440)) % 7]
-  const m = minutes % 1440
-  const hh = String(Math.floor(m / 60)).padStart(2, '0')
-  const mm = String(m % 60).padStart(2, '0')
-  return { day, time: `${hh}:${mm}` }
-}
 
 export function TopBar() {
   const minutes = useTown((s) => s.minutes)

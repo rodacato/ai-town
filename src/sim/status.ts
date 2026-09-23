@@ -1,5 +1,5 @@
 import { RESIDENTS, type RoutineSpot } from '../data/residents'
-import type { Resident } from '../sim/simulation'
+import type { Resident } from './simulation'
 
 const DESTINATION: Record<RoutineSpot, string> = {
   plaza: 'la plaza',
@@ -20,6 +20,8 @@ const DESTINATION: Record<RoutineSpot, string> = {
 }
 
 export function statusOf(r: Resident) {
+  const task = r.tasks[0]
+  if (task && !(task.kind === 'enterHome' && r.mode === 'inside')) return task.label
   if (r.mode === 'inside') return 'En casa'
   if (r.chatting) return `Charlando con ${RESIDENTS.find((p) => p.id === r.chatting)?.name.split(' ')[0]}`
   const where = r.destination ? DESTINATION[r.destination] : 'el pueblo'

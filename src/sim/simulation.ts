@@ -2,9 +2,17 @@ import { RESIDENTS, type ResidentProfile, type RoutineSpot } from '../data/resid
 import { findPath } from './pathfinding'
 import { createRng, type Rng } from './rng'
 import type { Point } from './types'
-import { createWorld, type World } from './world'
+import { createWorld, isWalkable, type World } from './world'
 
 export type ResidentMode = 'walking' | 'idle' | 'inside'
+
+/** Scripted behaviour that overrides the daily routine, e.g. a reaction to an announcement. */
+export type Task =
+  | { kind: 'walk'; to: Point; label: string }
+  | { kind: 'wait'; seconds: number; label: string }
+  | { kind: 'enterHome'; label: string }
+  | { kind: 'stay'; label: string }
+  | { kind: 'meet'; who: string; seconds: number; label: string; onMeet: () => void; met?: boolean }
 
 export interface Resident {
   profile: ResidentProfile
@@ -20,10 +28,24 @@ export interface Resident {
   walkPhase: number
   chatting: string | null
   destination: RoutineSpot | null
+  tasks: Task[]
+  /** Stops in place, e.g. while hearing and thinking about an announcement. */
+  frozen: boolean
+  repathIn: number
 }
 
 const START_MINUTES = 10 * 60 + 30
 const GAME_MINUTES_PER_SECOND = 1
+const NEIGHBORS_8 = [
+  [0, 1],
+  [1, 0],
+  [0, -1],
+  [-1, 0],
+  [1, 1],
+  [-1, -1],
+  [1, -1],
+  [-1, 1],
+]
 
 export class Simulation {
   readonly world: World
@@ -31,6 +53,7 @@ export class Simulation {
   minutes = START_MINUTES
   private rng: Rng
   private chatCheck = 0
+  private tickers = new Set<(dt: number) => void>()
 
   constructor(seed = 7) {
     this.world = createWorld()
@@ -54,6 +77,49 @@ export class Simulation {
     return { x: Math.floor(r.x), y: Math.floor(r.y) }
   }
 
+  homeDoor(r: Resident) {
+    return this.world.buildings.find((b) => b.id === r.profile.home)!.door
+  }
+
+  onTick(fn: (dt: number) => void) {
+    this.tickers.add(fn)
+    return () => this.tickers.delete(fn)
+  }
+
+  /** A free standing spot for a place, preferring ones nobody else is heading to. */
+  spotAt(placeId: string): Point | null {
+    const place = this.world.places.find((p) => p.id === placeId)
+    if (!place?.spots.length) return null
+    const taken = this.takenTiles()
+    const free = place.spots.filter((s) => !taken.has(`${s.x},${s.y}`))
+    return this.rng.pick(free.length ? free : place.spots)
+  }
+
+  /** A walkable spot a few tiles from a place, for residents who watch from a distance. */
+  lookoutFor(placeId: string, from: Point): Point | null {
+    const place = this.world.places.find((p) => p.id === placeId)
+    if (!place?.spots.length) return null
+    const n = place.spots.length
+    const c = place.spots.reduce((a, s) => ({ x: a.x + s.x / n, y: a.y + s.y / n }), { x: 0, y: 0 })
+    const dx = from.x - c.x
+    const dy = from.y - c.y
+    const len = Math.hypot(dx, dy) || 1
+    for (let d = 4; d <= 8; d++) {
+      const p = { x: Math.round(c.x + (dx / len) * d), y: Math.round(c.y + (dy / len) * d) }
+      if (isWalkable(this.world.tiles[p.y]?.[p.x])) return p
+    }
+    return this.spotAt(placeId)
+  }
+
+  assign(r: Resident, tasks: Task[]) {
+    r.tasks = tasks
+    r.path = []
+    r.timer = 0
+    r.chatting = null
+    r.frozen = false
+    if (r.mode === 'walking') r.mode = 'idle'
+  }
+
   update(dt: number) {
     this.minutes += dt * GAME_MINUTES_PER_SECOND
     for (const r of this.residents) this.step(r, dt)
@@ -62,6 +128,7 @@ export class Simulation {
       this.chatCheck = 1
       this.pairChats()
     }
+    for (const fn of this.tickers) fn(dt)
   }
 
   private spawn(profile: ResidentProfile): Resident {
@@ -78,6 +145,9 @@ export class Simulation {
       walkPhase: this.rng.range(0, Math.PI * 2),
       chatting: null,
       destination: null,
+      tasks: [],
+      frozen: false,
+      repathIn: 0,
     }
     const spot = this.pickDestination(r, true)
     const tile = spot?.tile ?? this.world.buildings.find((b) => b.id === profile.home)!.door
@@ -88,39 +158,126 @@ export class Simulation {
   }
 
   private step(r: Resident, dt: number) {
+    if (r.frozen) return
     if (r.mode === 'walking') {
-      r.walkPhase += dt * r.speed * 9
-      let budget = r.speed * dt
-      while (budget > 0 && r.path.length) {
-        const next = r.path[0]
-        const dx = next.x + 0.5 - r.x
-        const dy = next.y + 0.5 - r.y
-        const dist = Math.hypot(dx, dy)
-        const screenDx = dx - dy
-        if (Math.abs(screenDx) > 0.01) r.facing = screenDx > 0 ? 1 : -1
-        if (dist <= budget) {
-          r.x = next.x + 0.5
-          r.y = next.y + 0.5
-          r.path.shift()
-          budget -= dist
-        } else {
-          r.x += (dx / dist) * budget
-          r.y += (dy / dist) * budget
-          budget = 0
-        }
+      this.move(r, dt)
+      if (r.path.length) {
+        if (r.tasks[0]?.kind === 'meet') this.runTask(r, dt)
+        return
       }
-      if (!r.path.length) this.arrive(r)
-      return
+      r.mode = 'idle'
+      if (!r.tasks.length) return this.arrive(r)
     }
+    if (r.tasks.length) return this.runTask(r, dt)
     r.timer -= dt
     if (r.timer > 0) return
-    if (r.mode === 'inside') {
-      const door = this.homeDoor(r)
-      r.x = door.x + 0.5
-      r.y = door.y + 0.5
-    }
+    this.leaveHome(r)
     r.chatting = null
     this.walkSomewhere(r)
+  }
+
+  private move(r: Resident, dt: number) {
+    r.walkPhase += dt * r.speed * 9
+    let budget = r.speed * dt
+    while (budget > 0 && r.path.length) {
+      const next = r.path[0]
+      const dx = next.x + 0.5 - r.x
+      const dy = next.y + 0.5 - r.y
+      const dist = Math.hypot(dx, dy)
+      const screenDx = dx - dy
+      if (Math.abs(screenDx) > 0.01) r.facing = screenDx > 0 ? 1 : -1
+      if (dist <= budget) {
+        r.x = next.x + 0.5
+        r.y = next.y + 0.5
+        r.path.shift()
+        budget -= dist
+      } else {
+        r.x += (dx / dist) * budget
+        r.y += (dy / dist) * budget
+        budget = 0
+      }
+    }
+  }
+
+  private runTask(r: Resident, dt: number) {
+    const task = r.tasks[0]
+    const done = () => {
+      r.tasks.shift()
+      r.path = []
+      r.timer = 0
+    }
+    switch (task.kind) {
+      case 'walk': {
+        this.leaveHome(r)
+        const here = this.tileOf(r)
+        if (here.x === task.to.x && here.y === task.to.y) return done()
+        if (!this.walkTo(r, task.to)) done()
+        return
+      }
+      case 'wait':
+        r.timer += dt
+        if (r.timer >= task.seconds) done()
+        return
+      case 'enterHome': {
+        if (r.mode === 'inside') return
+        const door = this.homeDoor(r)
+        const here = this.tileOf(r)
+        if (here.x === door.x && here.y === door.y) r.mode = 'inside'
+        else if (!this.walkTo(r, door)) r.mode = 'inside'
+        return
+      }
+      case 'stay':
+        return
+      case 'meet': {
+        const other = this.get(task.who)!
+        if (!task.met) this.leaveHome(r)
+        const target = other.mode === 'inside' ? this.homeDoor(other) : this.tileOf(other)
+        const dist = Math.hypot(r.x - (target.x + 0.5), r.y - (target.y + 0.5))
+        if (task.met || dist < 1.6) {
+          if (!task.met) {
+            task.met = true
+            r.path = []
+            r.mode = 'idle'
+            const screenDx = target.x - target.y - (r.x - r.y)
+            r.facing = screenDx >= 0 ? 1 : -1
+            if (other.mode !== 'inside' && !other.frozen) other.facing = screenDx >= 0 ? -1 : 1
+            task.onMeet()
+          }
+          r.timer += dt
+          if (r.timer >= task.seconds) done()
+          return
+        }
+        r.repathIn -= dt
+        if (r.repathIn <= 0) {
+          r.repathIn = 1
+          if (!this.walkTo(r, target, true)) done()
+        }
+        return
+      }
+    }
+  }
+
+  private walkTo(r: Resident, to: Point, adjacent = false) {
+    let goal = to
+    if (adjacent || !isWalkable(this.world.tiles[to.y]?.[to.x])) {
+      const around = NEIGHBORS_8.map(([dx, dy]) => ({ x: to.x + dx, y: to.y + dy }))
+        .filter((p) => isWalkable(this.world.tiles[p.y]?.[p.x]))
+        .sort((a, b) => Math.hypot(a.x - r.x, a.y - r.y) - Math.hypot(b.x - r.x, b.y - r.y))
+      goal = around[0] ?? to
+    }
+    const path = findPath(this.world, this.tileOf(r), goal)
+    if (!path?.length) return false
+    r.path = path
+    r.mode = 'walking'
+    return true
+  }
+
+  private leaveHome(r: Resident) {
+    if (r.mode !== 'inside') return
+    const door = this.homeDoor(r)
+    r.x = door.x + 0.5
+    r.y = door.y + 0.5
+    r.mode = 'idle'
   }
 
   private arrive(r: Resident) {
@@ -170,24 +327,20 @@ export class Simulation {
       const houseId = this.rng.pick(houses)
       return this.world.buildings.find((b) => b.id === houseId)!.door
     }
-    const place = this.world.places.find((p) => p.id === kind)
-    if (!place?.spots.length) return null
-    const taken = new Set(
-      this.residents.filter((o) => o !== r).map((o) => {
+    return this.spotAt(kind)
+  }
+
+  private takenTiles() {
+    return new Set(
+      this.residents.map((o) => {
         const end = o.path[o.path.length - 1] ?? this.tileOf(o)
         return `${end.x},${end.y}`
       }),
     )
-    const free = place.spots.filter((s) => !taken.has(`${s.x},${s.y}`))
-    return this.rng.pick(free.length ? free : place.spots)
-  }
-
-  private homeDoor(r: Resident) {
-    return this.world.buildings.find((b) => b.id === r.profile.home)!.door
   }
 
   private pairChats() {
-    const idle = this.residents.filter((r) => r.mode === 'idle' && !r.chatting)
+    const idle = this.residents.filter((r) => r.mode === 'idle' && !r.chatting && !r.tasks.length && !r.frozen)
     for (let i = 0; i < idle.length; i++)
       for (let j = i + 1; j < idle.length; j++) {
         const a = idle[i]

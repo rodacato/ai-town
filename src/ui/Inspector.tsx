@@ -3,7 +3,7 @@ import { RESIDENTS } from '../data/residents'
 import { useTown } from '../store'
 import { Avatar } from './Avatar'
 import { Brain, Close } from './icons'
-import { statusOf } from './residentStatus'
+import { statusOf } from '../sim/status'
 
 export function Inspector({ id }: { id: string }) {
   const renderer = useTown((s) => s.renderer)

@@ -1,10 +1,10 @@
 import { useEffect, useRef } from 'react'
-import { EXAMPLES, TONE_LABEL } from '../data/announcements'
+import { EXAMPLES, TONE_LABEL, speakerName } from '../data/announcements'
 import { detectPlace } from '../sim/announcement'
 import { MAX_ANNOUNCEMENT_LENGTH, useTown } from '../store'
 import { Megaphone } from './icons'
 import { PlaceChip } from './PlaceChip'
-import { SpeakerBadge, speakerName } from './SpeakerBadge'
+import { SpeakerBadge } from './SpeakerBadge'
 import { SpeakerPicker } from './SpeakerPicker'
 
 const isMac = typeof navigator !== 'undefined' && /Mac/.test(navigator.platform)

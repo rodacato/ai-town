@@ -1,9 +1,10 @@
+import { speakerName } from '../data/announcements'
 import type { Announcement } from '../sim/announcement'
+import { formatClock } from '../sim/clock'
 import { useTown } from '../store'
 import { Reset } from './icons'
 import { PlaceChip } from './PlaceChip'
-import { SpeakerBadge, speakerName } from './SpeakerBadge'
-import { formatClock } from './TopBar'
+import { SpeakerBadge } from './SpeakerBadge'
 
 export function ActiveAnnouncement({ announcement }: { announcement: Announcement }) {
   const total = useTown((s) => s.sim.residents.length)
