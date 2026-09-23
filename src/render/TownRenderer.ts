@@ -1,4 +1,6 @@
 import { Application, Container } from 'pixi.js'
+import type { ReactionEngine } from '../agents/engine'
+import { ACTION_META } from '../data/actions'
 import type { AnnouncementPlace } from '../sim/announcement'
 import type { Simulation } from '../sim/simulation'
 import { Birds, Butterflies, CloudShadows, FountainSpray, Smoke, WaterShimmer } from './ambient'
@@ -7,7 +9,8 @@ import { Camera } from './camera'
 import { ISLAND_DEPTH, TILE_H, TILE_W, iso } from './iso'
 import { drawFountain, drawProp, type PropSprite } from './props'
 import { PlaceMarker } from './placeMarker'
-import { ResidentSprite } from './residentSprite'
+import { OriginBeacon, WaveFx } from './reactionFx'
+import { ResidentSprite, type ReactionVisual } from './residentSprite'
 import { drawTerrain, islandMask } from './terrain'
 
 export interface RendererEvents {
@@ -38,9 +41,15 @@ export class TownRenderer {
   private hovered: string | null = null
   private highlighted: string | null = null
   private marker = new PlaceMarker()
+  private wave: WaveFx
+  private beacon: OriginBeacon
+  private toldAt = new Map<string, number>()
+  private rumorAt = new Map<string, number>()
+  private announcementAt = -1
+  private offEngine: () => void
   private selected: string | null = null
 
-  static async create(host: HTMLElement, sim: Simulation, events: RendererEvents, options: RendererOptions) {
+  static async create(host: HTMLElement, sim: Simulation, engine: ReactionEngine, events: RendererEvents, options: RendererOptions) {
     const app = new Application()
     await app.init({
       resizeTo: host,
@@ -49,13 +58,14 @@ export class TownRenderer {
       autoDensity: true,
       resolution: Math.min(window.devicePixelRatio || 1, 2),
     })
-    return new TownRenderer(app, host, sim, events, options)
+    return new TownRenderer(app, host, sim, engine, events, options)
   }
 
   private constructor(
     readonly app: Application,
     host: HTMLElement,
     private sim: Simulation,
+    private engine: ReactionEngine,
     private events: RendererEvents,
     options: RendererOptions,
   ) {
@@ -66,6 +76,10 @@ export class TownRenderer {
     this.world.addChild(drawTerrain(W))
     this.water = new WaterShimmer(W)
     this.world.addChild(this.water.view)
+    this.wave = new WaveFx(engine)
+    const waveMask = islandMask(N)
+    this.world.addChild(waveMask, this.wave.view)
+    this.wave.view.mask = waveMask
 
     this.objects.sortableChildren = true
     this.world.addChild(this.objects)
@@ -118,6 +132,15 @@ export class TownRenderer {
     this.birds = new Birds(span)
     this.world.addChild(this.birds.view, this.overlay)
     this.overlay.addChildAt(this.marker.view, 0)
+    this.overlay.sortableChildren = true
+    this.beacon = new OriginBeacon(engine)
+    this.overlay.addChild(this.beacon.view)
+    this.offEngine = engine.on((e) => {
+      if (e.type === 'told') {
+        this.toldAt.set(e.from, this.time)
+        this.rumorAt.set(e.to, this.time)
+      }
+    })
     app.stage.addChild(this.world)
 
     app.stage.eventMode = 'static'
@@ -175,8 +198,42 @@ export class TownRenderer {
   }
 
   destroy() {
+    this.offEngine()
     this.camera.destroy()
     this.app.destroy(true, { children: true })
+  }
+
+  private reactionVisual(id: string): ReactionVisual | undefined {
+    const rx = this.engine.reactions.get(id)
+    if (!rx) return undefined
+    const t = this.time
+    const d = rx.decision
+    const meta = d ? ACTION_META[d.action] : null
+    const ring = meta?.color ?? null
+    if (rx.isSpeaker) return { bubble: t - this.announcementAt < 5 ? { kind: 'megaphone' } : { kind: 'none' }, ring: null, pulse: false }
+    const told = this.toldAt.get(id)
+    if (d && told !== undefined && t - told < 2.6) return { bubble: { kind: 'speech', emoji: d.emoji, text: d.speech, color: ring! }, ring, pulse: false }
+    const rumor = this.rumorAt.get(id)
+    if (rumor !== undefined && t - rumor < 1.2) return { bubble: { kind: 'alert' }, ring, pulse: false }
+    switch (rx.phase) {
+      case 'heard':
+        return { bubble: { kind: 'alert' }, ring, pulse: false }
+      case 'thinking':
+        return { bubble: { kind: 'thinking' }, ring: 0x6fa8c7, pulse: true }
+      case 'error':
+        return { bubble: { kind: 'error' }, ring: 0xc8645a, pulse: false }
+      case 'decided': {
+        if (!d) return undefined
+        const since = (performance.now() - (rx.decidedAt ?? 0)) / 1000
+        return {
+          bubble: since < 4.2 ? { kind: 'speech', emoji: d.emoji, text: d.speech, color: ring! } : { kind: 'badge', emoji: d.emoji, color: ring! },
+          ring,
+          pulse: false,
+        }
+      }
+      default:
+        return undefined
+    }
   }
 
   private setHover(id: string | null) {
@@ -190,7 +247,14 @@ export class TownRenderer {
     this.time += dt
     const t = this.time
     this.sim.update(dt)
-    for (const s of this.sprites.values()) s.update(t, dt)
+    if (this.engine.announcement && this.announcementAt < 0) this.announcementAt = t
+    if (!this.engine.announcement) {
+      this.announcementAt = -1
+      this.toldAt.clear()
+      this.rumorAt.clear()
+    }
+    const zoom = this.camera.scale
+    for (const [id, s] of this.sprites) s.update(t, dt, this.reactionVisual(id), zoom)
     for (const s of this.swaying) s.target.skew.x = Math.sin(t * 1.1 + s.phase) * s.amount + Math.sin(t * 2.3 + s.phase * 2) * s.amount * 0.3
     for (const f of this.flags) f.scale.x = 0.85 + Math.sin(t * 4) * 0.15
     this.water.update(t)
@@ -200,6 +264,8 @@ export class TownRenderer {
     this.birds.update(dt, t)
     this.butterflies.update(t)
     this.marker.update(dt)
+    this.wave.update(dt)
+    this.beacon.update(dt)
     this.camera.update(dt)
   }
 }

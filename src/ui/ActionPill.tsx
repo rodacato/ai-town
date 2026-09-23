@@ -1,0 +1,12 @@
+import type { Action } from '../agents/types'
+import { ACTION_META } from '../data/actions'
+
+export function ActionPill({ action, short = false }: { action: Action; short?: boolean }) {
+  const meta = ACTION_META[action]
+  return (
+    <span className="action-pill" style={{ ['--c' as string]: meta.css }}>
+      <span className="action-dot" />
+      {short ? meta.short : meta.label}
+    </span>
+  )
+}

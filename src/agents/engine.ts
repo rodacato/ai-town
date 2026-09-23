@@ -122,8 +122,9 @@ export class ReactionEngine {
     this.request(this.sim.get(id)!, reaction)
   }
 
-  get listenerCount() {
-    return [...this.reactions.values()].filter((r) => !r.isSpeaker).length
+  get settled() {
+    const all = [...this.reactions.values()].filter((r) => !r.isSpeaker)
+    return all.length > 0 && all.every((r) => r.phase === 'decided' || r.phase === 'error')
   }
 
   private emit(e: EngineEvent) {
@@ -291,8 +292,7 @@ export class ReactionEngine {
 
   private checkComplete() {
     if (this.completed) return
-    const all = [...this.reactions.values()].filter((r) => !r.isSpeaker)
-    if (all.every((r) => r.phase === 'decided' || r.phase === 'error')) {
+    if (this.settled) {
       this.completed = true
       this.emit({ type: 'complete' })
     }

@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react'
 import { RESIDENTS } from '../data/residents'
 import { useTown } from '../store'
 import { Avatar } from './Avatar'
+import { ReactionDetail } from './ReactionDetail'
 import { Brain, Close } from './icons'
 import { statusOf } from '../sim/status'
 
 export function Inspector({ id }: { id: string }) {
   const renderer = useTown((s) => s.renderer)
   const sim = useTown((s) => s.sim)
-  const announcement = useTown((s) => s.announcement)
+  const reaction = useTown((s) => s.reactions[id])
   const profile = RESIDENTS.find((r) => r.id === id)!
   const [status, setStatus] = useState('')
 
@@ -43,20 +44,7 @@ export function Inspector({ id }: { id: string }) {
         <h3 className="section-label">
           <Brain width={13} height={13} /> Su reacción
         </h3>
-        {announcement ? (
-          <div className="reaction-body is-waiting">
-            <span className="thinking-dots" aria-hidden>
-              <i />
-              <i />
-              <i />
-            </span>
-            Escuchando el anuncio…
-          </div>
-        ) : (
-          <div className="reaction-body is-empty">
-            Todavía no hay anuncio. Cuando transmitas uno, aquí verás qué decide {profile.name.split(' ')[0]} y por qué.
-          </div>
-        )}
+        <ReactionDetail reaction={reaction} name={profile.name} />
       </section>
 
       <section>

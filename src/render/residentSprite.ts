@@ -1,11 +1,22 @@
 import { Container, Graphics, Rectangle } from 'pixi.js'
 import type { Look } from '../data/residents'
 import type { Resident } from '../sim/simulation'
+import { Bubble, type BubbleState } from './bubble'
 import { iso } from './iso'
 import { PAL, shade } from './palette'
 
+export interface ReactionVisual {
+  bubble: BubbleState
+  ring: number | null
+  pulse: boolean
+}
+
+const NO_REACTION: ReactionVisual = { bubble: { kind: 'none' }, ring: null, pulse: false }
+
 export class ResidentSprite {
   readonly view = new Container()
+  private stateRing = new Graphics()
+  private reaction = new Bubble()
   private body = new Container()
   private legL = new Graphics()
   private legR = new Graphics()
@@ -32,7 +43,10 @@ export class ResidentSprite {
     this.ring.ellipse(0, 0, 13, 6.5).stroke({ width: 2.5, color: PAL.accent, alpha: 0.9 })
     this.ring.ellipse(0, 0, 13, 6.5).fill({ color: PAL.accent, alpha: 0.15 })
     this.ring.visible = false
-    this.view.addChild(this.ring)
+    this.stateRing.ellipse(0, 0, 11, 5.5).stroke({ width: 2.5, color: 0xffffff })
+    this.stateRing.ellipse(0, 0, 11, 5.5).fill({ color: 0xffffff, alpha: 0.2 })
+    this.stateRing.visible = false
+    this.view.addChild(this.stateRing, this.ring)
 
     const shadow = new Graphics().ellipse(0, 0, 7.5 * scale, 3.4 * scale).fill({ color: PAL.shadow, alpha: 0.2 })
     this.view.addChild(shadow)
@@ -74,10 +88,10 @@ export class ResidentSprite {
     }
     this.bubbleOffset = -40 * scale
     this.bubble.visible = false
-    this.overlay.addChild(this.bubble)
+    this.overlay.addChild(this.bubble, this.reaction.view)
   }
 
-  update(time: number, dt: number) {
+  update(time: number, dt: number, reaction: ReactionVisual = NO_REACTION, zoom = 1) {
     const r = this.resident
     const p = iso(r.x, r.y)
     this.view.position.set(p.x, p.y)
@@ -98,7 +112,16 @@ export class ResidentSprite {
     this.armR.rotation = walking ? -s * 0.5 : -Math.sin(time * 1.3 + r.walkPhase) * 0.04
     this.body.y = walking ? -Math.abs(Math.cos(r.walkPhase)) * 1.4 : Math.sin(time * 2 + r.walkPhase) * 0.3
 
-    this.bubble.visible = !!r.chatting && r.mode === 'idle'
+    const showReaction = reaction.bubble.kind !== 'none' && r.mode !== 'inside'
+    this.reaction.update(showReaction ? reaction.bubble : { kind: 'none' }, p.x, p.y + this.bubbleOffset + 4, time, dt, zoom)
+    this.stateRing.visible = reaction.ring !== null
+    if (reaction.ring !== null) {
+      this.stateRing.tint = reaction.ring
+      const k = reaction.pulse ? 1 + Math.sin(time * 6) * 0.12 : 1
+      this.stateRing.scale.set(k)
+      this.stateRing.alpha = reaction.pulse ? 0.9 : 0.75
+    }
+    this.bubble.visible = !!r.chatting && r.mode === 'idle' && !showReaction
     this.bubble.position.set(p.x + 9, p.y + this.bubbleOffset)
     if (this.bubble.visible) this.dots.forEach((d, i) => (d.y = -1.5 + Math.sin(time * 6 - i * 0.8) * 1.3))
 

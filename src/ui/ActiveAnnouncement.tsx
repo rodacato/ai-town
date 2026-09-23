@@ -1,21 +1,31 @@
+import type { Reaction } from '../agents/engine'
+import { ACTIONS } from '../agents/types'
+import { ACTION_META } from '../data/actions'
 import { speakerName } from '../data/announcements'
+import { RESIDENTS } from '../data/residents'
 import type { Announcement } from '../sim/announcement'
 import { formatClock } from '../sim/clock'
 import { useTown } from '../store'
-import { Reset } from './icons'
+import { ActionPill } from './ActionPill'
+import { Avatar } from './Avatar'
+import { Reset, Sparkle } from './icons'
 import { PlaceChip } from './PlaceChip'
 import { SpeakerBadge } from './SpeakerBadge'
+import { computeStats, seconds, summarize } from './summary'
 
 export function ActiveAnnouncement({ announcement }: { announcement: Announcement }) {
-  const total = useTown((s) => s.sim.residents.length)
+  const reactions = useTown((s) => s.reactions)
+  const complete = useTown((s) => s.complete)
   const resetTown = useTown((s) => s.resetTown)
   const { day, time } = formatClock(announcement.minutes)
+  const stats = computeStats(reactions)
+  const total = stats.listeners.length
 
   return (
     <div className="panel-view active-announcement">
-      <div className="on-air">
+      <div className={`on-air ${complete ? 'is-complete' : ''}`}>
         <span className="on-air-dot" />
-        En el aire
+        {complete ? 'Experimento completo' : 'En el aire'}
         <span className="on-air-time mono">
           {day} · {time}
         </span>
@@ -30,16 +40,48 @@ export function ActiveAnnouncement({ announcement }: { announcement: Announcemen
       </figure>
       <PlaceChip place={announcement.place} />
 
+      {complete && <Summary announcement={announcement} reactions={reactions} />}
+
       <div className="progress-card">
         <div className="progress-head">
           <span className="section-label">Reacciones</span>
-          <span className="mono progress-count">0 / {total}</span>
+          <span className="mono progress-count">
+            {stats.decided.length} / {total}
+          </span>
         </div>
-        <div className="progress-track">
-          <span className="progress-fill shimmer" style={{ width: '100%' }} />
+        <div className="progress-track segmented-bar" role="progressbar" aria-valuenow={stats.decided.length} aria-valuemax={total}>
+          {ACTIONS.map((a) =>
+            stats.counts[a] ? <span key={a} className="bar-seg" style={{ width: `${(stats.counts[a] / Math.max(1, total)) * 100}%`, background: ACTION_META[a].css }} /> : null,
+          )}
+          {stats.decided.length < total && <span className="bar-rest shimmer" />}
         </div>
-        <p className="progress-note">El pueblo está escuchando el anuncio…</p>
+        <ul className="legend">
+          {ACTIONS.map((a) => (
+            <li key={a} className={stats.counts[a] ? '' : 'is-zero'}>
+              <span className="action-dot" style={{ background: ACTION_META[a].css }} />
+              {ACTION_META[a].short}
+              <b className="mono">{stats.counts[a]}</b>
+            </li>
+          ))}
+        </ul>
+        <dl className="mini-stats">
+          <div>
+            <dt>Le creyeron</dt>
+            <dd className="mono">{stats.decided.length ? `${stats.believers}/${stats.decided.length}` : '—'}</dd>
+          </div>
+          <div>
+            <dt>Mediana</dt>
+            <dd className="mono">{stats.median !== null ? seconds(stats.median) : '—'}</dd>
+          </div>
+          <div>
+            <dt>Más lento</dt>
+            <dd className="mono">{stats.slowest ? seconds(stats.slowest.latencyMs ?? 0) : '—'}</dd>
+          </div>
+        </dl>
+        <LatencyChart reactions={stats.decided} />
       </div>
+
+      <Feed reactions={stats.listeners} />
 
       <button className="btn-secondary" onClick={resetTown}>
         <Reset width={15} height={15} />
@@ -47,4 +89,93 @@ export function ActiveAnnouncement({ announcement }: { announcement: Announcemen
       </button>
     </div>
   )
+}
+
+function Summary({ announcement, reactions }: { announcement: Announcement; reactions: Record<string, Reaction> }) {
+  const s = summarize(reactions, announcement)
+  return (
+    <section className="summary-card">
+      <span className="summary-eyebrow">
+        <Sparkle width={13} height={13} /> Resumen del experimento
+      </span>
+      <h3>{s.headline}.</h3>
+      <ul>
+        {s.insights.map((i) => (
+          <li key={i}>{i}</li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
+function LatencyChart({ reactions }: { reactions: Reaction[] }) {
+  const renderer = useTown((s) => s.renderer)
+  const ordered = [...reactions].sort((a, b) => (a.decidedAt ?? 0) - (b.decidedAt ?? 0))
+  const max = Math.max(1000, ...ordered.map((r) => r.latencyMs ?? 0))
+  return (
+    <div className="latency">
+      <div className="latency-head">
+        <span>Tiempo de decisión, en orden de llegada</span>
+        <span className="mono">{seconds(max)}</span>
+      </div>
+      <div className="latency-bars">
+        {ordered.map((r) => (
+          <button
+            key={r.id}
+            className="latency-bar"
+            style={{ height: `${Math.max(6, ((r.latencyMs ?? 0) / max) * 100)}%`, background: ACTION_META[r.decision!.action].css }}
+            title={`${RESIDENTS.find((p) => p.id === r.id)?.name}: ${seconds(r.latencyMs ?? 0)}`}
+            onClick={() => renderer?.select(r.id)}
+            onMouseEnter={() => renderer?.highlight(r.id)}
+            onMouseLeave={() => renderer?.highlight(null)}
+          />
+        ))}
+        {!ordered.length && <span className="latency-empty">Las barras aparecen a medida que deciden.</span>}
+      </div>
+    </div>
+  )
+}
+
+const PHASE_ORDER = { thinking: 0, heard: 1, error: 2, decided: 3, unaware: 4 }
+
+function Feed({ reactions }: { reactions: Reaction[] }) {
+  const renderer = useTown((s) => s.renderer)
+  const rows = [...reactions].sort((a, b) =>
+    a.phase === 'decided' && b.phase === 'decided' ? (b.decidedAt ?? 0) - (a.decidedAt ?? 0) : PHASE_ORDER[a.phase] - PHASE_ORDER[b.phase],
+  )
+  return (
+    <section className="feed">
+      <h3 className="section-label">Residentes</h3>
+      <ul>
+        {rows.map((r) => {
+          const p = RESIDENTS.find((x) => x.id === r.id)!
+          return (
+            <li key={r.id}>
+              <button className={`feed-row phase-${r.phase}`} onClick={() => renderer?.select(r.id)} onMouseEnter={() => renderer?.highlight(r.id)} onMouseLeave={() => renderer?.highlight(null)}>
+                <Avatar look={p.look} size={30} />
+                <span className="feed-text">
+                  <span className="feed-name">{p.name}</span>
+                  <span className="feed-sub">{feedSub(r)}</span>
+                </span>
+                <span className="feed-end">
+                  {r.decision ? <ActionPill action={r.decision.action} short /> : <span className="feed-state">{PHASE_LABEL[r.phase]}</span>}
+                  {r.latencyMs !== null && <span className="mono feed-latency">{seconds(r.latencyMs)}</span>}
+                </span>
+              </button>
+            </li>
+          )
+        })}
+      </ul>
+    </section>
+  )
+}
+
+const PHASE_LABEL = { unaware: 'Sin enterarse', heard: 'Escuchó', thinking: 'Pensando…', decided: '', error: 'Error' }
+
+function feedSub(r: Reaction) {
+  if (r.phase === 'decided' && r.decision) return `${r.decision.emoji} «${r.decision.speech}»`
+  if (r.phase === 'thinking') return r.reasoning ? `…${r.reasoning.slice(-60).replace(/^\S*\s/, '')}` : 'Pensando qué hacer…'
+  if (r.phase === 'error') return r.error ?? 'No pudo decidir.'
+  if (r.phase === 'heard') return 'Acaba de escuchar el anuncio.'
+  return 'Todavía no le llega el anuncio.'
 }

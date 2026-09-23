@@ -2,6 +2,9 @@ import { create } from 'zustand'
 import type { Example } from './data/announcements'
 import type { TownRenderer } from './render/TownRenderer'
 import { detectPlace, type Announcement, type Speaker } from './sim/announcement'
+import { ReactionEngine, type Reaction } from './agents/engine'
+import { mockProvider } from './agents/mock'
+import { DecisionScheduler } from './agents/scheduler'
 import { Simulation } from './sim/simulation'
 
 export const LAYOUT = { panelWidth: 380, gutter: 24, timelineHeight: 92 }
@@ -18,6 +21,9 @@ export interface Toast {
 
 interface TownState {
   sim: Simulation
+  engine: ReactionEngine
+  reactions: Record<string, Reaction>
+  complete: boolean
   renderer: TownRenderer | null
   ready: boolean
   hoveredId: string | null
@@ -43,9 +49,14 @@ interface TownState {
 }
 
 let toastId = 0
+const sim = new Simulation()
+const engine = new ReactionEngine(sim, new DecisionScheduler(mockProvider))
 
 export const useTown = create<TownState>((set, get) => ({
-  sim: new Simulation(),
+  sim,
+  engine,
+  reactions: {},
+  complete: false,
   renderer: null,
   ready: false,
   hoveredId: null,
@@ -89,7 +100,10 @@ export const useTown = create<TownState>((set, get) => ({
       minutes: Math.floor(sim.minutes),
     }
     renderer?.markPlace(announcement.place)
-    set({ announcement })
+    renderer?.select(null)
+    renderer?.camera.fit()
+    set({ announcement, complete: false, interacted: true })
+    engine.start(announcement)
   },
 
   resetTown: () => {
@@ -97,11 +111,12 @@ export const useTown = create<TownState>((set, get) => ({
     set({ resetting: true })
     window.setTimeout(() => {
       const { sim, renderer } = get()
+      engine.stop()
       sim.reset()
       renderer?.select(null)
       renderer?.markPlace(null)
       renderer?.camera.fit(false)
-      set({ announcement: null, draft: { text: '', speaker: { kind: 'mayor' } } })
+      set({ announcement: null, reactions: {}, complete: false, draft: { text: '', speaker: { kind: 'mayor' } } })
       get().syncClock()
       window.setTimeout(() => {
         set({ resetting: false })
@@ -116,3 +131,19 @@ export const useTown = create<TownState>((set, get) => ({
     window.setTimeout(() => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })), 3200)
   },
 }))
+
+let flush = 0
+const toastedFor = new Set<string>()
+engine.on((e) => {
+  if (e.type === 'complete' && !toastedFor.has(engine.announcement!.id)) {
+    toastedFor.add(engine.announcement!.id)
+    useTown.getState().toast('Todo el pueblo ha decidido.')
+  }
+  if (flush) return
+  flush = requestAnimationFrame(() => {
+    flush = 0
+    const reactions: Record<string, Reaction> = {}
+    for (const [id, r] of engine.reactions) reactions[id] = { ...r, rumors: [...r.rumors], told: [...r.told] }
+    useTown.setState({ reactions, complete: engine.settled })
+  })
+})
