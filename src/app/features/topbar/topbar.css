@@ -73,6 +73,10 @@
   color: var(--ink-3);
 }
 
+.pill-icon.moon {
+  color: #6f7fb8;
+}
+
 .pill-icon.sun {
   color: #d9a441;
   animation: spin 40s linear infinite;
@@ -130,7 +134,7 @@
 }
 
 .btn-pill:hover .pill-icon {
-  color: var(--accent);
+  color: var(--accent-ink);
   transform: rotate(-60deg);
 }
 

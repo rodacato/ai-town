@@ -1,6 +1,6 @@
 import { Container, Graphics } from 'pixi.js'
 import type { Building } from '../../../core/world/types'
-import type { BuildingSprite } from '../../../render/art'
+import type { BuildingSprite, Glow } from '../../../render/art'
 import { isoFlat, isoPoly } from '../../../render/iso'
 import {
   chimney,
@@ -33,6 +33,7 @@ interface Ctx {
   view: Container
   chimneys: { x: number; y: number }[]
   anims: Anim[]
+  glows: Glow[]
   doorFace: Face
   otherFace: Face
   doorU: number
@@ -52,6 +53,7 @@ export function drawBuilding(b: Building): BuildingSprite {
     view,
     chimneys: [],
     anims: [],
+    glows: [],
     doorFace: b.doorSide === 'left' ? left : right,
     otherFace: b.doorSide === 'left' ? right : left,
     doorU: b.doorSide === 'left' ? mid + 0.5 : b.size - mid - 0.5,
@@ -63,8 +65,15 @@ export function drawBuilding(b: Building): BuildingSprite {
     view,
     depth: b.x + b.y + b.size,
     chimneys: ctx.chimneys,
+    glows: ctx.glows,
     update: anims.length ? (t, dt) => anims.forEach((a) => a(t, dt)) : undefined,
   }
+}
+
+/** windowOn that also registers a night light for lit windows. */
+function win(ctx: Ctx, face: Face, u: number, v: number, spec: Parameters<typeof windowOn>[4]) {
+  const p = windowOn(ctx.g, face, u, v, spec)
+  if (spec.glow) ctx.glows.push({ x: p.x, y: p.y, r: 26, color: C.glow })
 }
 
 const shadeOf = (face: Face, ctx: Ctx) => (face === ctx.doorFace ? (ctx.b.doorSide === 'left' ? 0 : -0.13) : ctx.b.doorSide === 'left' ? -0.13 : 0)
@@ -86,7 +95,7 @@ function cottage(ctx: Ctx) {
   walls(g, fp, H, plaster, C.stoneDark)
   timberFrame(g, fp, H, C.beam)
   doorOn(g, ctx.doorFace, ctx.doorU, 0.36, 18, C.door, shade(C.beam, 0.1))
-  windowOn(g, ctx.otherFace, fp.n / 2, H * 0.62, { frame: C.beam, glow: b.palette % 2 === 0, shutters: roof.color, shade: shadeOf(ctx.otherFace, ctx) })
+  win(ctx, ctx.otherFace, fp.n / 2, H * 0.62, { frame: C.beam, glow: b.palette % 2 === 0, shutters: roof.color, shade: shadeOf(ctx.otherFace, ctx) })
   flowerBox(g, ctx.otherFace, fp.n / 2, H * 0.62 - 7, shadeOf(ctx.otherFace, ctx))
   gableRoof(g, fp, { h: H, rise: 26, ridge: b.palette % 2 ? 'y' : 'x', color: roof.color, texture: roof.texture, gable: shade(plaster, -0.1) })
   ctx.chimneys.push(chimney(g, fp.x + fp.n * 0.3, fp.y + fp.n * 0.3, H + 16, C.stoneDark))
@@ -102,7 +111,7 @@ function cabin(ctx: Ctx) {
     g.moveTo(...isoFlat(...right(0, v))).lineTo(...isoFlat(...right(fp.n, v))).stroke({ width: 1.2, color: C.woodDark, alpha: 0.7 })
   }
   doorOn(g, ctx.doorFace, ctx.doorU, 0.34, 17, C.woodDark, shade(C.woodDark, -0.2), false)
-  windowOn(g, ctx.otherFace, fp.n / 2, 15, { frame: C.woodDark, glow: true, shade: shadeOf(ctx.otherFace, ctx) })
+  win(ctx, ctx.otherFace, fp.n / 2, 15, { frame: C.woodDark, glow: true, shade: shadeOf(ctx.otherFace, ctx) })
   gableRoof(g, fp, { h: H, rise: 24, ridge: 'x', color: 0x6f6356, texture: 'slate', gable: shade(C.wood, -0.1) })
   ctx.chimneys.push(chimney(g, fp.x + fp.n * 0.7, fp.y + fp.n * 0.3, H + 14, C.stoneDark))
 }
@@ -119,7 +128,7 @@ function manor(ctx: Ctx) {
   doorOn(g, ctx.doorFace, ctx.doorU, 0.5, 22, C.door, C.stoneDark)
   for (const face of [left, right]) {
     const s = shadeOf(face, ctx)
-    for (const u of [0.5, 2.5]) windowOn(g, face, u, 26, { frame: C.beam, glow: u === 0.5, shutters: C.crimson, shade: s })
+    for (const u of [0.5, 2.5]) win(ctx, face, u, 26, { frame: C.beam, glow: u === 0.5, shutters: C.crimson, shade: s })
   }
   gableRoof(g, fp, { h: H, rise: 30, ridge: 'y', color: C.slate, texture: 'slate', gable: shade(C.plaster[2], -0.08) })
   ctx.chimneys.push(chimney(g, fp.x + 0.6, fp.y + 0.6, H + 20, C.stoneDark), chimney(g, fp.x + 0.6, fp.y + 2.4, H + 20, C.stoneDark))
@@ -137,9 +146,9 @@ function tavern(ctx: Ctx) {
     const s = shadeOf(face, ctx)
     for (const u of [0.5, 1.5, 2.5]) {
       if (face === ctx.doorFace && Math.abs(u - ctx.doorU) < 0.4) continue
-      windowOn(g, face, u, 12, { frame: C.beam, glow: true, shade: s })
+      win(ctx, face, u, 12, { frame: C.beam, glow: true, shade: s })
     }
-    for (const u of [0.5, 1.5, 2.5]) windowOn(g, face, u, 31, { frame: C.beam, glow: u !== 1.5, shade: s, h: 9 })
+    for (const u of [0.5, 1.5, 2.5]) win(ctx, face, u, 31, { frame: C.beam, glow: u !== 1.5, shade: s, h: 9 })
   }
   gableRoof(g, fp, { h: H, rise: 30, ridge: 'x', color: C.tiles, texture: 'tiles', gable: shade(C.plaster[0], -0.1) })
   ctx.chimneys.push(chimney(g, fp.x + 2.2, fp.y + 0.8, H + 18, C.stoneDark))
@@ -170,9 +179,11 @@ function forge(ctx: Ctx) {
   glow.poly(quad(ctx.doorFace, ctx.doorU - 0.2, ctx.doorU + 0.2, 2, 9)).fill(0xffe08a)
   const [ax, ay] = isoFlat(...ctx.doorFace(ctx.doorU, 22))
   g.ellipse(ax, ay, 14, 5).fill(shade(C.stoneDark, s))
-  windowOn(g, ctx.otherFace, fp.n / 2, 14, { frame: C.stoneDark, glow: true, shade: shadeOf(ctx.otherFace, ctx), h: 8 })
+  win(ctx, ctx.otherFace, fp.n / 2, 14, { frame: C.stoneDark, glow: true, shade: shadeOf(ctx.otherFace, ctx), h: 8 })
   gableRoof(g, fp, { h: H, rise: 22, ridge: 'x', color: 0x5f6b7c, texture: 'slate', gable: shade(C.stone, -0.1) })
   ctx.view.addChild(glow)
+  const [gx, gy] = isoFlat(...ctx.doorFace(ctx.doorU, 8))
+  ctx.glows.push({ x: gx, y: gy, r: 44, color: C.fire })
   ctx.chimneys.push(chimney(g, fp.x + 1.5, fp.y + 0.5, H + 12, C.stoneDark, 26))
   ctx.anims.push((t) => (glow.alpha = 0.75 + Math.sin(t * 9) * 0.12 + Math.sin(t * 23) * 0.08))
 }
@@ -222,8 +233,8 @@ function temple(ctx: Ctx) {
     const a1 = ((i + 1) / petals.length) * Math.PI * 2
     g.moveTo(rx, ry).arc(rx, ry, 4.2, a0, a1).lineTo(rx, ry).fill(c)
   })
-  for (const u of [0.5, 2.5]) windowOn(g, ctx.doorFace, u, 18, { frame: C.stoneDark, glass: 0x6f8fc3, arched: true, shade: s, w: 0.14, h: 14 })
-  for (const u of [0.5, 1.5, 2.5]) windowOn(g, ctx.otherFace, u, 18, { frame: C.stoneDark, glass: 0x6f8fc3, arched: true, shade: shadeOf(ctx.otherFace, ctx), w: 0.14, h: 14 })
+  for (const u of [0.5, 2.5]) win(ctx, ctx.doorFace, u, 18, { frame: C.stoneDark, glass: 0x6f8fc3, arched: true, shade: s, w: 0.14, h: 14 })
+  for (const u of [0.5, 1.5, 2.5]) win(ctx, ctx.otherFace, u, 18, { frame: C.stoneDark, glass: 0x6f8fc3, arched: true, shade: shadeOf(ctx.otherFace, ctx), w: 0.14, h: 14 })
   gableRoof(g, fp, { h: H, rise: 30, ridge: ctx.b.doorSide === 'left' ? 'y' : 'x', color: 0x6c7fa3, texture: 'slate', gable: shade(stone, -0.08) })
   const cx = fp.x + fp.n / 2
   const cy = fp.y + fp.n / 2
@@ -264,7 +275,10 @@ function mageTower(ctx: Ctx) {
     [14, 62],
     [-6, 84],
   ])
+  {
     g.roundRect(dx + ox - 3, dy + body.ry - z - 6, 6, 11, 3).fill(C.glow)
+    ctx.glows.push({ x: dx + ox, y: dy + body.ry - z, r: 24, color: 0xa8c8ff })
+  }
   for (let z = 14; z < H; z += 14) g.ellipse(dx, dy - z + 4, body.rx, body.ry).stroke({ width: 1, color: shade(stone, -0.3), alpha: 0.25 })
   g.ellipse(dx, dy - H, body.rx + 4, body.ry + 2).fill(shade(stone, -0.15))
   const tip = cone(g, cx, cy, H, 0.92, 58, 0x34467f)
@@ -289,6 +303,7 @@ function mill(ctx: Ctx) {
   const [dx, dy] = isoFlat(cx, cy, 0)
   g.poly([dx - 6, dy + body.ry - 1, dx + 6, dy + body.ry - 1, dx + 6, dy + body.ry - 17, dx - 6, dy + body.ry - 17]).fill(C.door)
   g.roundRect(dx + 8, dy + body.ry - 34, 6, 8, 2).fill(C.glow)
+  ctx.glows.push({ x: dx + 11, y: dy + body.ry - 30, r: 24, color: C.glow })
   cone(g, cx, cy, H, 0.9, 34, C.thatch)
   const hub = new Container()
   hub.position.set(dx + 4, dy - H + 4)
@@ -320,7 +335,7 @@ function keep(ctx: Ctx) {
   doorOn(g, ctx.doorFace, ctx.doorU, 0.8, 26, 0x5e3b24, shade(C.stoneDark, s - 0.1))
   for (const v of [8, 16]) g.poly(quad(ctx.doorFace, ctx.doorU - 0.4, ctx.doorU + 0.4, v, v + 1.5)).fill(C.iron)
   for (const face of [ctx.doorFace, ctx.otherFace])
-    for (const u of [0.7, 3.3]) windowOn(g, face, u, 44, { frame: C.stoneDark, glow: true, shade: shadeOf(face, ctx), w: 0.08, h: 12, arched: true })
+    for (const u of [0.7, 3.3]) win(ctx, face, u, 44, { frame: C.stoneDark, glow: true, shade: shadeOf(face, ctx), w: 0.08, h: 12, arched: true })
   for (const u of [ctx.doorU - 1.25, ctx.doorU + 1.25]) hangingBanner(ctx, ctx.doorFace, u, H - 8, C.crimson, 30)
   const towers = [
     [fp.x + 0.55, fp.y + fp.n - 0.55],
@@ -331,6 +346,7 @@ function keep(ctx: Ctx) {
     const [px, py] = isoFlat(tx, ty, H + 26)
     for (let z = 10; z < H + 20; z += 10) g.ellipse(px, py + (H + 26 - z), 28, 14).stroke({ width: 1, color: shade(stone, -0.3), alpha: 0.18 })
     g.roundRect(px - 2, py + 20, 4, 10, 2).fill(C.glow)
+    ctx.glows.push({ x: px, y: py + 25, r: 22, color: C.glow })
     const tip = cone(g, tx, ty, H + 26, 0.72, 40, C.crimson)
     wavingFlag(ctx, tip.x, tip.y, 16, C.gold)
   }
@@ -391,7 +407,7 @@ function treehouse(ctx: Ctx) {
   const { left, right } = faces(hf)
   g.poly(quad(left, 0, hf.n, deck, deck + 20)).fill(0xc9a57a)
   g.poly(quad(right, 0, hf.n, deck, deck + 20)).fill(shade(0xc9a57a, -0.15))
-  windowOn(g, left, hf.n / 2, deck + 11, { frame: C.woodDark, glow: true, w: 0.16, h: 8 })
+  win(ctx, left, hf.n / 2, deck + 11, { frame: C.woodDark, glow: true, w: 0.16, h: 8 })
   gableRoof(g, hf, { h: deck + 20, rise: 18, ridge: 'x', color: 0x7fa876, texture: 'thatch', gable: 0xc9a57a })
   const canopy = new Container()
   canopy.position.set(bx, by - deck - 30)
@@ -412,6 +428,7 @@ function treehouse(ctx: Ctx) {
     cg.moveTo(ox, oy - 12).lineTo(ox, oy).stroke({ width: 1, color: C.woodDark })
     cg.circle(ox, oy + 3, 3.5).fill(C.glow)
     cg.circle(ox, oy + 3, 7).fill({ color: C.glow, alpha: 0.25 })
+    ctx.glows.push({ x: bx + ox, y: by - deck - 30 + oy + 3, r: 30, color: C.glow })
   }
   canopy.addChild(cg)
   ctx.view.addChild(canopy)

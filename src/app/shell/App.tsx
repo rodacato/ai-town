@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { useTown } from '../store'
 import { LAYOUT, town } from '../town'
 import { HoverTag } from '../features/map/HoverTag'
@@ -6,12 +6,23 @@ import { Loader } from './Loader'
 import { MapControls } from '../features/map/MapControls'
 import { MapHint } from '../features/map/MapHint'
 import { RightPanel } from './RightPanel'
-import { SettingsModal } from '../features/settings/SettingsModal'
+import { LiveAnnouncer } from './LiveAnnouncer'
 import { Timeline } from '../features/timeline/Timeline'
 import { ResetVeil, Toasts } from './Toasts'
 import { TopBar } from '../features/topbar/TopBar'
 import { TownCanvas } from '../features/map/TownCanvas'
 import './shell.css'
+
+const SettingsModal = lazy(() => import('../features/settings/SettingsModal').then((m) => ({ default: m.SettingsModal })))
+
+function LazySettings() {
+  const open = useTown((s) => s.settingsOpen)
+  return open ? (
+    <Suspense fallback={null}>
+      <SettingsModal />
+    </Suspense>
+  ) : null
+}
 
 export function App() {
   useKeyboardShortcuts()
@@ -36,7 +47,8 @@ export function App() {
       <RightPanel />
       <Toasts />
       <ResetVeil />
-      <SettingsModal />
+      <LazySettings />
+      <LiveAnnouncer />
       <Loader />
     </div>
   )

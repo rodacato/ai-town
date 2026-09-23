@@ -1,8 +1,9 @@
-import { Application, Container } from 'pixi.js'
+import { Application, ColorMatrixFilter, Container, Graphics } from 'pixi.js'
 import type { ReactionEngine } from '../core/reactions/engine'
 import { ACTION_META } from '../theme/actions'
 import type { Simulation } from '../core/sim/simulation'
-import type { WorldArt } from './art'
+import { daylight } from '../theme/daylight'
+import type { Ambience, Glow, WorldArt } from './art'
 import { Birds, Butterflies, CloudShadows, Smoke, WaterShimmer } from './ambient'
 import { Camera } from './camera'
 import { ISLAND_DEPTH, TILE_H, TILE_W, iso } from './iso'
@@ -29,7 +30,14 @@ export class TownRenderer {
   private overlay = new Container()
   private sprites = new Map<string, ResidentSprite>()
   private swaying: NonNullable<PropSprite['sway']>[] = []
-  private animated: ((time: number, dt: number) => void)[] = []
+  private animated: ((time: number, dt: number, ambience: Ambience) => void)[] = []
+  private sky = new ColorMatrixFilter()
+  private lights = new Graphics()
+  private glows: Glow[] = []
+  private ambience: Ambience = { night: 0 }
+  /** Honors prefers-reduced-motion: decorative motion freezes and the camera jumps instead of flying. */
+  private calm = false
+  private calmQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
   private smoke: Smoke
   private water: WaterShimmer
   private clouds: CloudShadows
@@ -90,6 +98,7 @@ export class TownRenderer {
       this.objects.addChild(s.view)
       chimneys.push(...s.chimneys)
       if (s.update) this.animated.push(s.update)
+      if (s.glows) this.glows.push(...s.glows)
     }
     for (let y = 0; y < N; y++)
       for (let x = 0; x < N; x++) {
@@ -101,13 +110,22 @@ export class TownRenderer {
         this.objects.addChild(s.view)
         if (s.sway) this.swaying.push(s.sway)
         if (s.update) this.animated.push(s.update)
+        if (s.glows) this.glows.push(...s.glows)
       }
     for (const l of W.landmarks) {
       const s = art.landmark(l)
       s.view.zIndex = s.depth
       this.objects.addChild(s.view)
       if (s.update) this.animated.push(s.update)
+      if (s.glows) this.glows.push(...s.glows)
     }
+    for (const glow of this.glows)
+      for (const [k, a] of [
+        [1, 0.05],
+        [0.62, 0.08],
+        [0.3, 0.14],
+      ])
+        this.lights.circle(glow.x, glow.y, glow.r * k).fill({ color: glow.color, alpha: a })
 
     for (const r of sim.residents) {
       const sprite = new ResidentSprite(r, this.overlay)
@@ -143,7 +161,11 @@ export class TownRenderer {
         this.rumorAt.set(e.to, this.time)
       }
     })
-    app.stage.addChild(this.world)
+    app.stage.addChild(this.world, this.lights)
+    this.lights.blendMode = 'add'
+    this.lights.eventMode = 'none'
+    this.calm = this.calmQuery.matches
+    this.calmQuery.addEventListener('change', this.onCalmChange)
 
     app.stage.eventMode = 'static'
     app.stage.hitArea = app.screen
@@ -157,6 +179,7 @@ export class TownRenderer {
       h: app.screen.height,
       ...options.insets(),
     }))
+    this.camera.instant = this.calm
     this.camera.fit(false)
     app.renderer.on('resize', () => this.camera.handleResize())
 
@@ -200,9 +223,51 @@ export class TownRenderer {
   }
 
   destroy() {
+    this.calmQuery.removeEventListener('change', this.onCalmChange)
     this.offEngine()
     this.camera.destroy()
     this.app.destroy(true, { children: true })
+  }
+
+  private onCalmChange = (e: MediaQueryListEvent) => {
+    this.calm = e.matches
+    this.camera.instant = e.matches
+  }
+
+  private updateSky() {
+    const sky = daylight(this.sim.minutes)
+    this.ambience.night = sky.night
+    this.lights.position.copyFrom(this.world.position)
+    this.lights.scale.copyFrom(this.world.scale)
+    this.lights.alpha = Math.max(0, sky.night - 0.15) * (1 + Math.sin(this.time * 3) * 0.04)
+    this.lights.visible = this.lights.alpha > 0.01
+    const tinted = sky.alpha > 0.005
+    if (tinted) {
+      const k = (shift: number) => 1 - sky.alpha + sky.alpha * (((sky.tint >> shift) & 255) / 255)
+      this.sky.matrix = [k(16), 0, 0, 0, 0, 0, k(8), 0, 0, 0, 0, 0, k(0), 0, 0, 0, 0, 0, 1, 0]
+    }
+    if (tinted !== !!this.world.filters?.length) this.world.filters = tinted ? [this.sky] : []
+  }
+
+  /** Pushes overlapping speech bubbles upward so simultaneous reactions stay readable. */
+  private spreadBubbles() {
+    const placed: { x0: number; x1: number; y0: number; y1: number }[] = []
+    const bubbles = [...this.sprites.values()].map((s) => s.reactionBubble).filter((b) => b.box)
+    bubbles.sort((a, b) => b.view.y - a.view.y)
+    for (const b of bubbles) {
+      const box = b.box!
+      const s = b.view.scale.x
+      const r = { x0: b.view.x + box.x0 * s, x1: b.view.x + box.x1 * s, y0: b.view.y + box.y0 * s, y1: b.view.y + box.y1 * s }
+      for (let guard = 0; guard < 12; guard++) {
+        const hit = placed.find((p) => r.x0 < p.x1 && r.x1 > p.x0 && r.y0 < p.y1 && r.y1 > p.y0)
+        if (!hit) break
+        const dy = r.y1 - hit.y0 + 3
+        r.y0 -= dy
+        r.y1 -= dy
+        b.view.y -= dy
+      }
+      placed.push(r)
+    }
   }
 
   private reactionVisual(id: string): ReactionVisual | undefined {
@@ -257,13 +322,17 @@ export class TownRenderer {
     }
     const zoom = this.camera.scale
     for (const [id, s] of this.sprites) s.update(t, dt, this.reactionVisual(id), zoom)
-    for (const s of this.swaying) s.target.skew.x = Math.sin(t * 1.1 + s.phase) * s.amount + Math.sin(t * 2.3 + s.phase * 2) * s.amount * 0.3
-    for (const update of this.animated) update(t, dt)
-    this.water.update(t)
-    this.smoke.update(dt)
-    this.clouds.update(dt)
-    this.birds.update(dt, t)
-    this.butterflies.update(t)
+    this.spreadBubbles()
+    this.updateSky()
+    if (!this.calm) {
+      for (const s of this.swaying) s.target.skew.x = Math.sin(t * 1.1 + s.phase) * s.amount + Math.sin(t * 2.3 + s.phase * 2) * s.amount * 0.3
+      for (const update of this.animated) update(t, dt, this.ambience)
+      this.water.update(t)
+      this.smoke.update(dt)
+      this.clouds.update(dt)
+      this.birds.update(dt, t)
+      this.butterflies.update(t)
+    }
     this.marker.update(dt)
     this.wave.update(dt)
     this.beacon.update(dt)

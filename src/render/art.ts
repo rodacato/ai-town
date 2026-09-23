@@ -23,11 +23,25 @@ export interface TerrainPalette {
   sideRock: number
 }
 
+/** What animated art can react to beyond time, like how dark it is. */
+export interface Ambience {
+  night: number
+}
+
+/** A light that shows through the night, in world pixels. */
+export interface Glow {
+  x: number
+  y: number
+  r: number
+  color: number
+}
+
 export interface ArtSprite {
   view: Container
+  glows?: Glow[]
   /** Sort key: tiles further down-screen (larger x + y) draw on top. */
   depth: number
-  update?: (time: number, dt: number) => void
+  update?: (time: number, dt: number, ambience: Ambience) => void
 }
 
 export interface BuildingSprite extends ArtSprite {

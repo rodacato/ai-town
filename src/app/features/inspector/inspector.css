@@ -158,12 +158,12 @@
 
 .belief.yes {
   background: var(--sage-soft);
-  color: #4e7a45;
+  color: #446d3c;
 }
 
 .belief.no {
   background: #f3ece4;
-  color: #8a6f5a;
+  color: #7a5f4a;
 }
 
 .decision-latency {
@@ -226,7 +226,7 @@
   padding: 0;
   border: 0;
   background: none;
-  color: var(--accent);
+  color: var(--accent-ink);
   font-weight: 600;
   cursor: pointer;
 }

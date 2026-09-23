@@ -104,8 +104,10 @@ export function drawProp(kind: string, x: number, y: number): PropSprite | null 
       g.poly([-5, -30, 5, -30, 3, -25, -3, -25]).fill(C.iron)
       const flame = new Container()
       flame.position.set(0, -30)
+      const halo = new Graphics().circle(0, 0, 12).fill({ color: C.fire, alpha: 0.16 })
+      halo.position.set(0, -34)
+      view.addChildAt(halo, 0)
       const fg = new Graphics()
-      fg.circle(0, -4, 12).fill({ color: C.fire, alpha: 0.16 })
       fg.poly([-4, 0, 0, -12, 4, 0]).fill(C.fire)
       fg.poly([-2.3, 0, 0, -7.5, 2.3, 0]).fill(0xffe08a)
       flame.addChild(fg)
@@ -114,9 +116,12 @@ export function drawProp(kind: string, x: number, y: number): PropSprite | null 
       return {
         view,
         depth,
-        update: (t) => {
+        glows: [{ x: center.x, y: center.y - 34, r: 58, color: C.fire }],
+        update: (t, _dt, { night }) => {
           flame.scale.set(1 + Math.sin(t * 13 + phase) * 0.08, 1 + Math.sin(t * 17 + phase) * 0.14)
           flame.alpha = 0.88 + Math.sin(t * 29 + phase) * 0.1
+          halo.scale.set(1 + night * 2.2 + Math.sin(t * 11 + phase) * 0.06)
+          halo.alpha = 0.6 + night * 1.6
         },
       }
     }
@@ -182,7 +187,12 @@ export function drawProp(kind: string, x: number, y: number): PropSprite | null 
       rune.moveTo(-2, -24).lineTo(0, -18).lineTo(-2, -12).moveTo(0, -18).lineTo(2.5, -21).stroke({ width: 1.3, color: 0x9fe3ff })
       view.addChild(rune)
       const phase = h * 7
-      return { view, depth, update: (t) => (rune.alpha = 0.35 + Math.max(0, Math.sin(t * 0.8 + phase)) * 0.65) }
+      return {
+        view,
+        depth,
+        glows: [{ x: c.x, y: c.y - 18, r: 22, color: 0x9fe3ff }],
+        update: (t) => (rune.alpha = 0.35 + Math.max(0, Math.sin(t * 0.8 + phase)) * 0.65),
+      }
     }
     case 'haystack':
       shadow(14, 6)

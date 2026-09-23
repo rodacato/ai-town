@@ -167,7 +167,8 @@
     transform 140ms var(--ease-out);
 }
 
-.tl-person:hover::after {
+.tl-person:hover::after,
+.tl-person:focus-visible::after {
   opacity: 1;
   transform: translate(-50%, 0);
 }

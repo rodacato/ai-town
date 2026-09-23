@@ -23,6 +23,8 @@ export class Bubble {
     resolution: TEXT_RESOLUTION,
   })
   private key = ''
+  /** Local bounds of a speech or thought bubble, used to keep bubbles from overlapping; null otherwise. */
+  box: { x0: number; x1: number; y0: number; y1: number } | null = null
   private pop = 0
 
   constructor() {
@@ -46,7 +48,10 @@ export class Bubble {
       if (state.kind !== 'none' && (wasHidden || state.kind !== 'badge')) this.pop = 0
     }
     this.view.visible = state.kind !== 'none'
-    if (!this.view.visible) return
+    if (!this.view.visible) {
+      this.box = null
+      return
+    }
     this.pop = Math.min(1, this.pop + dt * 5)
     const s = backOut(this.pop) * Math.min(1.7, Math.max(1, 0.85 / zoom))
     this.view.scale.set(s)
@@ -57,6 +62,7 @@ export class Bubble {
   }
 
   private draw(state: BubbleState) {
+    this.box = null
     const g = this.bg
     g.clear()
     this.emoji.text = ''
@@ -82,6 +88,7 @@ export class Bubble {
           d.visible = true
           d.x = -5 + i * 7
         })
+        this.box = { x0: -15, x1: 19, y0: -31, y1: -9 }
         break
       case 'badge':
         g.circle(0, -13, 11).fill(0xffffff).stroke({ width: 2, color: state.color ?? PAL.accent })
@@ -100,7 +107,8 @@ export class Bubble {
         g.poly([-5, -9, 5, -9, -2, -1]).fill(0xffffff)
         this.emoji.position.set(-w / 2 + 12 + 9, top + h / 2)
         this.label.position.set(-w / 2 + 12 + 22, top + h / 2)
-        break
+        this.box = { x0: -w / 2, x1: w / 2, y0: top, y1: -8 }
+        return
       }
     }
   }

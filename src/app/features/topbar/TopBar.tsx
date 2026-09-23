@@ -2,7 +2,8 @@ import { formatClock } from '../../../core/sim/clock'
 import { useTown } from '../../store'
 import { town } from '../../town'
 import { activeLabel } from '../../../providers/llm/config'
-import { Gear, Reset, Sun, TownMark, Users } from '../../shared/icons'
+import { daylight } from '../../../theme/daylight'
+import { Gear, Moon, Reset, Sun, TownMark, Users } from '../../shared/icons'
 import './topbar.css'
 
 export function TopBar() {
@@ -24,7 +25,7 @@ export function TopBar() {
       </div>
       <div className="topbar-stats">
         <div className="pill panel" title="Hora del pueblo">
-          <Sun className="pill-icon sun" />
+          {daylight(minutes).night > 0.5 ? <Moon className="pill-icon moon" /> : <Sun className="pill-icon sun" />}
           <span className="pill-label">{day}</span>
           <span className="mono">{time}</span>
         </div>

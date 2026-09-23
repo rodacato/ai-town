@@ -194,6 +194,7 @@ export interface WindowSpec {
   shade?: number
 }
 
+/** Draws a window and returns its center, so lit windows can also cast light at night. */
 export function windowOn(g: Graphics, face: Face, u: number, v: number, s: WindowSpec) {
   const w = s.w ?? 0.18
   const h = s.h ?? 11
@@ -212,6 +213,8 @@ export function windowOn(g: Graphics, face: Face, u: number, v: number, s: Windo
   }
   g.moveTo(...isoFlat(...face(u, v - h / 2))).lineTo(...isoFlat(...face(u, v + h / 2))).stroke({ width: 1, color: shade(s.frame, sh), alpha: 0.9 })
   g.moveTo(...isoFlat(...face(u - w, v))).lineTo(...isoFlat(...face(u + w, v))).stroke({ width: 1, color: shade(s.frame, sh), alpha: 0.9 })
+  const [cx, cy] = isoFlat(...face(u, v))
+  return { x: cx, y: cy }
 }
 
 export function doorOn(g: Graphics, face: Face, u: number, w: number, h: number, color: number, frame: number, arched = true) {

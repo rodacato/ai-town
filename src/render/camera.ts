@@ -31,6 +31,8 @@ export class Camera {
   private touched = false
   private listeners: [string, EventListener][] = []
   onInteract?: () => void
+  /** Jump instead of animating, for reduced motion. */
+  instant = false
 
   constructor(
     private view: Container,
@@ -150,6 +152,12 @@ export class Camera {
   private flyTo(to: Flight['to'], duration: number) {
     this.anchor = null
     this.velocity = { x: 0, y: 0 }
+    if (this.instant) {
+      this.view.scale.set(to.scale)
+      this.view.position.set(to.x, to.y)
+      this.targetScale = to.scale
+      return
+    }
     this.flight = { from: { x: this.view.x, y: this.view.y, scale: this.view.scale.x }, to, t: 0, duration }
   }
 

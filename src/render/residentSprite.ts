@@ -32,7 +32,7 @@ export function buildOf(look: Look, age: number) {
 export class ResidentSprite {
   readonly view = new Container()
   private stateRing = new Graphics()
-  private reaction = new Bubble()
+  readonly reactionBubble = new Bubble()
   private body = new Container()
   private legL = new Graphics()
   private legR = new Graphics()
@@ -108,7 +108,7 @@ export class ResidentSprite {
     }
     this.bubbleOffset = -40 * scale
     this.bubble.visible = false
-    this.overlay.addChild(this.bubble, this.reaction.view)
+    this.overlay.addChild(this.bubble, this.reactionBubble.view)
   }
 
   update(time: number, dt: number, reaction: ReactionVisual = NO_REACTION, zoom = 1) {
@@ -133,7 +133,7 @@ export class ResidentSprite {
     this.body.y = walking ? -Math.abs(Math.cos(r.walkPhase)) * 1.4 : Math.sin(time * 2 + r.walkPhase) * 0.3
 
     const showReaction = reaction.bubble.kind !== 'none' && r.mode !== 'inside'
-    this.reaction.update(showReaction ? reaction.bubble : { kind: 'none' }, p.x, p.y + this.bubbleOffset + 4, time, dt, zoom)
+    this.reactionBubble.update(showReaction ? reaction.bubble : { kind: 'none' }, p.x, p.y + this.bubbleOffset + 4, time, dt, zoom)
     this.stateRing.visible = reaction.ring !== null
     if (reaction.ring !== null) {
       this.stateRing.tint = reaction.ring

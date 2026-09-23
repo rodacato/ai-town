@@ -172,3 +172,9 @@ export const Castle = (p: SVGProps<SVGSVGElement>) => (
     <path d="M4 21V9h3v2h2V9h3v2h2V9h3v2h2V9h3v12zM10 21v-4a2 2 0 0 1 4 0v4M12 9V3l4 1.5-4 1.5" />
   </svg>
 )
+
+export const Moon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z" />
+  </svg>
+)

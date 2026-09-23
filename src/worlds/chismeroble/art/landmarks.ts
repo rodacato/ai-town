@@ -77,9 +77,15 @@ function greatOak(l: Landmark): ArtSprite {
   return {
     view,
     depth: l.x + l.y + l.size,
-    update: (t) => {
+    glows: [
+      [-44, 30],
+      [40, 34],
+      [-12, 40],
+    ].map(([ox, oy]) => ({ x: c.x + ox, y: c.y - 58 + oy, r: 40, color: C.glow })),
+    update: (t, _dt, { night }) => {
       crown.skew.x = Math.sin(t * 0.8) * 0.015
-      lanterns.alpha = 0.85 + Math.sin(t * 2.2) * 0.15
+      lanterns.alpha = 0.7 + night * 0.3 + Math.sin(t * 2.2) * 0.1
+      lanterns.scale.set(1 + night * 0.08)
     },
   }
 }
@@ -128,6 +134,7 @@ function crypt(l: Landmark): ArtSprite {
   return {
     view,
     depth: x + y + n,
+    glows: [{ x: hx, y: hy - 6, r: 50, color: 0x7fe0c0 }],
     update: (t) => {
       runes.alpha = 0.4 + Math.max(0, Math.sin(t * 1.1)) * 0.6
       for (const p of mist) {

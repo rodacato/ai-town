@@ -19,7 +19,7 @@
 
 .btn-primary {
   border: 0;
-  background: linear-gradient(180deg, #e8876c 0%, var(--accent) 100%);
+  background: linear-gradient(180deg, #bf5b3f 0%, var(--accent-ink) 100%);
   color: #fff;
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.35) inset,
@@ -298,7 +298,7 @@
 }
 
 .counter.is-near {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 
 .place-chip {
@@ -378,7 +378,8 @@
     transform 140ms var(--ease-out);
 }
 
-.icon-btn[data-tip]:hover::after {
+.icon-btn[data-tip]:hover::after,
+.icon-btn[data-tip]:focus-visible::after {
   opacity: 1;
   transform: translate(0, -50%);
   transition-delay: 350ms;

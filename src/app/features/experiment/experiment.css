@@ -7,7 +7,7 @@
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 
 .on-air-dot {
@@ -118,7 +118,7 @@
 
 /* Live reactions */
 .on-air.is-complete {
-  color: #4e7a45;
+  color: #446d3c;
 }
 
 .on-air.is-complete .on-air-dot {
@@ -266,7 +266,7 @@
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #9a6b12;
+  color: #8a5f0e;
 }
 
 .summary-card h3 {
