@@ -11,6 +11,7 @@ import { PlaceChip } from '../../shared/PlaceChip'
 import { SpeakerBadge } from '../../shared/SpeakerBadge'
 import { computeStats, seconds, summarize } from './summary'
 import { town } from '../../town'
+import './experiment.css'
 
 export function ActiveAnnouncement({ announcement }: { announcement: Announcement }) {
   const reactions = useTown((s) => s.reactions)

@@ -8,6 +8,7 @@ import { Megaphone } from '../../shared/icons'
 import { PlaceChip } from '../../shared/PlaceChip'
 import { SpeakerBadge } from '../../shared/SpeakerBadge'
 import { SpeakerPicker } from './SpeakerPicker'
+import './composer.css'
 
 const TONE_LABEL: Record<Example['tone'], string> = { confiable: 'Confiable', urgente: 'Urgente', sospechoso: 'Sospechoso', emergencia: 'Emergencia' }
 

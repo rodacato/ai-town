@@ -1,0 +1,145 @@
+/* Top bar */
+.topbar {
+  position: absolute;
+  top: 20px;
+  left: 24px;
+  right: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  pointer-events: none;
+}
+
+.topbar > * {
+  pointer-events: auto;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 18px 10px 12px;
+  border-radius: var(--r-lg);
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.eyebrow {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.brand h1 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 21px;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  font-variation-settings: 'opsz' 48;
+}
+
+.topbar-stats {
+  display: flex;
+  gap: 10px;
+}
+
+.pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  box-shadow: var(--shadow-sm);
+}
+
+.pill-label {
+  color: var(--ink-2);
+}
+
+.pill .mono {
+  font-weight: 500;
+}
+
+.pill-icon {
+  color: var(--ink-3);
+}
+
+.pill-icon.sun {
+  color: #d9a441;
+  animation: spin 40s linear infinite;
+}
+
+.pill.mode .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--sage);
+  box-shadow: 0 0 0 3px var(--sage-soft);
+}
+
+.pill.mode.is-llm .dot {
+  background: var(--sky);
+  box-shadow: 0 0 0 3px #deedf4;
+}
+
+.pill.mode .pill-label {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pill.icon-only {
+  width: 40px;
+  padding: 0;
+  justify-content: center;
+}
+
+.btn-pill:hover .pill-icon.gear {
+  transform: rotate(60deg);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Top bar button */
+.btn-pill {
+  cursor: pointer;
+  color: var(--ink-2);
+  font-weight: 500;
+  transition:
+    background 160ms var(--ease-out),
+    transform 160ms var(--ease-out);
+}
+
+.btn-pill:hover {
+  background: var(--surface-solid);
+  color: var(--ink);
+}
+
+.btn-pill:hover .pill-icon {
+  color: var(--accent);
+  transform: rotate(-60deg);
+}
+
+.btn-pill .pill-icon {
+  transition:
+    transform 400ms var(--ease-out),
+    color 160ms var(--ease-out);
+}
+
+.btn-pill:active {
+  transform: scale(0.96);
+}

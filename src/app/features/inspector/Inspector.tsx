@@ -5,6 +5,7 @@ import { ReactionDetail } from './ReactionDetail'
 import { Brain, Close } from '../../shared/icons'
 import { statusOf } from '../../../core/sim/status'
 import { town } from '../../town'
+import './inspector.css'
 
 export function Inspector({ id }: { id: string }) {
   const reaction = useTown((s) => s.reactions[id])

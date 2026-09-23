@@ -11,6 +11,7 @@ import { Timeline } from '../features/timeline/Timeline'
 import { ResetVeil, Toasts } from './Toasts'
 import { TopBar } from '../features/topbar/TopBar'
 import { TownCanvas } from '../features/map/TownCanvas'
+import './shell.css'
 
 export function App() {
   useKeyboardShortcuts()

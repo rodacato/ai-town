@@ -3,6 +3,7 @@ import { useTown } from '../../store'
 import { Avatar } from '../../shared/Avatar'
 import { computeStats, seconds } from '../experiment/summary'
 import { town } from '../../town'
+import './timeline.css'
 
 const PHASE_TIP = { unaware: 'sin enterarse', heard: 'escuchó', thinking: 'pensando…', error: 'error' }
 

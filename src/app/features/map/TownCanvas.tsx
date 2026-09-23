@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { town } from '../../town'
+import './map.css'
 
 export function TownCanvas() {
   const host = useRef<HTMLDivElement>(null)

@@ -32,9 +32,21 @@ El proxy está pensado para uso local. Si publicas la app, las keys deben quedar
 
 ## Estructura
 
-- `src/sim/`: motor puro en TypeScript (mundo, pathfinding, rutinas, tareas). No depende de React ni de Pixi.
-- `src/agents/`: motor de reacciones, scheduler, contrato `DecisionProvider`, modo simulado y proveedor LLM (`llm/`).
-- `server/llmProxy.ts`: proxy de Vite hacia Anthropic u APIs compatibles con OpenAI.
-- `src/render/`: escena isométrica con PixiJS.
-- `src/ui/`: interfaz en React.
-- `src/data/`: el pueblo, sus 16 residentes y los anuncios de ejemplo.
+```
+src/
+  core/        dominio puro, sin DOM: mundo, simulación, motor de reacciones y contrato de decisiones
+  providers/   quién decide: modo simulado (mock.ts) y LLM (llm/), elegidos en providers/index.ts
+  worlds/      paquetes de mundo: contenido (mapa, lugares, residentes, ejemplos, vocabulario) y arte
+  render/      escena isométrica con PixiJS; dibuja lo genérico y le pide al arte del mundo lo demás
+  theme/       tokens de presentación compartidos por el mapa y la interfaz
+  app/
+    town.ts    el controlador: única puerta de la interfaz hacia la simulación y el mapa
+    store/     estado de la interfaz en partes (ui, composer, experiment, settings)
+    features/  una carpeta por pieza de la interfaz, cada una con su CSS
+    shared/    componentes reutilizables
+    shell/     layout general
+server/        proxy LLM para el servidor de Vite
+tests/         tests del núcleo, independientes del mundo activo
+```
+
+**Crear o cambiar el mundo.** Todo lo del pueblo vive en `src/worlds/<nombre>/`: `layout.ts` (mapa y edificios), `index.ts` (lugares, residentes, quién habla, ejemplos, vocabulario) y `art/` (cómo se dibuja). El mundo activo se elige en `src/worlds/index.ts`. Los tests validan cualquier paquete: `npm test`.

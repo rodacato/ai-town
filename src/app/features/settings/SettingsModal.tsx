@@ -4,6 +4,7 @@ import { streamChat } from '../../../providers/llm/provider'
 import { useTown } from '../../store'
 import { town } from '../../town'
 import { Alert, Check, Close, Eye, EyeOff, Refresh } from '../../shared/icons'
+import './settings.css'
 
 const KINDS: ProviderKind[] = ['mock', 'anthropic', 'openai', 'shellm', 'custom']
 

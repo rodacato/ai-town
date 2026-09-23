@@ -3,6 +3,7 @@ import { useTown } from '../../store'
 import { town } from '../../town'
 import { activeLabel } from '../../../providers/llm/config'
 import { Gear, Reset, Sun, TownMark, Users } from '../../shared/icons'
+import './topbar.css'
 
 export function TopBar() {
   const minutes = useTown((s) => s.minutes)
