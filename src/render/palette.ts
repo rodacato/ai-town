@@ -1,0 +1,61 @@
+export const PAL = {
+  bg: 0xf4eee3,
+  ink: 0x2e2a26,
+  shadow: 0x3b3024,
+
+  grass: [0xaacb9f, 0xa5c79a, 0xb0cfa4, 0xa2c396],
+  grassDark: 0x8db287,
+  grassTuft: 0x86ab7d,
+  path: [0xead9bb, 0xe6d4b4, 0xeddfc4],
+  pathEdge: 0xd8c29d,
+  pebble: 0xcdb898,
+  plaza: [0xece3d3, 0xe7dccb],
+  plazaLine: 0xd9ccb6,
+  water: 0x8fbccd,
+  waterDeep: 0x7eafc3,
+  waterFoam: 0xd2e6ec,
+  waterGlint: 0xf2fafc,
+  bridge: 0xc19670,
+  bridgePlank: 0xa97d57,
+  field: 0xbf946b,
+  fieldRow: 0xa97f59,
+  crop: 0x7fa86a,
+  cropLight: 0x9cc184,
+
+  sideTop: 0xc9a27c,
+  sideLeft: 0xbd9570,
+  sideRight: 0xa98260,
+  sideRock: 0x9c7a5c,
+
+  wall: [0xf7ecdd, 0xf3e3cc, 0xf5e8e0, 0xeee6d6, 0xf4e6d2],
+  roof: [0xd98b6a, 0xe3b865, 0x8fb08a, 0x8ea8c4, 0xc08aa0],
+  wood: 0xb98b63,
+  woodDark: 0x8a5f40,
+  door: 0x8e5b3d,
+  glass: 0x7c9fb3,
+  glassLight: 0xb9d4e0,
+  stone: 0xe9e1d3,
+  stoneShade: 0xcfc3b0,
+
+  leaf: [0x7fae76, 0x8cbb7f, 0x74a36d, 0x96c088],
+  leafLight: 0xb4d6a4,
+  pine: [0x5f9170, 0x6a9c78, 0x578866],
+  trunk: 0x8a6448,
+  bush: 0x7eab72,
+  flowers: [0xf2a7a0, 0xf7d57a, 0xffffff, 0xc9a7e0, 0xf4b98a],
+  rock: 0xc9c2b6,
+  rockShade: 0xada596,
+  lamp: 0x4f4a44,
+  lampGlow: 0xffe3a3,
+
+  accent: 0xe07a5f,
+  think: 0x6fa8c7,
+} as const
+
+export const shade = (color: number, amount: number) => {
+  const r = (color >> 16) & 255
+  const g = (color >> 8) & 255
+  const b = color & 255
+  const f = (c: number) => Math.max(0, Math.min(255, Math.round(amount < 0 ? c * (1 + amount) : c + (255 - c) * amount)))
+  return (f(r) << 16) | (f(g) << 8) | f(b)
+}
