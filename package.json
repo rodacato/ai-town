@@ -12,6 +12,7 @@
     "sim:smoke": "tsx scripts/sim-smoke.ts",
     "fake-llm": "tsx scripts/fake-llm.ts",
     "bench": "tsx scripts/bench.ts",
+    "reign": "tsx scripts/reign.ts",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage"
   },

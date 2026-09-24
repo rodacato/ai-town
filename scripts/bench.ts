@@ -7,12 +7,11 @@ import { compareSides } from '../src/core/bench/compare'
 import { executeRun, RUN_FORMAT, trialsPerContender, type BenchRun, type RunSetup } from '../src/core/bench/run'
 import { FAIL_FAST_AFTER, type BenchProgress } from '../src/core/bench/runner'
 import { MAX_CONCURRENCY } from '../src/providers'
-import type { ChatStream } from '../src/providers/llm/client'
 import { DEFAULT_SETTINGS, PRESETS, type Connection } from '../src/providers/llm/config'
 import { createLlmProvider } from '../src/providers/llm/provider'
-import { completionEvents } from '../src/providers/llm/transport'
 import { createRulesProvider, mockDecision } from '../src/providers/mock'
 import { activeWorld } from '../src/worlds'
+import { bold, connectionForSpec, dim, ENV, fail, nodeStream, red, tty } from './cli'
 import { firstName } from '../src/core/lang'
 import { ACTION_META } from '../src/theme/actions'
 
@@ -40,32 +39,6 @@ Hosts y keys salen de .env / .env.local:
   ANTHROPIC_API_KEY · OPENAI_API_KEY · SHELLM_HOST, SHELLM_KEY · CUSTOM_LLM_HOST, CUSTOM_LLM_KEY, CUSTOM_LLM_PROTOCOL
 
 El JSON resultante se puede importar en el historial del Banco de pruebas del navegador.`
-
-const ENV: Record<Connection['kind'], { host?: string; key: string; protocol?: string }> = {
-  anthropic: { host: 'ANTHROPIC_HOST', key: 'ANTHROPIC_API_KEY' },
-  openai: { host: 'OPENAI_HOST', key: 'OPENAI_API_KEY' },
-  shellm: { host: 'SHELLM_HOST', key: 'SHELLM_KEY', protocol: 'SHELLM_PROTOCOL' },
-  custom: { host: 'CUSTOM_LLM_HOST', key: 'CUSTOM_LLM_KEY', protocol: 'CUSTOM_LLM_PROTOCOL' },
-}
-
-const tty = process.stdout.isTTY
-const style = (code: number) => (s: string) => (tty ? `\x1b[${code}m${s}\x1b[0m` : s)
-const dim = style(2)
-const bold = style(1)
-const red = style(31)
-
-function fail(message: string): never {
-  console.error(red(`✗ ${message}`))
-  process.exit(2)
-}
-
-for (const file of ['.env', '.env.local']) {
-  try {
-    process.loadEnvFile(file)
-  } catch {
-    // A missing env file just means keys come from the shell.
-  }
-}
 
 const { values: args, positionals } = parseArgs({
   allowPositionals: true,
@@ -112,32 +85,7 @@ const unknown = ids.filter((id) => !content.examples.some((e) => e.id === id))
 if (unknown.length) fail(`Pregón desconocido: ${unknown.join(', ')}. Hay: ${content.examples.map((e) => e.id).join(', ')}.`)
 const examples = content.examples.filter((e) => ids.includes(e.id))
 
-/** The CLI talks to providers straight from Node: no proxy, no browser connection cap. */
-const nodeStream: ChatStream = (connection, system, prompt, signal, opts = {}) => completionEvents(connection, { system, prompt, maxTokens: opts.maxTokens, timeoutMs: opts.timeoutMs }, signal)
-
-function connectionFor(spec: string): Connection {
-  const colon = spec.indexOf(':')
-  const kind = spec.slice(0, colon) as Connection['kind']
-  if (colon < 0 || !(kind in ENV)) fail(`Contendiente «${spec}»: usa proveedor:modelo, con proveedor ${Object.keys(ENV).join(', ')}.`)
-  let model = spec.slice(colon + 1)
-  let host: string | undefined
-  const at = model.lastIndexOf('@')
-  if (at >= 0) [model, host] = [model.slice(0, at), model.slice(at + 1)]
-  if (!model) fail(`Contendiente «${spec}»: falta el modelo.`)
-  const env = ENV[kind]
-  const base = DEFAULT_SETTINGS.connections[kind]
-  const protocol = (env.protocol && process.env[env.protocol]) || base.protocol
-  if (protocol !== 'openai' && protocol !== 'anthropic') fail(`Protocolo desconocido «${protocol}» para ${kind}.`)
-  return {
-    ...base,
-    protocol,
-    model,
-    host: host ?? (env.host && process.env[env.host]) ?? base.host,
-    apiKey: process.env[env.key] ?? '',
-    concurrency: concurrency ?? base.concurrency,
-    ...(price ? { priceIn: Number(price[1]), priceOut: Number(price[2]) } : {}),
-  }
-}
+const connectionFor = (spec: string) => connectionForSpec(spec, { concurrency, price })
 
 const contenders: RunSetup['contenders'] = []
 if (!args['skip-rules']) {

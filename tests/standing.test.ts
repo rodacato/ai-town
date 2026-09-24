@@ -85,3 +85,17 @@ describe('the end of a reign', () => {
     expect(tyrant.survivedDays).toBeLessThan(40)
   })
 })
+
+describe('a ruler duel', () => {
+  it('scores the same seed fairly and ranks the better ruler first', async () => {
+    const { summarize, ranking } = await import('../src/core/realm/duel')
+    const { fateCalendar } = await import('../src/core/realm/reign')
+    const { rulesRuler } = await import('../src/core/realm/ruler')
+    const base = { content, days: 41, seed: 8, seasonLength: 10, fate: fateCalendar(8, 41) }
+    const absent = summarize('ausente', await runReign({ ...base, rule: async () => ({ thought: '', actions: [], problems: [] }) }))
+    const ruled = summarize('reglas', await runReign({ ...base, rule: async (r) => rulesRuler(r) }))
+    expect(ruled.won).toBe(true)
+    expect(ranking([absent, ruled]).map((r) => r.ruler)).toEqual(['reglas', 'ausente'])
+    expect(ruled.score).toBeGreaterThan(absent.score)
+  })
+})

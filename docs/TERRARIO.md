@@ -11,6 +11,8 @@ Un mundo que corre solo, con dos manos dentro: **tú eres el destino** (el panel
 
 ## Fases
 
+Todas están hechas; el detalle de cómo se juega está en el README.
+
 1. **Memoria y reputación.** El pueblo recuerda pregones con verdad revelada y eventos vistos; cada pregonero tiene reputación; entra al prompt y al modo simulado; se guarda en el navegador. El banco de pruebas no la usa.
 2. **Economía y necesidades.** Oro (tesoro real y bolsas), comida (granero: huerto, pan, caza; consumo diario; estaciones; desastres), ánimo; hambre → enfermedad → se va o muere; libro de cuentas al amanecer; indicadores arriba.
 3. **El trono, jugable por una persona.** Impuestos, salarios, reparto de comida y decretos (toque de queda, racionamiento, fiesta, leva de guardias).
