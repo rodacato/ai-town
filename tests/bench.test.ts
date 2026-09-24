@@ -3,6 +3,7 @@ import { analyze, cellKey, errorSummary } from '../src/core/bench/analysis'
 import { checkCoherence } from '../src/core/bench/coherence'
 import { checkFormat } from '../src/core/bench/format'
 import { FAIL_FAST_AFTER, runBench, type Contender } from '../src/core/bench/runner'
+import { executeRun, RUN_FORMAT, trialsPerContender } from '../src/core/bench/run'
 import { buildScenario } from '../src/core/bench/scenarios'
 import type { Decision, DecisionEvent, DecisionProvider } from '../src/core/decisions/types'
 import { createRulesProvider, mockDecision } from '../src/providers/mock'
@@ -87,6 +88,27 @@ describe('benchmark', () => {
     const run = runBench({ scenarios, repetitions: 1, contenders: [contender('slow', slow)] }, { signal: controller.signal })
     controller.abort()
     expect((await run).trials).toEqual([])
+  })
+})
+
+describe('a full run', () => {
+  it('records setup, timing and a report the browser and CLI can both read', async () => {
+    const examples = content.examples.slice(0, 2)
+    const info = { id: 'rules', label: 'Reglas', kind: 'rules', model: '', host: '', concurrency: 4 }
+    const run = await executeRun({
+      content,
+      examples,
+      seed: 3,
+      repetitions: 2,
+      contenders: [{ contender: contender('rules', createRulesProvider(content.vocabulary)), info }],
+      reference: (ctx) => mockDecision(ctx, content.vocabulary),
+    })
+    expect(run).toMatchObject({ format: RUN_FORMAT, world: content.id, seed: 3, repetitions: 2, cancelled: false, contenders: [info] })
+    expect(run.scenarios.map((s) => s.id)).toEqual(examples.map((e) => e.id))
+    expect(run.trials).toHaveLength(trialsPerContender(content, examples, 2))
+    expect(run.durations.rules).toBeGreaterThanOrEqual(0)
+    expect(run.report.contenders[0]).toMatchObject({ referenceAgreement: 1, consistency: 1, persona: 1 })
+    expect(JSON.parse(JSON.stringify(run))).toEqual(run)
   })
 })
 

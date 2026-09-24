@@ -9,10 +9,13 @@ npm install
 npm run dev
 ```
 
+- `npm test`: tests unitarios; `npm run test:coverage` además mide la cobertura de `src/core` y `src/providers` y falla si baja del mínimo.
 - `npm run map`: imprime el mapa generado en ASCII.
 - `npm run sim:smoke`: corre 3 minutos de simulación sin interfaz.
 - `npx tsx scripts/reaction-smoke.ts [food|bridge|money|storm]`: pasa los anuncios de ejemplo por el motor en modo simulado.
-- `npm run fake-llm`: levanta un LLM falso compatible con OpenAI en `http://127.0.0.1:6199`, útil para probar el flujo del modo LLM sin gastar tokens.
+- `npm run fake-llm`: levanta un LLM falso compatible con OpenAI en `http://127.0.0.1:6199`, útil para probar el flujo del modo LLM sin gastar tokens. Con `FAKE_KEY=…` exige esa key, para ensayar errores de autenticación.
+
+Cada PR hacia `main` corre en GitHub Actions el typecheck, los tests con cobertura y el build (`.github/workflows/ci.yml`).
 
 ## Residentes
 
