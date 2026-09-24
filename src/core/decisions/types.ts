@@ -69,6 +69,11 @@ export interface TokenUsage {
   costUsd?: number
   /** 'host' when the provider reported the cost, 'table' when it was estimated from a price list. */
   costSource?: 'host' | 'table'
+  /** Input tokens read from the prompt cache, and written to it; `inputTokens` counts only the rest. */
+  cacheReadTokens?: number
+  cacheWriteTokens?: number
+  /** Estimated saving from the cache on this call, when there is a price to tell. */
+  cacheSavedUsd?: number
 }
 
 export type DecisionEvent =

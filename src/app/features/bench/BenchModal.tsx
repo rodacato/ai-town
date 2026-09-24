@@ -25,6 +25,7 @@ import { JudgePanel } from './JudgePanel'
 import { GOLDEN_SIZE, passesGolden } from '../../../core/bench/golden'
 import { foldersSupported } from './folder'
 import { nameOf } from '../../../core/lang'
+import { cacheText } from '../../../core/reactions/metrics'
 
 const KINDS: ContenderKind[] = ['rules', 'anthropic', 'openai', 'shellm', 'custom']
 const PAID: ContenderKind[] = ['anthropic', 'openai']
@@ -134,6 +135,12 @@ function NewRun() {
                 <span className="contender-note">Sin modelo: la referencia gratuita e instantánea.</span>
               ) : (
                 <input className="input mono" value={s.model} placeholder={PRESETS[s.kind].modelHint} onChange={(e) => update(i, { model: e.target.value })} aria-label="Modelo" spellCheck={false} />
+              )}
+              {s.kind === 'anthropic' && (
+                <label className="check contender-cache" title="Añade el mismo modelo con y sin caché para ver cuánto ahorra">
+                  <input type="checkbox" checked={!!s.noCache} onChange={(e) => update(i, { noCache: e.target.checked })} />
+                  <span>Sin caché</span>
+                </label>
               )}
               <button className="icon-btn" onClick={() => setPrefs({ specs: specs.filter((_, j) => j !== i) })} aria-label={`Quitar ${specLabel(s)}`}>
                 <Close width={14} height={14} />
@@ -271,6 +278,7 @@ function Result({ run }: { run: BenchRun }) {
   const hasRef = reports.some((r) => r.referenceAgreement !== null && r.contender !== 'rules')
   const best = bestOf(reports)
   const hasGolden = reports.some((r) => r.golden)
+  const hasCache = reports.some((r) => r.metrics.cacheReadTokens || r.metrics.cacheWriteTokens)
   return (
     <div className="bench-result">
       <p className="bench-meta">
@@ -298,13 +306,14 @@ function Result({ run }: { run: BenchRun }) {
               <th scope="col">Tokens/s</th>
               <th scope="col" title="Entrada → salida, en toda la corrida">Tokens</th>
               <th scope="col" title="Tokens de entrada y salida por decisión">Tok./dec.</th>
+              {hasCache && <th scope="col" title="Parte del prompt que salió de la caché de Anthropic y lo que ahorró frente a pagarlo entero">Caché</th>}
               <th scope="col" title="≈ cuando se estimó con el precio de lista o el que escribiste; «sin precio» cuando no hay con qué estimar">Costo</th>
               <th scope="col" title="Lo que costarían 1.000 decisiones a este ritmo">$/1k dec.</th>
             </tr>
           </thead>
           <tbody>
             {reports.map((r) => (
-              <Row key={r.contender} r={r} label={label(r.contender)} hasRef={hasRef} hasGolden={hasGolden} ms={run.durations?.[r.contender]} best={best} />
+              <Row key={r.contender} r={r} label={label(r.contender)} hasRef={hasRef} hasGolden={hasGolden} hasCache={hasCache} ms={run.durations?.[r.contender]} best={best} />
             ))}
           </tbody>
         </table>
@@ -438,7 +447,7 @@ function bestOf(reports: ContenderReport[]): Best {
   return out
 }
 
-function Row({ r, label, hasRef, hasGolden, ms, best }: { r: ContenderReport; label: string; hasRef: boolean; hasGolden: boolean; ms?: number; best: Best }) {
+function Row({ r, label, hasRef, hasGolden, hasCache, ms, best }: { r: ContenderReport; label: string; hasRef: boolean; hasGolden: boolean; hasCache: boolean; ms?: number; best: Best }) {
   const m = r.metrics
   const decided = r.trials - r.errors
   const top = (key: keyof typeof BEST) => (best[key]?.has(r.contender) ? 'is-best' : '')
@@ -466,6 +475,7 @@ function Row({ r, label, hasRef, hasGolden, ms, best }: { r: ContenderReport; la
       <td className="mono">{m.tokensPerSecond ? m.tokensPerSecond.toFixed(0) : '—'}</td>
       <td className="mono">{m.inputTokens ? `${tokens(m.inputTokens)} → ${tokens(m.outputTokens)}` : '—'}</td>
       <td className="mono">{m.inputTokens && decided ? `${tokens(m.inputTokens / decided)} → ${tokens(m.outputTokens / decided)}` : '—'}</td>
+      {hasCache && <td className="mono">{cacheText(m)}</td>}
       <td className={`mono ${m.costUsd === null && !rules ? 'is-muted' : ''}`}>{rules ? '—' : usd(m.costUsd, m.costEstimated)}</td>
       <td className={`mono ${top('per1k')}`}>{rules || cost === null ? '—' : usd(cost, m.costEstimated)}</td>
     </tr>

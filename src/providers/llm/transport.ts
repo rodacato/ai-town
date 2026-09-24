@@ -15,6 +15,10 @@ export interface Target {
 export interface CompletionRequest {
   system: string
   prompt: string
+  /** The part of the prompt shared by many requests (the same announcement for every resident); it goes first so it can be cached. */
+  prefix?: string
+  /** Mark the system prompt and the prefix for Anthropic's prompt cache. */
+  cache?: boolean
   maxTokens?: number
   /** How long to wait for the host to start answering; decisions allow long queues, connection tests fail fast. */
   timeoutMs?: number
@@ -25,6 +29,9 @@ export interface Usage {
   outputTokens?: number
   /** Cost the host reports itself (SheLLM does); otherwise computed later from a price table. */
   costUsd?: number
+  /** Input tokens served from the prompt cache (billed at about a tenth), and written to it (about 1.25×). */
+  cacheReadTokens?: number
+  cacheWriteTokens?: number
 }
 
 export interface TransportOptions {
@@ -91,8 +98,15 @@ async function streamAnthropic(t: Target, req: CompletionRequest, onText: (text:
     {
       model: t.model,
       max_tokens: req.maxTokens ?? 16000,
-      system: req.system,
-      messages: [{ role: 'user', content: req.prompt }],
+      system: req.cache ? [{ type: 'text' as const, text: req.system, cache_control: { type: 'ephemeral' as const } }] : req.system,
+      messages: [
+        {
+          role: 'user' as const,
+          content: req.prefix
+            ? [{ type: 'text' as const, text: req.prefix, ...(req.cache ? { cache_control: { type: 'ephemeral' as const } } : {}) }, { type: 'text' as const, text: req.prompt }]
+            : req.prompt,
+        },
+      ],
       ...(withFallbacks ? { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' as const } : {}),
     },
     { signal },
@@ -103,7 +117,8 @@ async function streamAnthropic(t: Target, req: CompletionRequest, onText: (text:
   const final = await stream.finalMessage()
   if (final.stop_reason === 'refusal') throw new Error('El modelo se negó a responder esta petición.')
   if (final.stop_reason === 'max_tokens') throw new Error('La respuesta se cortó por el límite de tokens.')
-  return { inputTokens: final.usage.input_tokens, outputTokens: final.usage.output_tokens, ...hostCost(final) }
+  const { cache_read_input_tokens: read, cache_creation_input_tokens: write } = final.usage
+  return { inputTokens: final.usage.input_tokens, outputTokens: final.usage.output_tokens, ...(read ? { cacheReadTokens: read } : {}), ...(write ? { cacheWriteTokens: write } : {}), ...hostCost(final) }
 }
 
 interface OpenAIChunk {
@@ -126,7 +141,7 @@ async function streamOpenAI(t: Target, req: CompletionRequest, onText: (text: st
         ...(includeUsage ? { stream_options: { include_usage: true } } : {}),
         messages: [
           { role: 'system', content: req.system },
-          { role: 'user', content: req.prompt },
+          { role: 'user', content: req.prefix ? `${req.prefix}\n\n${req.prompt}` : req.prompt },
         ],
       }),
     },

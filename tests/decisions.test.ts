@@ -4,7 +4,7 @@ import { detectPlace } from '../src/core/reactions/announcement'
 import { Simulation } from '../src/core/sim/simulation'
 import type { Example } from '../src/core/world/content'
 import { partialStringField, parseDecision } from '../src/providers/llm/parse'
-import { buildPrompt } from '../src/providers/llm/prompt'
+import { buildPrompt, buildPromptParts } from '../src/providers/llm/prompt'
 import { SCALES } from '../src/core/world/content'
 import { mockDecision } from '../src/providers/mock'
 import { announce, content, exampleByTone } from './helpers'
@@ -65,6 +65,18 @@ describe('personalities', () => {
     expect(prompt).toContain(r.profile.personality.voice)
     expect(prompt).toContain(r.profile.personality.secret)
     expect(prompt).toContain('Valentía')
+  })
+
+  it('open every prompt of an announcement with the same text, so the cache can reuse it', () => {
+    const a = announce(sim, content.examples[0])
+    const parts = sim.residents.map((r) => buildPromptParts(buildContext(sim, a, r, [], null)))
+    expect(new Set(parts.map((p) => p.shared)).size).toBe(1)
+    expect(new Set(parts.map((p) => p.own)).size).toBe(parts.length)
+    expect(parts[0].shared).toContain(a.text)
+    for (const [i, r] of sim.residents.entries()) {
+      expect(parts[i].shared).toContain(r.profile.id)
+      expect(parts[i].own).toContain(r.profile.personality.voice)
+    }
   })
 
   it('make the bravest resident face danger and the most timid one hide from it', () => {

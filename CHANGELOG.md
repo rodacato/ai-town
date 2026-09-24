@@ -16,8 +16,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 - Compartir pruebas entre máquinas: carpeta compartida (Chrome y Edge) donde cada prueba se guarda y se leen las que haya, «Exportar todo» en un solo archivo, importación de varios archivos o lotes a la vez, y `AI_TOWN_RUNS_DIR` para que `npm run bench` guarde en esa carpeta.
 - Las corridas guardan el razonamiento de cada decisión (recortado).
 - El LLM falso responde también como Baronesa y como juez.
+- Caché de prompts de Anthropic: las instrucciones y el anuncio, iguales para todo el pueblo, se marcan para la caché. El inspector muestra los tokens leídos y escritos, el costo los cobra a su precio y el banco añade la columna **Caché** (parte del prompt servida y ahorro) y la variante **Sin caché** del mismo modelo (`~sin-cache` en la terminal) para medirlo.
 
 ### Cambiado
+- El prompt de cada residente empieza por lo común (anuncio y vecinos) y sigue con lo suyo; las pruebas nuevas no reciben el mismo texto que las guardadas antes de este cambio.
 - Lo que hace la guardia pesa la mitad que lo que dice la Baronesa en la confianza del pueblo, para que en años de muchos golpes la confianza no se infle sola.
 
 ## [1.0.0] - 2026-09-24

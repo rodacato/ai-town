@@ -3,7 +3,7 @@ import { streamChat, type ChatStream } from './client'
 import { PRESETS, type Connection } from './config'
 import { parseDecision, partialStringField } from './parse'
 import { withCost } from './pricing'
-import { buildPrompt, buildSystemPrompt } from './prompt'
+import { buildPromptParts, buildSystemPrompt } from './prompt'
 
 /** `stream` defaults to the browser's route (local proxy or direct); the CLI passes a plain Node one. */
 export function createLlmProvider(connection: Connection, stream: ChatStream = streamChat): DecisionProvider {
@@ -15,9 +15,9 @@ export function createLlmProvider(connection: Connection, stream: ChatStream = s
       let emitted = 0
       let usage: TokenUsage = {}
       const system = buildSystemPrompt(ctx.world)
-      const prompt = buildPrompt(ctx)
-      yield { type: 'request', system, prompt }
-      for await (const event of stream(connection, system, prompt, signal, { tag: ctx.resident.name, timeoutMs: 110_000 })) {
+      const { shared, own } = buildPromptParts(ctx)
+      yield { type: 'request', system, prompt: `${shared}\n\n${own}` }
+      for await (const event of stream(connection, system, own, signal, { tag: ctx.resident.name, timeoutMs: 110_000, prefix: shared })) {
         if (event.type === 'done') {
           usage = withCost(connection, event.usage)
           continue

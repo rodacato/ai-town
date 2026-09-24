@@ -11,6 +11,7 @@ export function Exchange({ reaction, now = performance.now() }: { reaction: Reac
   if (startedAt !== null) rows.push(['Hasta la primera palabra', firstTokenAt !== null ? seconds(firstTokenAt - startedAt) : '…'])
   if (startedAt !== null && decidedAt !== null) rows.push(['Respuesta completa', seconds(decidedAt - startedAt)])
   if (usage?.inputTokens !== undefined) rows.push(['Tokens (entrada → salida)', `${tokens(usage.inputTokens)} → ${tokens(usage.outputTokens ?? 0)}`])
+  if (usage?.cacheReadTokens || usage?.cacheWriteTokens) rows.push(['Caché (leída · escrita)', `${tokens(usage.cacheReadTokens ?? 0)} · ${tokens(usage.cacheWriteTokens ?? 0)}`])
   if (usage?.costUsd !== undefined) rows.push([usage.costSource === 'table' ? 'Costo estimado' : 'Costo reportado', usd(usage.costUsd)])
   if (calls.length > 1) rows.push(['Peticiones de este residente', String(calls.length)])
   return (

@@ -19,6 +19,8 @@ export type ContenderKind = 'rules' | Connection['kind']
 export interface ContenderSpec {
   kind: ContenderKind
   model: string
+  /** Turns off Anthropic's prompt cache, to measure what it saves against the same model with it. */
+  noCache?: boolean
 }
 
 interface Prefs {
@@ -60,8 +62,9 @@ interface BenchState extends Prefs {
 const PREFS_KEY = 'ai-town:bench-prefs'
 export const MAX_REPETITIONS = 5
 
-export const specId = (s: ContenderSpec) => (s.kind === 'rules' ? 'rules' : `${s.kind}:${s.model.trim()}`)
-export const specLabel = (s: ContenderSpec) => (s.kind === 'rules' ? 'Reglas locales' : `${PRESETS[s.kind].label} · ${s.model.trim() || '¿modelo?'}`)
+const uncached = (s: ContenderSpec) => s.kind === 'anthropic' && !!s.noCache
+export const specId = (s: ContenderSpec) => (s.kind === 'rules' ? 'rules' : `${s.kind}:${s.model.trim()}${uncached(s) ? ':sin-cache' : ''}`)
+export const specLabel = (s: ContenderSpec) => (s.kind === 'rules' ? 'Reglas locales' : `${PRESETS[s.kind].label} · ${s.model.trim() || '¿modelo?'}${uncached(s) ? ' · sin caché' : ''}`)
 
 function defaultPrefs(): Prefs {
   const llm = useTown.getState().llm
@@ -97,7 +100,7 @@ function contenderFor(spec: ContenderSpec, llm: LlmSettings): { contender: Conte
       info: { id, label, kind: 'rules', model: '', host: '', concurrency: 16 },
     }
   }
-  const conn = { ...llm.connections[spec.kind], model: spec.model.trim() }
+  const conn = { ...llm.connections[spec.kind], model: spec.model.trim(), promptCache: !uncached(spec) }
   const { provider, concurrency, timeoutMs } = createProvider({ active: spec.kind, connections: { ...llm.connections, [spec.kind]: conn } }, town.content)
   return { contender: { id, label, provider, concurrency, timeoutMs }, info: { id, label, kind: spec.kind, model: conn.model, host: conn.host, concurrency } }
 }

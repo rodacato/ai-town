@@ -1,3 +1,4 @@
+import { usd } from '../format'
 import type { CallRecord, Reaction } from './engine'
 
 export interface RunMetrics {
@@ -5,6 +6,11 @@ export interface RunMetrics {
   errors: number
   inputTokens: number
   outputTokens: number
+  /** Prompt tokens read from and written to the cache; optional for runs saved before they were counted. */
+  cacheReadTokens?: number
+  cacheWriteTokens?: number
+  /** What the cache saved against paying every prompt token in full; null when there is no price to tell. */
+  cacheSavedUsd?: number | null
   /** Null when no call reported or could estimate a cost. */
   costUsd: number | null
   /** True when some cost came from a price table rather than the host. */
@@ -45,6 +51,9 @@ export function runMetrics(calls: Timed[]): RunMetrics {
     errors: calls.length - ok.length,
     inputTokens: sum((c) => c.usage?.inputTokens),
     outputTokens: sum((c) => c.usage?.outputTokens),
+    cacheReadTokens: sum((c) => c.usage?.cacheReadTokens),
+    cacheWriteTokens: sum((c) => c.usage?.cacheWriteTokens),
+    cacheSavedUsd: calls.some((c) => c.usage?.cacheSavedUsd !== undefined) ? sum((c) => c.usage?.cacheSavedUsd) : null,
     costUsd: priced.length ? sum((c) => c.usage?.costUsd) : null,
     costEstimated: priced.some((c) => c.usage?.costSource === 'table'),
     ttft: percentiles(ok.flatMap((c) => (c.ttftMs !== null ? [c.ttftMs] : []))),
@@ -52,4 +61,20 @@ export function runMetrics(calls: Timed[]): RunMetrics {
     queue: percentiles(calls.map((c) => c.queueMs)),
     tokensPerSecond: genSeconds > 0 ? generating.reduce((n, c) => n + c.usage!.outputTokens!, 0) / genSeconds : null,
   }
+}
+
+/** Share of the prompt that came from the cache; null when nothing was cached, or the host does not say. */
+export function cacheShare(m: RunMetrics): number | null {
+  const read = m.cacheReadTokens ?? 0
+  const prompt = m.inputTokens + read + (m.cacheWriteTokens ?? 0)
+  return read && prompt ? read / prompt : null
+}
+
+/** The cache in one cell: what share of the prompt it served and what that saved or, while it only fills, cost. */
+export function cacheText(m: RunMetrics): string {
+  const share = cacheShare(m)
+  const saved = m.cacheSavedUsd
+  const money = !saved ? '' : saved > 0 ? ` · ahorró ${usd(saved, true)}` : ` · costó ${usd(-saved, true)} de más`
+  if (share === null) return m.cacheWriteTokens ? `solo escrita${money}` : '—'
+  return `${Math.round(share * 100)}%${money}`
 }

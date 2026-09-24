@@ -11,6 +11,8 @@ export interface Connection {
   /** USD per million tokens, overriding the known list price; used to estimate cost when the host does not report it. */
   priceIn?: number
   priceOut?: number
+  /** Use Anthropic's prompt cache (on by default); off only to measure what it saves. */
+  promptCache?: boolean
   /** The model those prices were typed in for; they apply to no other, so comparing two models on one host never mixes prices. */
   priceModel?: string
 }
