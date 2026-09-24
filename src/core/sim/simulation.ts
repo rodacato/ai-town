@@ -119,10 +119,14 @@ export class Simulation {
     return () => this.ledgerListeners.delete(fn)
   }
 
+  /** The season a dawn brings, when it brings a new one; set by whoever keeps the calendar. The harvest of that dawn already follows it. */
+  seasonAt: ((day: number) => Season | null) | null = null
+
   /** Runs the dawn ledger for any day that has begun, and sends the dead and the departed off the map. */
   private settleDays() {
     if (!this.economy || !this.content.economy) return
-    for (const ledger of catchUp(this.economy, this.content.economy, this.season, this.minutes)) {
+    const seasonOf = (day: number) => (this.season = this.seasonAt?.(day) ?? this.season)
+    for (const ledger of catchUp(this.economy, this.content.economy, seasonOf, this.minutes)) {
       for (const id of ledger.died) {
         const r = this.get(id)!
         r.mode = 'gone'

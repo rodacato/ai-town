@@ -6,6 +6,7 @@ import type { Season } from '../sim/season'
 import type { WorldContent } from '../world/content'
 import { createRng } from '../world/rng'
 import { Chronicle } from './chronicle'
+import { firstName } from '../lang'
 import { seasonOfDay } from './terrarium'
 import { enact } from './decrees'
 import { buildReport, type RoyalReport } from './report'
@@ -26,8 +27,10 @@ export interface ReignOptions {
   content: WorldContent
   days: number
   seed: number
-  /** Days per season, starting in spring. */
+  /** Days per season. */
   seasonLength: number
+  /** The season the reign begins in, as an index into SEASONS; spring by default. */
+  seasonStart?: number
   fate: FateEvent[]
   rule: (report: RoyalReport) => Promise<RulerTurn>
   goals?: Partial<Goals>
@@ -97,34 +100,38 @@ export async function runReign(o: ReignOptions): Promise<ReignResult> {
   const standing: Standing = freshStanding()
   const goals = { ...GOALS, yearDays: o.days - 1, ...o.goals }
   const letters: string[] = []
+  const nameOf = (id: string) => firstName(o.content.residents.find((r) => r.id === id)?.name ?? id)
   for (let day = 0; day < o.days; day++) {
-    const season = seasonOfDay(day, o.seasonLength)
+    const season = seasonOfDay(day, o.seasonLength, o.seasonStart)
     const minutes = 6 * 60 + day * 1440
     if (day > 0) {
       const l = runDay(e, rules, season, day)
       chronicle.add(minutes, 'dawn', `Día ${day + 1}: cosecha +${l.harvest}, ${l.unfed.length} sin comer.`)
-      for (const id of l.died) chronicle.add(minutes, 'death', `${id} murió de hambre.`)
-      for (const id of l.left) chronicle.add(minutes, 'leave', `${id} se marchó del pueblo.`)
+      for (const id of l.died) chronicle.add(minutes, 'death', `${nameOf(id)} murió de hambre.`)
+      for (const id of l.left) chronicle.add(minutes, 'leave', `${nameOf(id)} se marchó del pueblo.`)
       for (const line of dawnStanding(standing, e, memory.reputation({ kind: 'authority' }).trust, day, goals)) chronicle.add(minutes + 5, standing.end ? 'end' : 'plot', line)
-    }
-    for (const f of o.fate.filter((f) => f.day === day)) {
-      const rng = createRng(o.seed * 7919 + day)
-      const impact = applyImpact(e, f.visual, rollHours(f.visual, rng.next), rng.next)
-      chronicle.add(minutes - 600, 'event', `${f.text}${impact.text ? ` ${impact.text}` : ''}`)
-      const deed = guardDeed(impact, f.visual, minutes - 600)
-      if (deed) memory.record(deed)
     }
     const report = buildReport({ content: o.content, economy: e, memory, chronicle: chronicle.entries, minutes: minutes + 30, season, weather: 'clear', day, seed: o.seed, standing })
     const turn = standing.end ? { actions: [], problems: [] } : await o.rule(report)
     for (const a of turn.actions) {
       if (a.kind === 'decree') {
         const r = enact(e, a.decree)
-        chronicle.add(minutes + 30, 'decree', r.summary)
+        if (r.ok) chronicle.add(minutes + 30, 'decree', r.summary)
       } else if (a.kind === 'proclaim') {
         proclamations++
         if (!a.honest) lies++
         memory.record({ id: `${day}-${proclamations}`, minutes, text: a.text, speaker: { kind: 'authority' }, truth: a.honest, summary: a.text, believers: [], doubters: [] })
       } else letters.push(a.text)
+    }
+    // As in the app: fate strikes at its hour, after the dawn turn, and weighs once it is over.
+    for (const f of standing.end ? [] : o.fate.filter((f) => f.day === day)) {
+      const rng = createRng(o.seed * 7919 + day)
+      const hours = rollHours(f.visual, rng.next)
+      const over = day * 1440 + (f.hour + hours) * 60
+      const impact = applyImpact(e, f.visual, hours, rng.next, nameOf)
+      chronicle.add(over, 'event', `${f.text}${impact.text ? ` ${impact.text}` : ''}`)
+      const deed = guardDeed(impact, f.visual, over)
+      if (deed) memory.record(deed)
     }
     const trust = memory.reputation({ kind: 'authority' }).trust
     const living = ids.filter((id) => alive(e, id))

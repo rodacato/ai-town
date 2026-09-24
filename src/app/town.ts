@@ -57,6 +57,8 @@ class TownController {
   readonly chronicle = new Chronicle()
   private remembered = new Set<string>()
   private pendingProclamations: { text: string; honest: boolean }[] = []
+  /** Bumped by each new game, so a model call from the old one does not land in the new one. */
+  private generation = 0
   private renderer: TownRenderer | null = null
   private toastedFor = new Set<string>()
   private snapshotFrame = 0
@@ -77,12 +79,17 @@ class TownController {
     const restored = restoreTown(this.content.id, this.sim)
     if (restored) {
       this.chronicle.entries = restored.chronicle
-      useTown.setState({ chronicle: restored.chronicle.slice(-80), ...(restored.reign ? { ...FRESH_REIGN, ...restored.reign, standing: { ...FRESH_REIGN.standing, ...restored.reign.standing } } : {}) })
+      const reign = restored.reign ? { ...FRESH_REIGN, ...restored.reign, standing: { ...FRESH_REIGN.standing, ...restored.reign.standing } } : null
+      // Calls cut short by the reload will never report back.
+      if (reign) reign.activity = reign.activity.map((a) => (a.status === 'pending' ? { ...a, status: 'error' as const, detail: 'Se interrumpió al recargar la página.' } : a))
+      this.pendingProclamations = reign?.queued ?? []
+      useTown.setState({ chronicle: restored.chronicle.slice(-80), ...(reign ?? {}), ...(reign ? { speed: reign.speed } : {}) })
       useTown.setState({ weather: this.sim.weather, season: this.sim.season })
     } else this.freshStart()
     if (useTown.getState().autoplay) this.applyProvider()
     void transportInfo().then(({ envKeys }) => useTown.setState({ envKeys, keysChecked: true }))
     this.sim.onLedger((l) => this.onLedger(l))
+    this.sim.seasonAt = (day) => this.seasonAt(day)
     this.engine.memory = this.memory
     useTown.setState({ memoryEntries: [...this.memory.entries] })
     this.syncRealm()
@@ -226,6 +233,8 @@ class TownController {
       this.forgetMemory()
       this.chronicle.clear()
       this.pendingProclamations = []
+      this.nextMuseAt = 0
+      this.generation++
       this.deciding = null
       useTown.setState({ ...FRESH_REIGN, rulerMode: useTown.getState().rulerMode, residentsOnModel: useTown.getState().residentsOnModel })
       this.applyProvider()
@@ -235,7 +244,7 @@ class TownController {
       this.renderer?.markPlace(null)
       this.renderer?.camera.fit(false)
       this.pendingLog = []
-      useTown.setState({ announcement: null, reactions: {}, reasoning: {}, log: [], complete: false, draft: EMPTY_DRAFT, outcome: null, godEvent: null, weather: 'clear' })
+      useTown.setState({ announcement: null, reactions: {}, reasoning: {}, log: [], complete: false, draft: EMPTY_DRAFT, outcome: null, godEvent: null, weather: 'clear', chronicle: [] })
       this.freshStart()
       this.syncClock()
       window.setTimeout(() => {
@@ -254,17 +263,20 @@ class TownController {
   }
 
   /** Seasons follow the calendar; a season picked by hand in the god panel lasts until the next change. */
-  private turnSeason(day: number) {
+  private seasonAt(day: number): Season | null {
     const start = useTown.getState().seasonStart
     const today = seasonOfDay(day, SEASON_DAYS, start)
-    if (day === 0 || today !== seasonOfDay(day - 1, SEASON_DAYS, start)) {
-      this.setSeason(today)
-      if (day > 0) {
-        const line = `Cambia la estación: ${SEASON_TEXT[today].label.toLowerCase()}.`
-        useTown.getState().toast(line)
-        this.log('dawn', line)
-      }
-    }
+    return day > 0 && today !== seasonOfDay(day - 1, SEASON_DAYS, start) ? today : null
+  }
+
+  /** The simulation already turned the season before the harvest; the interface and the chronicle catch up. */
+  private announceSeason() {
+    const season = this.sim.season
+    if (season === useTown.getState().season) return
+    useTown.setState({ season })
+    const line = `Cambia la estación: ${SEASON_TEXT[season].label.toLowerCase()}.`
+    useTown.getState().toast(line)
+    this.log('dawn', line)
   }
 
   retry(ids: string[]) {
@@ -346,7 +358,9 @@ class TownController {
     this.musing = true
     try {
       const { llm } = useTown.getState()
+      const gen = this.generation
       const reply = via === 'reglas' || llm.active === 'mock' ? { ...rulesMusing(input), ms: 0, fellBack: false, usage: undefined } : await modelMusing(llm.connections[llm.active], input, AbortSignal.timeout(60_000))
+      if (gen !== this.generation) return
       const n = e.needs[id]
       if (alive(e, id)) n.mood = Math.min(1, Math.max(0, n.mood + reply.mood * 0.04))
       this.renderer?.muse(id, reply.emoji, reply.thought.length > 70 ? `${reply.thought.slice(0, 67)}…` : reply.thought)
@@ -451,7 +465,7 @@ class TownController {
       window.setTimeout(() => toast(line), 1500)
     }
     this.settleStanding(l.day)
-    this.turnSeason(l.day)
+    this.announceSeason()
     this.recordDay(l.day)
     this.syncRealm()
     if (useTown.getState().standing.end && useTown.getState().autoplay) {
@@ -558,13 +572,15 @@ class TownController {
     this.syncRealm()
     const busy = this.engine.active && !this.engine.settled
     if (proclaim && result.proclamation && !busy)
-      this.begin({ id: crypto.randomUUID(), text: result.proclamation, speaker: { kind: 'authority' }, place: this.detectPlace(result.proclamation), minutes: Math.floor(this.sim.minutes), truth: true })
+      this.begin({ id: crypto.randomUUID(), text: result.proclamation, speaker: { kind: 'authority' }, place: this.detectPlace(result.proclamation), minutes: Math.floor(this.sim.minutes), truth: true, official: true })
     return result
   }
 
+  /** Everything of the reign worth saving: whatever FRESH_REIGN lists, so a new field is saved without touching this. */
   private reignState(): ReignState {
-    const { rulerMode, rulerCap, rulerCalls, rulerCost, lastTurn, mailbox, honesty, standing, endSeen, autoplay, seed, fateDone, residentsOnModel, history, seasonStart, activity, events } = useTown.getState()
-    return { rulerMode, rulerCap, rulerCalls, rulerCost, lastTurn, mailbox, honesty, standing, endSeen, autoplay, seed, fateDone, residentsOnModel, history, seasonStart, activity: activity.slice(-150), events }
+    const s = useTown.getState()
+    const saved = Object.fromEntries(Object.keys(FRESH_REIGN).map((k) => [k, s[k as keyof ReignState]])) as unknown as ReignState
+    return { ...saved, activity: s.activity.slice(-150), queued: this.pendingProclamations }
   }
 
   setRulerMode(rulerMode: RulerMode) {
@@ -590,7 +606,9 @@ class TownController {
     const via = modelOk && active !== 'mock' ? `${state.llm.connections[active].model} (${active})` : 'reglas'
     const entry = this.track('ruler', `Día ${e.day + 1}: la Baronesa ${modelOk ? `consulta a ${via}` : 'decide con reglas'}`, { status: modelOk ? 'pending' : 'info', via })
     try {
+      const gen = this.generation
       const reply = await ruler(report, AbortSignal.timeout(120_000))
+      if (gen !== this.generation) return
       // A rules ruler cannot word a proclamation of her own, so she announces her first decree.
       let announce = !modelOk
       const actions = reply.actions.map((a) => {
@@ -599,7 +617,12 @@ class TownController {
         return done
       })
       const log: RulerLog = { day: e.day, mode: modelOk ? 'model' : 'rules', thought: reply.thought, report: reply.prompt, response: reply.response, actions, problems: reply.problems, ms: reply.ms, usage: reply.usage }
-      useTown.setState((s) => ({ lastTurn: log, rulerCalls: s.rulerCalls + (modelOk ? 1 : 0), rulerCost: s.rulerCost + (reply.usage?.costUsd ?? 0) }))
+      useTown.setState((s) => ({
+        lastTurn: log,
+        rulerCalls: s.rulerCalls + (modelOk ? 1 : 0),
+        rulerCost: s.rulerCost + (reply.usage?.costUsd ?? 0),
+        history: s.history.map((h) => (h.day === e.day ? { ...h, actions: actions.length, problems: reply.problems.length } : h)),
+      }))
       this.settle(entry, {
         status: reply.problems.length && !reply.actions.length ? 'error' : 'ok',
         detail: `«${reply.thought || '…'}»${actions.length ? ` → ${actions.map((a) => `${a.ok ? '' : '✗ '}${a.text}`).join(' · ')}` : ' → No hizo nada.'}${reply.problems.length ? ` · Formato: ${reply.problems.join(' ')}` : ''}`,
@@ -639,7 +662,7 @@ class TownController {
     if (this.engine.active && !this.engine.settled) return
     const next = this.pendingProclamations.shift()
     if (!next) return
-    this.begin({ id: crypto.randomUUID(), text: next.text, speaker: { kind: 'authority' }, place: this.detectPlace(next.text), minutes: Math.floor(this.sim.minutes), truth: next.honest })
+    this.begin({ id: crypto.randomUUID(), text: next.text, speaker: { kind: 'authority' }, place: this.detectPlace(next.text), minutes: Math.floor(this.sim.minutes), truth: next.honest, official: true })
   }
 
   markLettersSeen() {
@@ -700,8 +723,18 @@ class TownController {
 
   /** "la Baronesa", "el forastero", "Kael": how the town names a speaker in passing. */
   speakerShort(s: Announcement['speaker']) {
-    if (s.kind === 'neighbor') return speakerName(this.content, s).split(',')[0].split(' ')[0]
+    if (s.kind === 'neighbor') return firstName(speakerName(this.content, s).split(',')[0])
     return this.content.speakers[s.kind].label
+  }
+
+  /** Ends the announcement on screen, so another can be made; the game goes on. */
+  closeAnnouncement() {
+    if (this.deciding !== null) this.settleDecisions()
+    this.engine.stop()
+    this.renderer?.markPlace(null)
+    this.pendingLog = []
+    useTown.setState({ announcement: null, reactions: {}, reasoning: {}, log: [], complete: false, outcome: null, draft: EMPTY_DRAFT })
+    this.flushProclamations()
   }
 
   forgetMemory() {

@@ -84,6 +84,10 @@ export interface ReignState {
   seasonStart: number
   activity: Activity[]
   events: RunningEvent[]
+  /** The Baroness's proclamations still waiting for the town to be free; honesty already counted them. */
+  queued: { text: string; honest: boolean }[]
+  /** Clock speed, so a paused town stays paused after a reload. */
+  speed: number
 }
 
 export interface ReignSlice extends ReignState {
@@ -108,6 +112,8 @@ export const FRESH_REIGN: ReignState = {
   seasonStart: 1,
   activity: [],
   events: [],
+  queued: [],
+  speed: 2,
 }
 
 export const newSeed = () => 1 + Math.floor(Math.random() * 99_999)

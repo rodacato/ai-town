@@ -160,11 +160,11 @@ export function runDay(e: Economy, rules: EconomyRules, season: Season, day: num
   return ledger
 }
 
-/** Runs every dawn that has passed since the last one, in order. */
-export function catchUp(e: Economy, rules: EconomyRules, season: Season, minutes: number): Ledger[] {
+/** Runs every dawn that has passed since the last one, in order; `season` may change from one dawn to the next. */
+export function catchUp(e: Economy, rules: EconomyRules, season: Season | ((day: number) => Season), minutes: number): Ledger[] {
   const out: Ledger[] = []
   const today = dayOf(minutes)
-  for (let d = e.day + 1; d <= today; d++) out.push(runDay(e, rules, season, d))
+  for (let d = e.day + 1; d <= today; d++) out.push(runDay(e, rules, typeof season === 'function' ? season(d) : season, d))
   return out
 }
 

@@ -21,6 +21,8 @@ export interface Announcement {
   origin?: Point
   /** How far the news carries on its own, in tiles; beyond it people only learn by word of mouth. */
   reach?: number
+  /** The ruler speaking of her own acts (a decree, a proclamation): its truth is her honesty, and nothing appears on the map. */
+  official?: boolean
 }
 
 export const normalize = (text: string) =>

@@ -3,17 +3,17 @@
 Lista de control para cerrar la versión 1.0.0. Se marca cada punto al terminarlo; lo que se decida no hacer queda anotado abajo con el motivo.
 
 ## 1. Consistencia y conexiones
-- [ ] Un decreto pregonado como cierto dispara eventos por palabras clave: «monedas» se lee como tesoro (+60 de oro regalado) y «fiesta» como festín (grano cobrado dos veces)
-- [ ] Nueva partida arrastra estado viejo: `nextMuseAt`, turno de la Baronesa o pensamiento en curso, crónica en pantalla, temporizadores pendientes
-- [ ] La bitácora guarda entradas «pensando…» que tras recargar quedan colgadas para siempre
-- [ ] Pregones de la Baronesa en cola se pierden al recargar aunque la honestidad ya los contó
-- [ ] La velocidad no se guarda: una partida en pausa vuelve a ×2
-- [ ] El primer amanecer de una estación cosecha con la tasa de la estación anterior
-- [ ] El reinado sin mapa diverge de la app: estación inicial, hora y duración de los golpes del destino, nombres en la crónica, decretos fallidos
-- [ ] `recordDay` guarda acciones y fallos en cero
-- [ ] `speakerShort` corta «Sir Aldric» en «Sir»
-- [ ] El tooltip del granero puede mostrar «Infinity»
-- [ ] «Reiniciar y probar otro…» del pregón activo borra toda la partida
+- [x] Un decreto pregonado como cierto dispara eventos por palabras clave: «monedas» se lee como tesoro (+60 de oro regalado) y «fiesta» como festín (grano cobrado dos veces)
+- [x] Nueva partida arrastra estado viejo: `nextMuseAt`, turno de la Baronesa o pensamiento en curso, crónica en pantalla, temporizadores pendientes
+- [x] La bitácora guarda entradas «pensando…» que tras recargar quedan colgadas para siempre
+- [x] Pregones de la Baronesa en cola se pierden al recargar aunque la honestidad ya los contó
+- [x] La velocidad no se guarda: una partida en pausa vuelve a ×2
+- [x] El primer amanecer de una estación cosecha con la tasa de la estación anterior
+- [x] El reinado sin mapa diverge de la app: estación inicial, hora y duración de los golpes del destino, nombres en la crónica, decretos fallidos
+- [x] `recordDay` guarda acciones y fallos en cero
+- [x] `speakerShort` corta «Sir Aldric» en «Sir»
+- [x] El tooltip del granero puede mostrar «Infinity»
+- [x] «Reiniciar y probar otro…» del pregón activo borra toda la partida
 - [ ] README y `docs/TERRARIO.md` al día con el código (herramientas de la Baronesa, ejemplos de `reaction-smoke`, partes del store, botones que se movieron)
 
 ## 2. Interfaz y experiencia para comparar modelos
