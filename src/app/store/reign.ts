@@ -2,6 +2,7 @@ import type { StateCreator } from 'zustand'
 import type { TownState } from '.'
 import type { TokenUsage } from '../../core/decisions/types'
 import type { OutcomeVisual } from '../../core/reactions/outcome'
+import type { Difficulty } from '../../core/realm/difficulty'
 import type { DayRecord } from '../../core/realm/reign'
 import { freshStanding, type Standing } from '../../core/realm/standing'
 
@@ -88,6 +89,7 @@ export interface ReignState {
   seasonStart: number
   activity: Activity[]
   events: RunningEvent[]
+  difficulty: Difficulty
   /** The Baroness's proclamations still waiting for the town to be free; honesty already counted them. */
   queued: { text: string; honest: boolean }[]
   /** Clock speed, so a paused town stays paused after a reload. */
@@ -116,6 +118,7 @@ export const FRESH_REIGN: ReignState = {
   seasonStart: 1,
   activity: [],
   events: [],
+  difficulty: 'normal',
   queued: [],
   speed: 2,
 }

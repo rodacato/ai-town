@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { LIMITS, type Decree } from '../../../core/realm/decrees'
+import { LIMITS, type Decree, rationCost } from '../../../core/realm/decrees'
 import type { Laws } from '../../../core/economy/economy'
 import { ago } from '../../../core/memory/memory'
 import { useTown } from '../../store'
@@ -103,8 +103,8 @@ function Govern() {
         <button className="btn-secondary compact" onClick={() => act({ kind: 'handout' })} disabled={!hungry}>
           🥣 Repartir{hungry ? ` · ${hungry}` : ''}
         </button>
-        <button className="btn-secondary compact" onClick={() => act({ kind: 'buyFood', rations: 30 })} disabled={realm.treasury < 30 * LIMITS.rationCost}>
-          🛒 30 raciones · {30 * LIMITS.rationCost}💰
+        <button className="btn-secondary compact" onClick={() => act({ kind: 'buyFood', rations: 30 })} disabled={realm.treasury < 30 * rationCost(e)}>
+          🛒 30 raciones · {30 * rationCost(e)}💰
         </button>
         <button className="btn-secondary compact" onClick={() => act({ kind: 'bonus', coins: 3 })} disabled={realm.treasury < 3 * living}>
           🎁 Paga de 3 · {3 * living}💰

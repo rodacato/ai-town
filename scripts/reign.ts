@@ -7,6 +7,7 @@ import { rulesRuler, type RulerTurn } from '../src/core/realm/ruler'
 import type { RoyalReport } from '../src/core/realm/report'
 import { GOALS } from '../src/core/realm/standing'
 import { SEASON_DAYS } from '../src/core/realm/terrarium'
+import { DIFFICULTIES, DIFFICULTY, type Difficulty } from '../src/core/realm/difficulty'
 import { createModelRuler } from '../src/providers/ruler'
 import { activeWorld } from '../src/worlds'
 import { usd } from '../src/core/format'
@@ -20,6 +21,7 @@ Uso: npm run reign -- [opciones]
       --skip-rules                       Sin la Baronesa de reglas.
       --skip-absent                      Sin el trono vacío (nadie gobierna).
       --seed <n>                         Semilla del calendario del destino (por defecto 7).
+      --dificultad <normal|dura|cruel>   Golpes del destino, reservas y cosecha (por defecto normal).
       --days <n>                         Días a gobernar (por defecto ${GOALS.yearDays + 1}: un año entero).
       --timeout <s>                      Tiempo máximo por turno (por defecto 120).
       --price <entrada/salida>           USD por millón de tokens para los modelos sin precio propio, ej. 3/15.
@@ -37,6 +39,7 @@ const { values: args } = parseArgs({
     'skip-absent': { type: 'boolean', default: false },
     seed: { type: 'string', default: '7' },
     days: { type: 'string', default: String(GOALS.yearDays + 1) },
+    dificultad: { type: 'string', default: 'normal' },
     timeout: { type: 'string', default: '120' },
     price: { type: 'string' },
     out: { type: 'string', short: 'o' },
@@ -60,8 +63,10 @@ const timeoutMs = int('timeout', args.timeout, 5, 3600) * 1000
 const price = args.price?.match(PRICE_RE) ?? null
 if (args.price && !price) fail('--price va como entrada/salida, ej. 3/15.')
 
+const difficulty = args.dificultad as Difficulty
+if (!DIFFICULTIES.includes(difficulty)) fail(`--dificultad va como ${DIFFICULTIES.join(', ')}.`)
 const content = activeWorld.content
-const fate = fateCalendar(seed, days)
+const fate = fateCalendar(seed, days, difficulty)
 
 interface Contender {
   id: string
@@ -98,7 +103,7 @@ for (const spec of args.model) {
 if (contenders.length < 2) fail('Hace falta al menos dos gobernantes. Añade alguno con -m proveedor:modelo.')
 
 console.log(bold(`Duelo de gobernantes · ${content.name}`))
-console.log(dim(`${days} días · estaciones de ${SEASON_DAYS} días · semilla ${seed} · ${fate.length} golpes del destino`))
+console.log(dim(`${days} días · estaciones de ${SEASON_DAYS} días · semilla ${seed} · dificultad ${DIFFICULTY[difficulty].label.toLowerCase()} · ${fate.length} golpes del destino`))
 for (const c of contenders) console.log(`  ${c.label}`)
 const models = contenders.filter((c) => c.id.includes(':'))
 if (models.length) console.log(dim(`  ${models.length * days} consultas como máximo (una por día y Baronesa).`))
@@ -124,6 +129,7 @@ const results = await Promise.all(
       seed,
       seasonLength: SEASON_DAYS,
       fate,
+      difficulty,
       goals: { yearDays: days - 1 },
       rule: async (report) => {
         progress.set(c.id, report.day + 1)
@@ -142,7 +148,7 @@ printLetters(summaries)
 
 const out = args.out ?? `reign-results/duelo-${new Date().toISOString().replace(/[:.]/g, '-')}.json`
 mkdirSync(dirname(out), { recursive: true })
-writeFileSync(out, JSON.stringify({ format: 'ai-town-reign/1', world: content.id, seed, days, fate, rulers: results.map(({ c, result }) => ({ id: c.id, summary: summaries.find((s) => s.ruler === c.label), days: result.days, chronicle: result.chronicle.entries })) } satisfies Record<string, unknown>, null, 2))
+writeFileSync(out, JSON.stringify({ format: 'ai-town-reign/1', world: content.id, seed, days, difficulty, fate, rulers: results.map(({ c, result }) => ({ id: c.id, summary: summaries.find((s) => s.ruler === c.label), days: result.days, chronicle: result.chronicle.entries })) } satisfies Record<string, unknown>, null, 2))
 console.log(dim(`\nGuardado en ${out}`))
 
 function printTable(list: ReignSummary[]) {

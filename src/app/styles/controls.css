@@ -396,9 +396,25 @@
 
 .new-game {
   display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.new-game-ask {
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+
+.new-game-options {
+  display: flex;
+  align-items: center;
   gap: 8px;
 }
 
 .new-game-start {
   gap: 6px;
+}
+
+.new-game-options .btn-link {
+  align-self: center;
 }

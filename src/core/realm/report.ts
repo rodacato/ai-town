@@ -6,6 +6,7 @@ import { SEASON_TEXT, type Season } from '../sim/season'
 import { WEATHER_TEXT, type Weather } from '../sim/weather'
 import type { ChronicleEntry } from './chronicle'
 import { nameOf } from '../lang'
+import { rationCost } from './decrees'
 import { GOALS, guildWord, type GuildWord, type Standing } from './standing'
 
 export interface Petition {
@@ -23,6 +24,8 @@ export interface RoyalReport {
   foodDays: number
   taxRate: number
   foodPrice: number
+  /** What merchants charge per ration of grain. */
+  rationCost: number
   laws: Economy['laws']
   population: number
   lost: number
@@ -93,6 +96,7 @@ export function buildReport(input: {
     foodDays: foodDays(e),
     taxRate: e.taxRate,
     foodPrice: e.foodPrice,
+    rationCost: rationCost(e),
     laws: { ...e.laws },
     population: living.length,
     lost: ids.length - living.length,
@@ -117,6 +121,7 @@ export function reportText(r: RoyalReport) {
     `- Tesoro: ${r.treasury} monedas.`,
     `- Granero: ${r.granary} raciones (unos ${Number.isFinite(r.foodDays) ? r.foodDays.toFixed(1) : 'muchos'} días al consumo actual).`,
     `- Impuesto: ${Math.round(r.taxRate * 100)}%. Ración: ${r.foodPrice} monedas.`,
+    `- Los mercaderes venden grano a ${r.rationCost} monedas la ración.`,
     `- Leyes en vigor: ${laws.length ? laws.join(', ') : 'ninguna'}.`,
     '',
     '## El pueblo, según la corte',

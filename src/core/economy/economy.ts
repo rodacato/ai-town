@@ -27,6 +27,12 @@ export interface EconomyRules {
   /** Paid daily from the treasury, per guard. */
   guardWage: number
   guards: number
+  /** Scales every harvest; a harder game grows less. */
+  harvestFactor?: number
+  /** Scales the harm of every blow of fate. */
+  harm?: number
+  /** Coins merchants ask per ration of grain. */
+  rationCost?: number
 }
 
 export interface Economy {
@@ -41,6 +47,9 @@ export interface Economy {
   /** Tax rate and food price the town is used to, so a hike can sour the mood. */
   wontedTax: number
   laws: Laws
+  /** How hard blows of fate hit this game, and what merchants charge for grain; set by the difficulty at the start. */
+  harm?: number
+  rationCost?: number
 }
 
 /** Standing decrees: each has a daily cost in spirits and a benefit elsewhere. */
@@ -90,6 +99,8 @@ export function startEconomy(rules: EconomyRules, residents: string[], minutes: 
     needs: Object.fromEntries(residents.map((id) => [id, { daysHungry: 0, health: 1, mood: 0.65, status: 'ok' } satisfies Needs])),
     wontedTax: rules.taxRate,
     laws: { curfew: false, rationing: false, levy: false },
+    harm: rules.harm,
+    rationCost: rules.rationCost,
   }
 }
 
@@ -109,7 +120,7 @@ export function runDay(e: Economy, rules: EconomyRules, season: Season, day: num
   for (const id of living) {
     const job = rules.jobs[id]
     if (!job) continue
-    const harvest = Math.round((job.food ?? 0) * HARVEST[season])
+    const harvest = Math.round((job.food ?? 0) * HARVEST[season] * (rules.harvestFactor ?? 1))
     e.granary += harvest
     ledger.harvest += harvest
     const tax = Math.round(job.income * e.taxRate)
