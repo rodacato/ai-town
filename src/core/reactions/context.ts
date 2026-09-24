@@ -2,6 +2,7 @@ import type { Decision, DecisionContext, Rumor } from '../decisions/types'
 import { formatClock } from '../sim/clock'
 import type { Resident, Simulation } from '../sim/simulation'
 import { statusOf } from '../sim/status'
+import { SEASON_TEXT } from '../sim/season'
 import { WEATHER_TEXT } from '../sim/weather'
 import { placeLabel, speakerName, type Announcement } from './announcement'
 
@@ -23,7 +24,7 @@ export function buildContext(sim: Simulation, a: Announcement, r: Resident, rumo
       place: a.place,
       placeLabel: placeLabel(content, a.place),
     },
-    situation: { activity: statusOf(sim, r), time: `${clock.day} ${clock.time}`, weather: WEATHER_TEXT[sim.weather].sentence },
+    situation: { activity: statusOf(sim, r), time: `${clock.day} ${clock.time}`, season: SEASON_TEXT[sim.season].sentence, weather: WEATHER_TEXT[sim.weather].sentence },
     rumors,
     previous,
     townsfolk: content.residents.filter((x) => x.id !== p.id).map((x) => ({ id: x.id, name: x.name })),

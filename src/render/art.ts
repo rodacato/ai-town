@@ -1,5 +1,6 @@
 import type { Container } from 'pixi.js'
 import type { Outcome } from '../core/reactions/outcome'
+import type { Season } from '../core/sim/season'
 import type { Building, Landmark } from '../core/world/types'
 
 export interface TerrainPalette {
@@ -56,11 +57,12 @@ export interface PropSprite extends ArtSprite {
 }
 
 /** Everything a world draws in its own style; the renderer handles layout, depth, residents and effects. */
+/** Scenery is redrawn when the season changes, so each drawer is told which one it is. */
 export interface WorldArt {
-  terrain: TerrainPalette
-  building: (b: Building) => BuildingSprite
-  prop: (kind: string, x: number, y: number) => PropSprite | null
-  landmark: (l: Landmark) => ArtSprite
+  terrain: (season: Season) => TerrainPalette
+  building: (b: Building, season: Season) => BuildingSprite
+  prop: (kind: string, x: number, y: number, season: Season) => PropSprite | null
+  landmark: (l: Landmark, season: Season) => ArtSprite
   /** The hooded figure standing where a stranger makes an announcement. */
   stranger: () => Container
   /** What an announcement turned into once its truth is revealed. */

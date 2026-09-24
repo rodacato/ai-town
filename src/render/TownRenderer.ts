@@ -13,7 +13,8 @@ import { PlaceMarker } from './placeMarker'
 import { OriginBeacon, WaveFx } from './reactionFx'
 import { ResidentSprite, type ReactionVisual } from './residentSprite'
 import { SentrySprite } from './sentrySprite'
-import { WEATHER_GRADE, WeatherFx } from './weather'
+import { SeasonFx, WEATHER_GRADE, WeatherFx } from './weather'
+import type { Season } from '../core/sim/season'
 import type { Outcome } from '../core/reactions/outcome'
 import { drawTerrain, islandMask } from './terrain'
 
@@ -38,6 +39,7 @@ export class TownRenderer {
   private godEvent: Outcome | null = null
   private speed = 1
   private weather: WeatherFx
+  private seasonFx: SeasonFx
   /** Weather sits outside the world's colour grade, so rain and snow stay bright at night. */
   private weatherLayer = new Container()
   private swaying: NonNullable<PropSprite['sway']>[] = []
@@ -45,6 +47,8 @@ export class TownRenderer {
   private sky = new ColorMatrixFilter()
   private lights = new Graphics()
   private glows: Glow[] = []
+  private scenery: Container[] = []
+  private season: Season = 'summer'
   private ambience: Ambience = { night: 0 }
   /** Honors prefers-reduced-motion: decorative motion freezes and the camera jumps instead of flying. */
   private calm = false
@@ -91,7 +95,6 @@ export class TownRenderer {
     const N = sim.world.size
     const W = sim.world
 
-    this.world.addChild(drawTerrain(W, art.terrain))
     this.water = new WaterShimmer(W)
     this.world.addChild(this.water.view)
     this.wave = new WaveFx(engine)
@@ -102,41 +105,7 @@ export class TownRenderer {
     this.objects.sortableChildren = true
     this.world.addChild(this.objects)
 
-    const chimneys: { x: number; y: number }[] = []
-    for (const b of W.buildings) {
-      const s = art.building(b)
-      s.view.zIndex = s.depth
-      this.objects.addChild(s.view)
-      chimneys.push(...s.chimneys)
-      if (s.update) this.animated.push(s.update)
-      if (s.glows) this.glows.push(...s.glows)
-    }
-    for (let y = 0; y < N; y++)
-      for (let x = 0; x < N; x++) {
-        const prop = W.tiles[y][x].prop
-        if (!prop) continue
-        const s = art.prop(prop, x, y)
-        if (!s) continue
-        s.view.zIndex = s.depth
-        this.objects.addChild(s.view)
-        if (s.sway) this.swaying.push(s.sway)
-        if (s.update) this.animated.push(s.update)
-        if (s.glows) this.glows.push(...s.glows)
-      }
-    for (const l of W.landmarks) {
-      const s = art.landmark(l)
-      s.view.zIndex = s.depth
-      this.objects.addChild(s.view)
-      if (s.update) this.animated.push(s.update)
-      if (s.glows) this.glows.push(...s.glows)
-    }
-    for (const glow of this.glows)
-      for (const [k, a] of [
-        [1, 0.05],
-        [0.62, 0.08],
-        [0.3, 0.14],
-      ])
-        this.lights.circle(glow.x, glow.y, glow.r * k).fill({ color: glow.color, alpha: a })
+    const chimneys = this.buildScenery(sim.season)
 
     for (const r of sim.residents) {
       const sprite = new ResidentSprite(r, this.overlay)
@@ -169,8 +138,11 @@ export class TownRenderer {
     this.birds = new Birds(span)
     this.weather = new WeatherFx(span, N * TILE_H)
     const weatherMask = islandMask(N)
-    this.weatherLayer.addChild(this.weather.view, weatherMask)
-    this.weather.view.mask = weatherMask
+    this.seasonFx = new SeasonFx(span, N * TILE_H)
+    const drift = new Container()
+    drift.addChild(this.seasonFx.view, this.weather.view)
+    this.weatherLayer.addChild(drift, weatherMask)
+    drift.mask = weatherMask
     this.world.addChild(this.birds.view, this.overlay)
     this.overlay.addChildAt(this.marker.view, 0)
     this.overlay.sortableChildren = true
@@ -335,6 +307,52 @@ export class TownRenderer {
     this.events.onHover(id)
   }
 
+  /** Terrain, buildings, props and landmarks for a season; redrawn when it changes. Returns chimney tops for the smoke. */
+  private buildScenery(season: Season) {
+    const W = this.sim.world
+    const art = this.art
+    for (const v of this.scenery) v.destroy({ children: true })
+    this.scenery = []
+    this.swaying = []
+    this.animated = []
+    this.glows = []
+    this.lights.clear()
+    this.season = season
+    const terrain = drawTerrain(W, art.terrain(season))
+    this.world.addChildAt(terrain, 0)
+    this.scenery.push(terrain)
+    const add = (s: ArtSprite) => {
+      s.view.zIndex = s.depth
+      this.objects.addChild(s.view)
+      this.scenery.push(s.view)
+      if (s.update) this.animated.push(s.update)
+      if (s.glows) this.glows.push(...s.glows)
+    }
+    const chimneys: { x: number; y: number }[] = []
+    for (const b of W.buildings) {
+      const s = art.building(b, season)
+      chimneys.push(...s.chimneys)
+      add(s)
+    }
+    for (let y = 0; y < W.size; y++)
+      for (let x = 0; x < W.size; x++) {
+        const prop = W.tiles[y][x].prop
+        const s = prop && art.prop(prop, x, y, season)
+        if (!s) continue
+        add(s)
+        if (s.sway) this.swaying.push(s.sway)
+      }
+    for (const l of W.landmarks) add(art.landmark(l, season))
+    for (const glow of this.glows)
+      for (const [k, a] of [
+        [1, 0.05],
+        [0.62, 0.08],
+        [0.3, 0.14],
+      ])
+        this.lights.circle(glow.x, glow.y, glow.r * k).fill({ color: glow.color, alpha: a })
+    return chimneys
+  }
+
   /** Runs the town faster, slower, or not at all (0); model requests are unaffected. */
   setSpeed(speed: number) {
     this.speed = speed
@@ -382,9 +400,13 @@ export class TownRenderer {
     const zoom = this.camera.scale
     for (const [id, s] of this.sprites) s.update(t, dt, this.reactionVisual(id), zoom)
     if (!this.calm) for (const s of this.sentries) s.update(t)
+    if (this.sim.season !== this.season) this.buildScenery(this.sim.season)
+    this.butterflies.view.visible = this.season === 'spring' || this.season === 'summer'
     this.syncOutcomes(t, dt)
     this.weather.set(this.sim.weather)
     this.weather.update(dt, t, this.app.screen, this.calm)
+    this.seasonFx.set(this.season)
+    this.seasonFx.update(dt, t, this.calm)
     this.spreadBubbles()
     this.updateSky()
     if (!this.calm) {

@@ -2,6 +2,7 @@ import { DecisionScheduler } from '../core/decisions/scheduler'
 import { detectPlace, type Announcement } from '../core/reactions/announcement'
 import { ReactionEngine, type LogEntry, type Reaction } from '../core/reactions/engine'
 import { eventAt, react, type OutcomeVisual } from '../core/reactions/outcome'
+import type { Season } from '../core/sim/season'
 import type { Weather } from '../core/sim/weather'
 import { Simulation } from '../core/sim/simulation'
 import { createProvider } from '../providers'
@@ -130,7 +131,7 @@ class TownController {
       this.renderer?.markPlace(null)
       this.renderer?.camera.fit(false)
       this.pendingLog = []
-      useTown.setState({ announcement: null, reactions: {}, reasoning: {}, log: [], complete: false, draft: EMPTY_DRAFT, outcome: null, godEvent: null, weather: 'clear', speed: 1, curfew: false })
+      useTown.setState({ announcement: null, reactions: {}, reasoning: {}, log: [], complete: false, draft: EMPTY_DRAFT, outcome: null, godEvent: null, weather: 'clear', season: 'summer', speed: 1, curfew: false })
       this.syncClock()
       window.setTimeout(() => {
         useTown.setState({ resetting: false })
@@ -184,6 +185,11 @@ class TownController {
   setWeather(weather: Weather) {
     this.sim.weather = weather
     useTown.setState({ weather })
+  }
+
+  setSeason(season: Season) {
+    this.sim.season = season
+    useTown.setState({ season })
   }
 
   unleash(visual: OutcomeVisual, placeId: string) {

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { buildContext } from '../src/core/reactions/context'
 import { eventAt, react } from '../src/core/reactions/outcome'
 import { Simulation } from '../src/core/sim/simulation'
+import { SEASON_TEXT } from '../src/core/sim/season'
 import { WEATHER_TEXT } from '../src/core/sim/weather'
 import { isWalkable } from '../src/core/world/world'
 import { buildPrompt } from '../src/providers/llm/prompt'
@@ -51,6 +52,15 @@ describe('god panel', () => {
     sim.weather = 'storm'
     const ctx = buildContext(sim, announce(sim, exampleByTone('confiable')), sim.residents[0], [], null)
     expect(buildPrompt(ctx)).toContain(WEATHER_TEXT.storm.sentence)
+  })
+
+  it('tells the model the season, and goes back to summer on reset', () => {
+    const sim = new Simulation(content)
+    sim.season = 'winter'
+    const ctx = buildContext(sim, announce(sim, exampleByTone('confiable')), sim.residents[0], [], null)
+    expect(buildPrompt(ctx)).toContain(SEASON_TEXT.winter.sentence)
+    sim.reset()
+    expect(sim.season).toBe('summer')
   })
 
   it('keeps the timid away from a feast in foul weather', () => {

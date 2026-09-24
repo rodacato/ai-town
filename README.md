@@ -32,6 +32,7 @@ Al pregonar eliges si el anuncio es **verdad**, **mentira** o **al azar**. Los r
 El botón ⚡ **Dios** de la barra superior (o la tecla `G`) abre un cajón para cambiar el mundo al instante, sin tapar el mapa:
 
 - **Tiempo:** saltar a amanecer, mediodía, atardecer o noche, y correr el pueblo a ×1, ×2, ×4 o pausarlo (los modelos siguen a su ritmo).
+- **Estación:** primavera (árboles en flor y pétalos), verano, otoño (copas naranjas, pasto dorado y hojas cayendo) o invierno (todo nevado). También entra en el prompt.
 - **Clima:** despejado, lluvia, tormenta con relámpagos, nieve o niebla. Los residentes lo notan: el clima entra en el prompt, y en el modo simulado los que no son valientes ni codiciosos no salen con mal tiempo.
 - **Desatar:** un dragón que incendia, una bestia, un festín o un tesoro, donde tenga sentido o en el lugar que elijas. Quien está cerca huye de lo peligroso o se acerca a curiosear lo bueno.
 - **Pueblo:** reunir a todos en un lugar, toque de queda y un pregón sorpresa (ejemplo al azar con verdad al azar).
