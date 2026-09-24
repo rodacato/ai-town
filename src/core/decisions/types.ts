@@ -48,7 +48,14 @@ export interface DecisionContext {
     place: string | null
     placeLabel: string | null
   }
-  situation: { activity: string; time: string; season: string; weather: string }
+  situation: {
+    activity: string
+    time: string
+    season: string
+    weather: string
+    /** Only when notable: hungry, sick or broke. */
+    needs?: { daysHungry: number; sick: boolean; coins: number; broke: boolean }
+  }
   rumors: Rumor[]
   previous: Decision | null
   townsfolk: { id: string; name: string }[]

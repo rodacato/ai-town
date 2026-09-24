@@ -6,6 +6,7 @@ const SPECIAL: Record<string, string> = { home: 'casa', visit: 'casa de un vecin
 export function statusOf(sim: Simulation, r: Resident) {
   const task = r.tasks[0]
   if (task && !(task.kind === 'enterHome' && r.mode === 'inside')) return task.label
+  if (r.mode === 'gone') return r.tasks.length ? 'Se marcha' : 'Ya no está en el pueblo'
   if (r.mode === 'inside') return 'En casa'
   if (r.chatting) return `Charlando con ${firstName(sim.get(r.chatting)?.profile.name ?? '')}`
   if (r.destination === 'street') return r.mode === 'walking' ? 'Dando un paseo' : 'En la calle'

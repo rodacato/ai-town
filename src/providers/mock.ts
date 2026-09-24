@@ -53,6 +53,9 @@ export function mockDecision(ctx: DecisionContext, vocab: Vocabulary): Decision 
   const mem = ctx.memory
   if (mem && mem.judged) trust += (mem.trust - 0.5) * Math.min(1, mem.judged / 3) * 0.9
   if (mem?.lesson === -1) trust -= 0.2 * (1.2 - sc.credulity)
+  // Hunger makes free food hard to doubt.
+  const starving = (ctx.situation.needs?.daysHungry ?? 0) >= 1 || !!ctx.situation.needs?.broke
+  if (starving && r.opportunity) trust += 0.25
   trust += rng.range(-0.1, 0.1)
 
   const rumor = ctx.rumors[ctx.rumors.length - 1]

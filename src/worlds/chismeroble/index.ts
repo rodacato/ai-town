@@ -1,5 +1,6 @@
 import type { WorldContent } from '../../core/world/content'
 import { CEMETERY, CRYPT, GATE, OAK, PLAZA, inForest, layout, riverX } from './layout'
+import { ECONOMY } from './economy'
 import { RESIDENTS } from './residents'
 
 const BARONESS = 'Baronesa Isolda'
@@ -115,6 +116,7 @@ export const chismeroble: WorldContent = {
       ['sangre', 'firmar con sangre'],
     ],
   },
+  economy: ECONOMY,
   outcomes: [
     { keywords: ['dragon'], visual: 'fire', label: 'el dragón incendió', witness: '¡Un dragón rojo escupe fuego sobre {place}!' },
     { keywords: ['troll', 'orco', 'ogro', 'bestia'], visual: 'monster', label: 'apareció una bestia en', witness: '¡Una bestia enorme con un garrote ronda {place}!' },

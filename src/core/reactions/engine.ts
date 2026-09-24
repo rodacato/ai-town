@@ -124,9 +124,10 @@ export class ReactionEngine {
     this.startedAt = performance.now()
     this.origin = this.originFor(a)
     this.waveRadius = 0
-    const farthest = Math.max(...this.sim.residents.map((r) => Math.hypot(r.x - this.origin.x, r.y - this.origin.y))) + INDOOR_DELAY * WAVE_SPEED
+    const farthest = Math.max(0, ...this.sim.residents.filter((r) => r.mode !== 'gone').map((r) => Math.hypot(r.x - this.origin.x, r.y - this.origin.y))) + INDOOR_DELAY * WAVE_SPEED
     this.waveMax = a.reach ?? farthest
     for (const r of this.sim.residents) {
+      if (r.mode === 'gone') continue
       const id = r.profile.id
       const isSpeaker = a.speaker.kind === 'neighbor' && a.speaker.residentId === id
       this.reactions.set(id, {
@@ -224,8 +225,8 @@ export class ReactionEngine {
       this.waveRadius += WAVE_SPEED * dt
       const reach = this.announcement.reach ?? Infinity
       for (const r of this.sim.residents) {
-        const reaction = this.reactions.get(r.profile.id)!
-        if (reaction.phase !== 'unaware') continue
+        const reaction = this.reactions.get(r.profile.id)
+        if (reaction?.phase !== 'unaware') continue
         const d = Math.hypot(r.x - this.origin.x, r.y - this.origin.y) + (r.mode === 'inside' ? INDOOR_DELAY * WAVE_SPEED : 0)
         if (d <= Math.min(this.waveRadius, reach)) this.hear(r, reaction, 'broadcast')
       }
@@ -428,7 +429,7 @@ export class ReactionEngine {
     if (!outcome.truth)
       for (const r of this.sim.residents) {
         const action = this.reactions.get(r.profile.id)?.decision?.action
-        if (r.mode !== 'inside' && (action === 'go' || action === 'investigate'))
+        if (r.mode !== 'inside' && r.mode !== 'gone' && (action === 'go' || action === 'investigate'))
           this.sim.assign(r, [
             { kind: 'wait', seconds: 2.5, label: 'Aquí no hay nada…' },
             { kind: 'enterHome', label: 'Vuelve a casa decepcionado' },
