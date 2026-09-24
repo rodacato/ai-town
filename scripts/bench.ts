@@ -1,9 +1,10 @@
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { parseArgs } from 'node:util'
 import { errorSummary, type ContenderReport } from '../src/core/bench/analysis'
 import { RULE_LABEL } from '../src/core/bench/coherence'
-import { executeRun, trialsPerContender, type BenchRun, type RunSetup } from '../src/core/bench/run'
+import { compareSides } from '../src/core/bench/compare'
+import { executeRun, RUN_FORMAT, trialsPerContender, type BenchRun, type RunSetup } from '../src/core/bench/run'
 import { FAIL_FAST_AFTER, type BenchProgress } from '../src/core/bench/runner'
 import { MAX_CONCURRENCY } from '../src/providers'
 import type { ChatStream } from '../src/providers/llm/client'
@@ -13,6 +14,7 @@ import { completionEvents } from '../src/providers/llm/transport'
 import { createRulesProvider, mockDecision } from '../src/providers/mock'
 import { activeWorld } from '../src/worlds'
 import { firstName } from '../src/core/lang'
+import { ACTION_META } from '../src/theme/actions'
 
 const HELP = `Banco de pruebas de AI Town desde la terminal.
 
@@ -30,6 +32,8 @@ Uso: npm run bench -- [opciones]
       --price <entrada/salida>           USD por millón de tokens para estimar costo, ej. 3/15.
   -o, --out <archivo.json>               Dónde guardar la corrida (por defecto bench-results/).
       --dry-run                          Muestra el plan sin hacer peticiones.
+      --compare <antes.json> <después.json>
+                                         Compara dos corridas guardadas en vez de correr una.
   -h, --help
 
 Hosts y keys salen de .env / .env.local:
@@ -63,7 +67,8 @@ for (const file of ['.env', '.env.local']) {
   }
 }
 
-const { values: args } = parseArgs({
+const { values: args, positionals } = parseArgs({
+  allowPositionals: true,
   options: {
     model: { type: 'string', short: 'm', multiple: true, default: [] },
     'skip-rules': { type: 'boolean', default: false },
@@ -75,6 +80,7 @@ const { values: args } = parseArgs({
     price: { type: 'string' },
     out: { type: 'string', short: 'o' },
     'dry-run': { type: 'boolean', default: false },
+    compare: { type: 'boolean', default: false },
     help: { type: 'boolean', short: 'h', default: false },
   },
 })
@@ -82,6 +88,10 @@ const { values: args } = parseArgs({
 const content = activeWorld.content
 if (args.help) {
   console.log(HELP.replace('%SCENARIOS%', content.examples.map((e) => e.id).join(', ')))
+  process.exit(0)
+}
+if (args.compare) {
+  compareFiles(positionals)
   process.exit(0)
 }
 
@@ -269,5 +279,44 @@ function printReport(run: BenchRun) {
           .map(([i, n]) => `${i} (${n})`)
           .join(', ')}`,
       )
+  }
+}
+
+function readRun(file: string): BenchRun {
+  let run: BenchRun
+  try {
+    run = JSON.parse(readFileSync(file, 'utf8')) as BenchRun
+  } catch {
+    fail(`No se pudo leer ${file}.`)
+  }
+  if (run.format !== RUN_FORMAT) fail(`${file} no es una corrida de AI Town.`)
+  return run
+}
+
+/** Every contender present in both runs; if they share none but each has one model, those two. */
+function compareFiles(files: string[]) {
+  if (files.length !== 2) fail('--compare necesita dos archivos: antes y después.')
+  const [before, after] = files.map(readRun)
+  const shared = before.contenders.map((c) => c.id).filter((id) => after.contenders.some((c) => c.id === id))
+  const models = (r: BenchRun) => r.contenders.filter((c) => c.kind !== 'rules').map((c) => c.id)
+  const pairs: [string, string][] = shared.length
+    ? shared.map((id) => [id, id])
+    : models(before).length === 1 && models(after).length === 1
+      ? [[models(before)[0], models(after)[0]]]
+      : fail('Las corridas no tienen contendientes en común; no sé qué comparar.')
+  const name = (id: string) => firstName(content.residents.find((p) => p.id === id)?.name ?? id)
+  const fmt = (v: number | null, unit: string) =>
+    v === null ? '—' : unit === 'pct' ? `${Math.round(v * 100)}%` : unit === 'ms' ? `${(v / 1000).toFixed(1)}s` : unit === 'usd' ? `$${v.toFixed(4)}` : v.toFixed(1)
+  for (const [a, b] of pairs) {
+    const cmp = compareSides({ run: before, contender: a }, { run: after, contender: b })
+    const label = (run: BenchRun, id: string) => run.contenders.find((c) => c.id === id)?.label ?? id
+    console.log(bold(`\n${label(before, a)}  →  ${label(after, b)}`))
+    for (const c of cmp.caveats) console.log(dim(`  ! ${c}`))
+    for (const m of cmp.metrics.filter((m) => m.base !== null || m.next !== null)) {
+      const mark = m.verdict === 'better' ? '▲ mejor' : m.verdict === 'worse' ? red('▼ peor') : dim(m.verdict === 'same' ? 'igual' : '')
+      console.log(`  ${m.label.padEnd(20)} ${fmt(m.base, m.unit).padStart(9)} → ${fmt(m.next, m.unit).padStart(9)}  ${mark}`)
+    }
+    console.log(`\n  ${cmp.changes.length} de ${cmp.compared} decisiones cambiaron`)
+    for (const c of cmp.changes) console.log(`    ${c.scenario.padEnd(8)} ${name(c.resident).padEnd(19)} ${ACTION_META[c.base].short} → ${ACTION_META[c.next].short}`)
   }
 }

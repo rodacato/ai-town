@@ -64,6 +64,10 @@ El botón **Pruebas** compara modelos con los mismos pregones y residentes. Una 
 
 Solo cuenta la primera reacción (sin boca en boca) y cada contendiente corre por separado para no competir por el mismo host. Las pruebas se guardan en este navegador (IndexedDB) y se exportan en JSON o CSV.
 
+### Comparar corridas
+
+La pestaña **Comparar** pone lado a lado a dos contendientes de cualquier prueba del historial: el mismo modelo en dos días (¿el release nuevo de SheLLM empeoró algo?) o dos modelos de la misma prueba. Muestra cada métrica con su cambio marcado como mejor, peor o igual (los cambios pequeños cuentan como ruido), qué residentes cambiaron de decisión, y avisa si las semillas o los pregones no coinciden y los prompts no fueron idénticos.
+
 ### Desde la terminal
 
 `npm run bench` corre el mismo banco sin navegador, directo desde Node: sin proxy ni límite de conexiones, útil para saturar SheLLM. Las keys y hosts salen de `.env` / `.env.local` (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `SHELLM_HOST`, `SHELLM_KEY`, `CUSTOM_LLM_HOST`, `CUSTOM_LLM_KEY`, `CUSTOM_LLM_PROTOCOL`).
@@ -72,6 +76,7 @@ Solo cuenta la primera reacción (sin boca en boca) y cada contendiente corre po
 npm run bench -- -m shellm:claude -m shellm:codex -r 3 -c 16
 npm run bench -- -m custom:llama3.2:3b@http://localhost:11434 -s banquet,troll --price 0/0
 npm run bench -- --help
+npm run bench -- --compare bench-results/antes.json bench-results/despues.json
 ```
 
 Muestra el progreso en vivo, imprime la misma tabla que el navegador (más peticiones por segundo) y guarda la corrida en `bench-results/`. Ese JSON se importa en el historial del Banco de pruebas. Ctrl+C cancela y guarda lo que alcanzó a correr.

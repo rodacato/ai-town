@@ -15,6 +15,7 @@ import { seconds, tokens, usd } from '../experiment/summary'
 import { MAX_REPETITIONS, specId, specLabel, useBench, type ContenderKind, type ContenderSpec } from './benchStore'
 import type { BenchRun } from './history'
 import { trialsCsv } from './exportRun'
+import { CompareRuns } from './CompareRuns'
 import './bench.css'
 import { firstName } from '../../../core/lang'
 
@@ -39,6 +40,7 @@ function Dialog() {
     ['new', 'Nueva prueba'],
     ...(current ? [['result', 'Resultado'] as [typeof view, string]] : []),
     ['history', `Historial${runs.length ? ` (${runs.length})` : ''}`],
+    ...(runs.length ? [['compare', 'Comparar'] as [typeof view, string]] : []),
   ]
   return (
     <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && close()}>
@@ -63,6 +65,7 @@ function Dialog() {
           {view === 'new' && <NewRun />}
           {view === 'result' && current && <Result run={current} />}
           {view === 'history' && <History />}
+          {view === 'compare' && <CompareRuns />}
         </div>
       </div>
     </div>
