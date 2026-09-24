@@ -121,7 +121,8 @@ export class ReactionEngine {
     this.startedAt = performance.now()
     this.origin = this.originFor(a)
     this.waveRadius = 0
-    this.waveMax = Math.max(...this.sim.residents.map((r) => Math.hypot(r.x - this.origin.x, r.y - this.origin.y))) + INDOOR_DELAY * WAVE_SPEED
+    const farthest = Math.max(...this.sim.residents.map((r) => Math.hypot(r.x - this.origin.x, r.y - this.origin.y))) + INDOOR_DELAY * WAVE_SPEED
+    this.waveMax = a.reach ?? farthest
     for (const r of this.sim.residents) {
       const id = r.profile.id
       const isSpeaker = a.speaker.kind === 'neighbor' && a.speaker.residentId === id
@@ -177,7 +178,9 @@ export class ReactionEngine {
 
   get settled() {
     const all = [...this.reactions.values()].filter((r) => !r.isSpeaker)
-    return all.length > 0 && all.every((r) => r.phase === 'decided' || r.phase === 'error')
+    // With a limited reach, those it never got to are done too once the wave has passed.
+    const passed = !this.waveActive
+    return all.length > 0 && all.every((r) => r.phase === 'decided' || r.phase === 'error' || (passed && r.phase === 'unaware'))
   }
 
   private emit(e: EngineEvent) {
@@ -193,6 +196,7 @@ export class ReactionEngine {
   }
 
   private originFor(a: Announcement): Point {
+    if (a.origin) return a.origin
     if (a.speaker.kind === 'neighbor') {
       const r = this.sim.get(a.speaker.residentId!)
       if (r) return r.mode === 'inside' ? { x: this.sim.homeDoor(r).x + 0.5, y: this.sim.homeDoor(r).y + 0.5 } : { x: r.x, y: r.y }
@@ -215,12 +219,14 @@ export class ReactionEngine {
       }
     if (this.waveRadius < this.waveMax + 4) {
       this.waveRadius += WAVE_SPEED * dt
+      const reach = this.announcement.reach ?? Infinity
       for (const r of this.sim.residents) {
         const reaction = this.reactions.get(r.profile.id)!
         if (reaction.phase !== 'unaware') continue
         const d = Math.hypot(r.x - this.origin.x, r.y - this.origin.y) + (r.mode === 'inside' ? INDOOR_DELAY * WAVE_SPEED : 0)
-        if (d <= this.waveRadius) this.hear(r, reaction, 'broadcast')
+        if (d <= Math.min(this.waveRadius, reach)) this.hear(r, reaction, 'broadcast')
       }
+      if (this.waveRadius >= this.waveMax + 4) this.checkComplete()
     }
   }
 

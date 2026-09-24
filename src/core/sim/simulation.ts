@@ -3,6 +3,7 @@ import { findPath } from '../world/pathfinding'
 import { createRng, type Rng } from '../world/rng'
 import type { Point } from '../world/types'
 import { createWorld, isWalkable, type World } from '../world/world'
+import { routineNow, staysIn } from './rhythm'
 import type { Season } from './season'
 import type { Weather } from './weather'
 
@@ -185,6 +186,10 @@ export class Simulation {
     if (r.tasks.length) return this.runTask(r, dt)
     r.timer -= dt
     if (r.timer > 0) return
+    if (r.mode === 'inside' && staysIn(r.profile, this.minutes)) {
+      r.timer = this.rng.range(10, 20)
+      return
+    }
     this.leaveHome(r)
     r.chatting = null
     this.walkSomewhere(r)
@@ -321,7 +326,7 @@ export class Simulation {
   }
 
   private pickDestination(r: Resident, initial: boolean): { kind: string; tile: Point } | null {
-    const options = Object.entries(r.profile.routine)
+    const options = Object.entries(routineNow(r.profile, this.minutes, this.weather, this.season))
       .filter(([kind]) => !(initial && kind === 'home'))
       .filter(([kind]) => kind !== r.destination || kind === 'street' || kind === 'visit')
       .map(([kind, weight]) => ({ item: kind, weight }))
