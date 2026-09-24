@@ -174,7 +174,7 @@ tests/         tests del núcleo, independientes del mundo activo
 docs/          diseño del terrario y revisión de la 1.0
 ```
 
-**Crear o cambiar el mundo.** Todo lo del pueblo vive en `src/worlds/<nombre>/`: `layout.ts` (mapa y edificios), `index.ts` (lugares, residentes, quién habla, ejemplos, vocabulario, economía) y `art/` (cómo se dibuja). El mundo activo se elige en `src/worlds/index.ts`, y los tests validan cualquier paquete.
+**Crear o cambiar el mundo.** Todo lo del pueblo vive en `src/worlds/<nombre>/`: `layout.ts` (mapa y edificios), `index.ts` (lugares, residentes, quién habla, ejemplos, vocabulario, economía y `realm`: quién gobierna, cómo se le nombra, qué gremio conspira y quién pide qué) y `art/` (cómo se dibuja; el kit de Chismeroble dibuja por tipo y se puede reutilizar). Los mundos se registran en `WORLDS` de `src/worlds/index.ts`; con más de uno, Configuración deja cambiar de mundo y cada uno guarda su partida. El núcleo no nombra a ningún pueblo ni gobernante: todo sale del mundo, y `tests/worlds.test.ts` lo comprueba con un reino inventado.
 
 ## Desarrollo
 

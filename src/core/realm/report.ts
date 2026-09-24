@@ -117,7 +117,7 @@ export function buildReport(input: {
 export function reportText(r: RoyalReport) {
   const laws = lawsInForce(r.laws)
   return [
-    `# Informe del castillo · amanecer del día ${r.day + 1}`,
+    `# Informe de la corte · amanecer del día ${r.day + 1}`,
     `${SEASON_TEXT[r.season].sentence} ${WEATHER_TEXT[r.weather].sentence}`,
     '',
     '## Arcas',

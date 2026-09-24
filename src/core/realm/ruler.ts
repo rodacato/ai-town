@@ -1,6 +1,9 @@
 import type { Laws } from '../economy/economy'
 import type { Decree } from './decrees'
 import type { RoyalReport } from './report'
+import type { WorldContent } from '../world/content'
+import { nameOf } from '../lang'
+import { capital } from './realmDef'
 
 export type RulerAction =
   | { kind: 'proclaim'; text: string; honest: boolean }
@@ -18,7 +21,10 @@ export const MAX_ACTIONS = 3
 
 const LAW: Record<string, keyof Laws> = { toque_de_queda: 'curfew', racionamiento: 'rationing', leva: 'levy' }
 
-export const RULER_SYSTEM = `Eres la Baronesa Isolda y gobiernas Chismeroble, una aldea de fantasía. Cada amanecer tu corte te trae un informe y tú decides qué hacer.
+/** What the ruler is told once, before every report: who she is, what she wants and what she can do. */
+export const rulerSystem = (world: WorldContent) => {
+  const { ruler, guild } = world.realm!
+  return `Eres ${ruler.name} y gobiernas ${world.name}, una aldea de fantasía. Cada amanecer tu corte te trae un informe y tú decides qué hacer.
 
 Tus metas, en este orden:
 1. Que nadie muera de hambre ni se vaya del pueblo.
@@ -37,7 +43,7 @@ Lo que puedes hacer (máximo ${MAX_ACTIONS} acciones por día):
 - "ley": activar o quitar "toque_de_queda", "racionamiento" (media ración, el granero dura el doble pero enferma y entristece) o "leva" (dos guardias más, cuestan 6 monedas al día).
 - "pedir_al_creador": pedirle algo a quien creó este mundo (una herramienta, una regla nueva). Se lee, pero no se aplica solo. A veces te contesta, y su respuesta llega en el informe.
 
-Sabe que el invierno casi no da cosecha: hay que llenar el granero en otoño. Un gremio de ladrones de la capital, al que Bartolo debe dinero, conspira más cuanto peor está el ánimo; la leva de guardias los frena. Las noticias pueden venir exageradas.
+Sabe que el invierno casi no da cosecha: hay que llenar el granero en otoño. ${capital(guild.name)}, al que ${nameOf(world, guild.debtor)} debe dinero, conspira más cuanto peor está el ánimo; la leva de guardias los frena. Las noticias pueden venir exageradas.
 
 Responde SOLO con un objeto JSON, sin texto antes ni después:
 {
@@ -49,6 +55,7 @@ Responde SOLO con un objeto JSON, sin texto antes ni después:
   ]
 }
 "acciones" puede estar vacío si lo mejor es no hacer nada. Escribe en español.`
+}
 
 /** Reads the model's reply into actions, keeping what it could not understand as problems rather than failing outright. */
 export function parseRulerTurn(text: string): RulerTurn {

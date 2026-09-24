@@ -1,6 +1,7 @@
 import { lawsInForce, type Economy, type Needs } from '../economy/economy'
 import { hourOf } from '../sim/clock'
-import type { ResidentProfile } from '../world/content'
+import type { ResidentProfile, WorldContent } from '../world/content'
+import { capital } from './realmDef'
 
 /** What a resident has on their mind when they stop to think about how the town is doing. */
 export interface MusingInput {
@@ -15,6 +16,8 @@ export interface MusingInput {
   /** The latest talk of the town, newest last. */
   news: string[]
   hour: number
+  /** The town's name and how it names its ruler and addresses her. */
+  world: { name: string; ruler: string; address: string }
 }
 
 export interface Musing {
@@ -25,7 +28,7 @@ export interface Musing {
 }
 
 /** What `resident` has on their mind right now, read from the town's state. */
-export function musingInputFor(e: Economy, resident: ResidentProfile, o: { trust: number; news: string[]; minutes: number }): MusingInput {
+export function musingInputFor(e: Economy, resident: ResidentProfile, o: { trust: number; news: string[]; minutes: number; world: WorldContent }): MusingInput {
   const id = resident.id
   return {
     resident,
@@ -37,10 +40,11 @@ export function musingInputFor(e: Economy, resident: ResidentProfile, o: { trust
     trust: o.trust,
     news: o.news,
     hour: Math.floor(hourOf(o.minutes)),
+    world: { name: o.world.name, ruler: o.world.realm?.ruler.title ?? 'quien gobierna', address: o.world.realm?.ruler.address ?? 'mi señor' },
   }
 }
 
-export const MUSING_SYSTEM = `Eres un vecino de Chismeroble, una aldea de fantasía. De vez en cuando te paras a pensar en cómo te va y en cómo va el pueblo.
+export const musingSystem = (town: string) => `Eres un vecino de ${town}, una aldea de fantasía. De vez en cuando te paras a pensar en cómo te va y en cómo va el pueblo.
 Responde SOLO con un objeto JSON, sin texto antes ni después:
 { "pensamiento": "una o dos frases en primera persona, con tu forma de hablar", "animo": -1, 0 o 1, "emoji": "un emoji" }
 "animo" dice si este pensamiento te deja más triste (-1), igual (0) o más contento (1). Escribe en español.`
@@ -59,7 +63,7 @@ export function musingPrompt(i: MusingInput) {
     n.daysHungry ? `Llevas ${n.daysHungry} día(s) sin comer.` : 'Hoy has comido.',
     `Salud: ${pct(n.health)}. Ánimo: ${pct(n.mood)}.`,
     `Leyes en vigor: ${i.laws.length ? i.laws.join(', ') : 'ninguna'}.`,
-    `Confías en la Baronesa un ${pct(i.trust)}.`,
+    `Confías en ${i.world.ruler} un ${pct(i.trust)}.`,
     '',
     'Lo que se comenta en el pueblo:',
     ...(i.news.length ? i.news.map((x) => `- ${x}`) : ['- Nada nuevo.']),
@@ -87,7 +91,7 @@ export function parseMusing(text: string): Musing | null {
 const NEWS: [RegExp, Musing[]][] = [
   [/ladr|gremio|asalt/i, [{ thought: 'Dicen que rondan ladrones. Esta noche cierro bien la puerta.', mood: -1, emoji: '🔒' }, { thought: 'Si roban el tesoro, ¿quién paga a la guardia?', mood: -1, emoji: '🗡️' }]],
   [/lobo|bestia|esqueleto|fantasma|dragón|troll/i, [{ thought: 'Con lo que se ha visto por ahí, mejor no alejarse del pueblo.', mood: -1, emoji: '😨' }, { thought: 'Que la guardia haga su trabajo; yo no salgo de noche.', mood: -1, emoji: '🕯️' }]],
-  [/caravana|tesoro|fiesta|banquete/i, [{ thought: '¡Por fin una buena noticia en Chismeroble!', mood: 1, emoji: '😄' }, { thought: 'Con algo de suerte, esto nos alegra la semana.', mood: 1, emoji: '🎉' }]],
+  [/caravana|tesoro|fiesta|banquete/i, [{ thought: '¡Por fin una buena noticia en {town}!', mood: 1, emoji: '😄' }, { thought: 'Con algo de suerte, esto nos alegra la semana.', mood: 1, emoji: '🎉' }]],
   [/murió|se marcha|tumba/i, [{ thought: 'Otro vecino menos… esto no puede seguir así.', mood: -1, emoji: '😔' }]],
 ]
 
@@ -97,22 +101,25 @@ const pickOne = <T>(list: T[], rand: () => number) => list[Math.floor(rand() * l
 export function rulesMusing(i: MusingInput, rand: () => number = Math.random): Musing {
   const n = i.needs
   const pick = (list: Musing[]) => pickOne(list, rand)
-  if (n.daysHungry >= 2) return pick([{ thought: `Llevo ${n.daysHungry} días sin probar bocado. Así no se puede vivir.`, mood: -1, emoji: '😣' }, { thought: 'Me tiemblan las piernas de hambre. ¿Dónde está la Baronesa?', mood: -1, emoji: '🥣' }])
+  if (n.daysHungry >= 2) return pick([{ thought: `Llevo ${n.daysHungry} días sin probar bocado. Así no se puede vivir.`, mood: -1, emoji: '😣' }, { thought: `Me tiemblan las piernas de hambre. ¿Dónde está ${i.world.ruler}?`, mood: -1, emoji: '🥣' }])
   if (n.daysHungry === 1) return pick([{ thought: 'Hoy no me alcanzó para la ración. A ver mañana.', mood: -1, emoji: '😟' }, { thought: 'Con el estómago vacío todo se ve peor.', mood: -1, emoji: '😞' }])
   if (i.coins < i.foodPrice * 2) return pick([{ thought: 'Me quedan pocas monedas; si sube el pan, estoy perdido.', mood: -1, emoji: '🪙' }, { thought: 'Cuento las monedas y no me salen las cuentas.', mood: -1, emoji: '😬' }])
-  if (i.taxRate >= 0.35) return pick([{ thought: 'Con estos impuestos no hay quien levante cabeza.', mood: -1, emoji: '😤' }, { thought: 'Trabajo para el castillo más que para mi casa.', mood: -1, emoji: '💸' }])
+  if (i.taxRate >= 0.35) return pick([{ thought: 'Con estos impuestos no hay quien levante cabeza.', mood: -1, emoji: '😤' }, { thought: 'Trabajo más para los de arriba que para mi casa.', mood: -1, emoji: '💸' }])
   if (i.laws.length >= 2) return pick([{ thought: 'Tanta ley y tanto bando… uno ya no sabe qué se puede hacer.', mood: -1, emoji: '😒' }])
-  if (i.trust < 0.35) return pick([{ thought: 'La Baronesa dice muchas cosas, pero ya no me creo ninguna.', mood: -1, emoji: '🤨' }])
+  if (i.trust < 0.35) return pick([{ thought: `${capital(i.world.ruler)} dice muchas cosas, pero ya no me creo ninguna.`, mood: -1, emoji: '🤨' }])
   const talk = NEWS.find(([re]) => i.news.some((x) => re.test(x)))
-  if (talk && rand() < 0.6) return pick(talk[1])
+  if (talk && rand() < 0.6) {
+    const m = pick(talk[1])
+    return { ...m, thought: m.thought.replace('{town}', i.world.name) }
+  }
   if (n.mood > 0.6)
     return pick([
       { thought: 'No me puedo quejar: hay pan en la mesa y el pueblo está tranquilo.', mood: 1, emoji: '🙂' },
-      { thought: `Buen día para ser ${i.resident.occupation.toLowerCase()} en Chismeroble.`, mood: 1, emoji: '😊' },
+      { thought: `Buen día para ser ${i.resident.occupation.toLowerCase()} en ${i.world.name}.`, mood: 1, emoji: '😊' },
       { thought: 'Si todo sigue así, este año será bueno.', mood: 1, emoji: '🌾' },
     ])
   return pick([
-    { thought: 'Otro día más en Chismeroble. Ni bien ni mal.', mood: 0, emoji: '😐' },
+    { thought: `Otro día más en ${i.world.name}. Ni bien ni mal.`, mood: 0, emoji: '😐' },
     { thought: 'Me pregunto qué dirá hoy el pregonero.', mood: 0, emoji: '🤔' },
   ])
 }

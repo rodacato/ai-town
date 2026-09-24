@@ -117,6 +117,12 @@ export const chismeroble: WorldContent = {
     ],
   },
   economy: ECONOMY,
+  realm: {
+    ruler: { short: 'Baronesa', title: 'la Baronesa', name: `la ${BARONESS}`, address: 'mi señora', seat: 'el castillo' },
+    guild: { name: 'el gremio de ladrones de la capital', debtor: 'bartolo' },
+    petitioners: { hunger: 'clemencia', granary: 'godric', taxes: 'bartolo', mood: 'rowan', rationing: 'agnes', curfew: 'finn', guard: 'aldric' },
+    festivalPlace: 'la Plaza del Pregón',
+  },
   outcomes: [
     { keywords: ['dragon'], visual: 'fire', label: 'el dragón incendió', witness: '¡Un dragón rojo escupe fuego sobre {place}!' },
     { keywords: ['troll', 'orco', 'ogro', 'bestia'], visual: 'monster', label: 'apareció una bestia en', witness: '¡Una bestia enorme con un garrote ronda {place}!' },

@@ -35,7 +35,7 @@ export const DUEL_DAYS = GOALS.yearDays + 1
 /** A ruler played by a model, with the connection set up in Configuración and this model's own price. */
 function modelDuelist(m: DuelModel): Duelist {
   const connection = { ...useTown.getState().llm.connections[m.kind], model: m.model.trim() }
-  const ruler = createModelRuler(connection)
+  const ruler = createModelRuler(connection, town.content)
   return { id: duelModelId(m), label: `${connection.model} (${m.kind})`, decide: (report, signal) => ruler(report, AbortSignal.any([signal, AbortSignal.timeout(120_000)])) }
 }
 

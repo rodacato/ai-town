@@ -59,7 +59,7 @@ describe('the Baroness in the margins', () => {
     const turn = parseRulerTurn('{"pensamiento": "x", "acciones": [{"tipo": "impuesto", "porcentaje": "mucho"}, {"tipo": "precio_racion", "monedas": "dos"}]}')
     const e = town()
     const before = { ...e }
-    for (const a of turn.actions) if (a.kind === 'decree') expect(enact(e, a.decree).ok).toBe(false)
+    for (const a of turn.actions) if (a.kind === 'decree') expect(enact(e, a.decree, content.realm!).ok).toBe(false)
     expect(e.taxRate).toBe(before.taxRate)
     expect(e.foodPrice).toBe(before.foodPrice)
   })
@@ -84,7 +84,7 @@ describe('a resident thinking, in the margins', () => {
 
   it('worries about money, taxes, laws and trust in turn, and talks about the news', () => {
     const e = town()
-    const input = musingInputFor(e, content.residents[0], { trust: 0.5, news: [], minutes: 11 * 60 })
+    const input = musingInputFor(e, content.residents[0], { trust: 0.5, news: [], minutes: 11 * 60, world: content })
     const first = () => 0
     expect(rulesMusing({ ...input, coins: 1 }, first).emoji).toBe('🪙')
     expect(rulesMusing({ ...input, taxRate: 0.4 }, first).emoji).toBe('😤')
@@ -99,7 +99,7 @@ describe('a resident thinking, in the margins', () => {
       yield { type: 'delta', text: 'no sé' }
       yield { type: 'done', usage: { inputTokens: 1_000_000, outputTokens: 0 } }
     }
-    const input = musingInputFor(town(), content.residents[0], { trust: 0.5, news: [], minutes: 600 })
+    const input = musingInputFor(town(), content.residents[0], { trust: 0.5, news: [], minutes: 600, world: content })
     const reply = await modelMusing({ ...DEFAULT_SETTINGS.connections.anthropic, model: 'claude-haiku-4-5' }, input, new AbortController().signal, stream)
     expect(reply.fellBack).toBe(true)
     expect(reply.usage).toMatchObject({ costUsd: 1, costSource: 'table' })

@@ -7,6 +7,7 @@ import { activeLabel, missingKey } from '../../../providers/llm/config'
 import { daylight } from '../../../theme/daylight'
 import { Bolt, Gauge, Gear, Logbook, Moon, Pause, Play, Sun, TownMark, Users } from '../../shared/icons'
 import { useBench } from '../bench/benchStore'
+import { RULER } from '../../ruler'
 import './topbar.css'
 
 export function TopBar() {
@@ -53,7 +54,7 @@ export function TopBar() {
             {noKey ? ' · sin key' : ''}
           </span>
         </button>
-        <button className={`pill panel btn-pill tool ${throneOpen ? 'is-active' : ''}`} onClick={() => setThroneOpen(!throneOpen)} aria-pressed={throneOpen} title="Gobierna como la Baronesa (T)" aria-label="Trono">
+        <button className={`pill panel btn-pill tool ${throneOpen ? 'is-active' : ''}`} onClick={() => setThroneOpen(!throneOpen)} aria-pressed={throneOpen} title={`Gobierna como ${RULER.title} (T)`} aria-label="Trono">
           <span className="pill-icon" aria-hidden>
             👑
           </span>

@@ -34,6 +34,7 @@ import { Throne, type ThroneHost } from './throne'
 import { roundSummary } from '../core/reactions/round'
 import { COMPACT } from './shell/layout'
 import { statusOf } from '../core/sim/status'
+import { RULER } from './ruler'
 import { clip } from '../core/format'
 
 /** The map's free area: beside the panel on wide screens, between the top bar and the bottom sheet on narrow ones. */
@@ -327,7 +328,7 @@ class TownController implements TerrariumHost, ThroneHost {
     useTown.setState({ autoplay })
     if (autoplay && state.rulerMode === 'manual') {
       this.throne.setRulerMode('rules')
-      state.toast('La Baronesa gobernará sola (con reglas); en el Trono puedes darle un modelo.')
+      state.toast(`${RULER.Title} gobernará por su cuenta, con reglas; en el Trono puedes darle un modelo.`)
     }
     this.applyProvider()
     this.setSpeed(autoplay ? TERRARIUM_SPEED : 2)
@@ -546,7 +547,7 @@ class TownController implements TerrariumHost, ThroneHost {
     return livingRelations(this.content.residents.find((r) => r.id === id)?.relationships ?? [], this.memory.bondsOf(id))
   }
 
-  /** "la Baronesa", "el forastero", "Kael": how the town names a speaker in passing. */
+  /** "la Baronesa", "el forastero", "Kael" in Chismeroble: how the town names a speaker in passing. */
   speakerShort(s: Announcement['speaker']) {
     if (s.kind === 'neighbor') return firstName(speakerName(this.content, s).split(',')[0])
     return this.content.speakers[s.kind].label

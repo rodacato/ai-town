@@ -119,13 +119,13 @@ export async function runReign(o: ReignOptions): Promise<ReignResult> {
       chronicle.add(minutes, 'dawn', `Día ${day + 1}: cosecha +${l.harvest}, ${l.unfed.length} sin comer.`)
       for (const id of l.died) chronicle.add(minutes, 'death', `${called(id)} murió de hambre.`)
       for (const id of l.left) chronicle.add(minutes, 'leave', `${called(id)} se marchó del pueblo.`)
-      for (const line of dawnStanding(standing, e, memory.reputation({ kind: 'authority' }).trust, day, goals)) chronicle.add(minutes + 5, standing.end ? 'end' : 'plot', line)
+      for (const line of dawnStanding(standing, e, memory.reputation({ kind: 'authority' }).trust, day, o.content, goals)) chronicle.add(minutes + 5, standing.end ? 'end' : 'plot', line)
     }
     const report = buildReport({ content: o.content, economy: e, memory, chronicle: chronicle.entries, minutes: minutes + 30, season, weather: 'clear', day, seed: o.seed, standing })
     const turn = standing.end ? { actions: [], problems: [] } : await o.rule(report)
     for (const a of turn.actions) {
       if (a.kind === 'decree') {
-        const r = enact(e, a.decree)
+        const r = enact(e, a.decree, o.content.realm!)
         if (r.ok) chronicle.add(minutes + 30, 'decree', r.summary)
       } else if (a.kind === 'proclaim') {
         proclamations++

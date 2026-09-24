@@ -1,4 +1,5 @@
 import { alive, type Economy, type Laws } from '../economy/economy'
+import { capital, ofThe, type RealmDef } from './realmDef'
 
 /** What a ruler can do. The same list serves a person on the throne and a model governing. */
 export type Decree =
@@ -32,7 +33,8 @@ const LAW_TEXT: Record<keyof Laws, [on: string, off: string]> = {
 }
 
 /** Checks and applies a decree to the economy. Invalid decrees change nothing and say why. */
-export function enact(e: Economy, d: Decree): DecreeResult {
+export function enact(e: Economy, d: Decree, realm: RealmDef): DecreeResult {
+  const ruler = realm.ruler.title
   const fail = (reason: string): DecreeResult => ({ ok: false, reason, summary: reason })
   const pct = (x: number) => `${Math.round(x * 100)}%`
   const living = Object.keys(e.needs).filter((id) => alive(e, id))
@@ -45,7 +47,7 @@ export function enact(e: Economy, d: Decree): DecreeResult {
       return {
         ok: true,
         summary: `Impuesto del ${pct(before)} al ${pct(e.taxRate)}.`,
-        proclamation: `Por orden de la Baronesa, el impuesto ${e.taxRate > before ? 'sube' : 'baja'} del ${pct(before)} al ${pct(e.taxRate)} de lo que gane cada cual.`,
+        proclamation: `Por orden ${ofThe(ruler)}, el impuesto ${e.taxRate > before ? 'sube' : 'baja'} del ${pct(before)} al ${pct(e.taxRate)} de lo que gane cada cual.`,
       }
     }
     case 'price': {
@@ -56,7 +58,7 @@ export function enact(e: Economy, d: Decree): DecreeResult {
       return {
         ok: true,
         summary: `La ración pasa de ${before} a ${d.price} monedas.`,
-        proclamation: d.price === 0 ? 'Por orden de la Baronesa, el granero real reparte las raciones gratis.' : `Por orden de la Baronesa, la ración del granero real pasa a costar ${d.price} monedas.`,
+        proclamation: d.price === 0 ? `Por orden ${ofThe(ruler)}, el granero real reparte las raciones gratis.` : `Por orden ${ofThe(ruler)}, la ración del granero real pasa a costar ${d.price} monedas.`,
       }
     }
     case 'handout': {
@@ -74,7 +76,7 @@ export function enact(e: Economy, d: Decree): DecreeResult {
       return {
         ok: true,
         summary: `Reparto de comida: ${fed.length} raciones para quien no podía comer${fed.length < hungry.length ? ` (${hungry.length - fed.length} se quedaron sin nada)` : ''}.`,
-        proclamation: 'La Baronesa abre el granero: hoy nadie se queda sin comer.',
+        proclamation: `${capital(ruler)} abre el granero: hoy nadie se queda sin comer.`,
       }
     }
     case 'buyFood': {
@@ -97,7 +99,7 @@ export function enact(e: Economy, d: Decree): DecreeResult {
       return {
         ok: true,
         summary: `Paga extra de ${d.coins} monedas por cabeza (${cost} en total).`,
-        proclamation: `La Baronesa regala ${d.coins} monedas a cada vecino.`,
+        proclamation: `${capital(ruler)} regala ${d.coins} monedas a cada vecino.`,
       }
     }
     case 'law': {
@@ -105,7 +107,7 @@ export function enact(e: Economy, d: Decree): DecreeResult {
       if (e.laws[d.law] === d.on) return fail(d.on ? 'Esa ley ya está en vigor.' : 'Esa ley no estaba en vigor.')
       e.laws[d.law] = d.on
       const text = LAW_TEXT[d.law][d.on ? 0 : 1]
-      return { ok: true, summary: text, proclamation: `Por orden de la Baronesa: ${text.charAt(0).toLowerCase()}${text.slice(1)}` }
+      return { ok: true, summary: text, proclamation: `Por orden ${ofThe(ruler)}: ${text.charAt(0).toLowerCase()}${text.slice(1)}` }
     }
     case 'festival': {
       if (e.treasury < LIMITS.festivalGold) return fail(`Una fiesta cuesta ${LIMITS.festivalGold} monedas y hay ${e.treasury}.`)
@@ -115,7 +117,7 @@ export function enact(e: Economy, d: Decree): DecreeResult {
       return {
         ok: true,
         summary: `Fiesta en la plaza: ${LIMITS.festivalGold} monedas y ${LIMITS.festivalFood} raciones.`,
-        proclamation: '¡Por orden de la Baronesa, esta tarde hay fiesta en la Plaza del Pregón, con banquete y aguamiel para todos!',
+        proclamation: `¡Por orden ${ofThe(ruler)}, esta tarde hay fiesta en ${realm.festivalPlace}, con banquete y aguamiel para todos!`,
       }
     }
   }

@@ -77,11 +77,11 @@ describe('reading the Baroness', () => {
       yield { type: 'delta', text: reply }
       yield { type: 'done', usage: { inputTokens: 900, outputTokens: 80, costUsd: 0.002 } }
     }
-    const ruler = createModelRuler({ ...DEFAULT_SETTINGS.connections.shellm, model: 'claude' }, stream)
+    const ruler = createModelRuler({ ...DEFAULT_SETTINGS.connections.shellm, model: 'claude' }, content, stream)
     const out = await ruler(report(), new AbortController().signal)
     expect(out.actions).toEqual([{ kind: 'ask', text: 'Quiero un puerto.' }])
     expect(out.usage?.costUsd).toBe(0.002)
-    expect(out.prompt).toContain('Informe del castillo')
+    expect(out.prompt).toContain('Informe de la corte')
   })
 })
 
@@ -148,7 +148,7 @@ describe('petitions to the Baroness', () => {
     const e = grim()
     const g = grievances({ content, economy: e, chronicle: [], minutes: 6 * 60 + 1440 })[0]
     const clemencia = content.residents.find((r) => r.id === g.id)!
-    const input = musingInputFor(e, clemencia, { trust: 0.4, news: [], minutes: 7 * 60 })
+    const input = musingInputFor(e, clemencia, { trust: 0.4, news: [], minutes: 7 * 60, world: content })
     expect(petitionPrompt(input, g)).toContain(g.wish)
     expect(petitionPrompt(input, g)).toContain(clemencia.personality.voice)
     const answer = (text: string): ChatStream =>
@@ -157,9 +157,9 @@ describe('petitions to the Baroness', () => {
         yield { type: 'done', usage: { inputTokens: 300, outputTokens: 40 } }
       }
     const conn = { ...DEFAULT_SETTINGS.connections.shellm, model: 'claude' }
-    const worded = await modelPetition(conn, input, g, new AbortController().signal, answer('{"peticion": "Por caridad, abrid el granero."}'))
+    const worded = await modelPetition(conn, content, input, g, new AbortController().signal, answer('{"peticion": "Por caridad, abrid el granero."}'))
     expect(worded).toMatchObject({ text: 'Por caridad, abrid el granero.', fellBack: false })
-    const garbled = await modelPetition(conn, input, g, new AbortController().signal, answer('no sé'))
+    const garbled = await modelPetition(conn, content, input, g, new AbortController().signal, answer('no sé'))
     expect(garbled).toMatchObject({ text: g.fallback, fellBack: true })
     expect(parsePetition('{"peticion": ""}')).toBeNull()
   })
