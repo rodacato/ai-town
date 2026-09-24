@@ -5,7 +5,7 @@ import { ACTION_META } from '../../../theme/actions'
 import { Alert } from '../../shared/icons'
 import { town } from '../../town'
 import { seconds, usd } from '../experiment/summary'
-import { useBench } from './benchStore'
+import { ofThisWorld, useBench } from './benchStore'
 
 const VERDICT = { better: 'mejor', worse: 'peor', same: 'igual', 'n/a': '—' }
 
@@ -30,7 +30,7 @@ function delta(m: MetricDelta) {
 
 /** Pick any contender of any saved run as "before" and "after", and see what moved. */
 export function CompareRuns() {
-  const runs = useBench((s) => s.runs)
+  const runs = useBench((s) => s.runs).filter(ofThisWorld)
   const options = runs.flatMap((run) => run.contenders.map((c) => ({ key: `${run.id}|${c.id}`, run, contender: c.id, label: `${new Date(run.createdAt).toLocaleString('es', { dateStyle: 'short', timeStyle: 'medium' })} · ${c.label}` })))
   const llmFirst = [...options].sort((a, b) => Number(a.contender === 'rules') - Number(b.contender === 'rules'))
   const [baseKey, setBase] = useState(llmFirst[1]?.key ?? llmFirst[0]?.key)

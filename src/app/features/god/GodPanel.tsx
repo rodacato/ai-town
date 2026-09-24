@@ -33,21 +33,27 @@ const HOURS: [string, number][] = [
   ['Noche', 22],
 ]
 const WEATHER_ICON: Record<Weather, string> = { clear: '☀️', rain: '🌧️', storm: '⛈️', snow: '❄️', fog: '🌫️' }
-/** What can be unleashed and where it happens unless the user picks a place. */
-const EVENTS: { visual: OutcomeVisual; icon: string; label: string; place: string }[] = [
-  { visual: 'fire', icon: '🐉', label: 'Dragón', place: 'forest' },
-  { visual: 'monster', icon: '👹', label: 'Bestia', place: 'bridge' },
-  { visual: 'undead', icon: '💀', label: 'Esqueletos', place: 'cemetery' },
-  { visual: 'wolves', icon: '🐺', label: 'Lobos', place: 'forest' },
-  { visual: 'ghost', icon: '👻', label: 'Fantasma', place: 'crypt' },
-  { visual: 'blaze', icon: '🔥', label: 'Incendio', place: 'tavern' },
-  { visual: 'flood', icon: '🌊', label: 'Crecida', place: 'riverbank' },
-  { visual: 'meteor', icon: '☄️', label: 'Meteorito', place: 'field' },
-  { visual: 'thief', icon: '🥷', label: 'Ladrón', place: 'market' },
-  { visual: 'caravan', icon: '🐫', label: 'Caravana', place: 'gate' },
-  { visual: 'feast', icon: '🍖', label: 'Festín', place: 'plaza' },
-  { visual: 'treasure', icon: '💰', label: 'Tesoro', place: 'crypt' },
+/** What can be unleashed; where it happens comes from the world, unless the user picks a place. */
+const KINDS: { visual: OutcomeVisual; icon: string; label: string }[] = [
+  { visual: 'fire', icon: '🐉', label: 'Dragón' },
+  { visual: 'monster', icon: '👹', label: 'Bestia' },
+  { visual: 'undead', icon: '💀', label: 'Esqueletos' },
+  { visual: 'wolves', icon: '🐺', label: 'Lobos' },
+  { visual: 'ghost', icon: '👻', label: 'Fantasma' },
+  { visual: 'blaze', icon: '🔥', label: 'Incendio' },
+  { visual: 'flood', icon: '🌊', label: 'Crecida' },
+  { visual: 'meteor', icon: '☄️', label: 'Meteorito' },
+  { visual: 'thief', icon: '🥷', label: 'Ladrón' },
+  { visual: 'caravan', icon: '🐫', label: 'Caravana' },
+  { visual: 'feast', icon: '🍖', label: 'Festín' },
+  { visual: 'treasure', icon: '💰', label: 'Tesoro' },
 ]
+
+/** The kinds this world has a place for, each with that place. */
+const EVENTS = KINDS.flatMap((k) => {
+  const hazard = town.content.hazards.find((h) => h.visual === k.visual)
+  return hazard ? [{ ...k, place: hazard.place }] : []
+})
 
 /** Which preset the clock is closest to, so the time control shows where the day is. */
 function period(minutes: number) {

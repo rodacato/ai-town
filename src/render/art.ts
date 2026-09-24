@@ -20,6 +20,8 @@ export interface TerrainPalette {
   railing: number
   field: number
   fieldRow: number
+  /** Beach and shore; without it sand is drawn as path. */
+  sand?: readonly number[]
   sideLeft: number
   sideRight: number
   sideRock: number

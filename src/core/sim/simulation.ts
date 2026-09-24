@@ -3,7 +3,7 @@ import { findPath } from '../world/pathfinding'
 import { createRng, type Rng } from '../world/rng'
 import type { Point } from '../world/types'
 import { createWorld, isWalkable, type World } from '../world/world'
-import { routineNow, staysIn } from './rhythm'
+import { placeKinds, routineNow, staysIn, type PlaceKinds } from './rhythm'
 import { catchUp, startEconomy, type Economy, type EconomyRules, type Ledger } from '../economy/economy'
 import type { Season } from './season'
 import type { Weather } from './weather'
@@ -55,6 +55,7 @@ const NEIGHBORS_8 = [
 
 export class Simulation {
   readonly world: World
+  private readonly placeKinds: PlaceKinds
   readonly residents: Resident[] = []
   minutes = START_MINUTES
   weather: Weather = 'clear'
@@ -75,6 +76,7 @@ export class Simulation {
     seed = 7,
   ) {
     this.world = createWorld(content)
+    this.placeKinds = placeKinds(content.places)
     this.rng = createRng(seed)
     for (const profile of content.residents) this.residents.push(this.spawn(profile))
     this.economyRules = content.economy ?? null
@@ -97,7 +99,7 @@ export class Simulation {
     fresh.forEach((f, i) => Object.assign(this.residents[i], f))
     this.economyRules = this.content.economy ?? null
     this.economy = this.content.economy ? startEconomy(this.content.economy, this.content.residents.map((r) => r.id), this.minutes) : null
-    const cemetery = this.world.places.find((p) => p.id === 'cemetery')
+    const cemetery = this.world.places.find((p) => p.id === this.content.graveyard)
     for (const g of this.graves) {
       this.world.tiles[g.y][g.x] = { ...this.world.tiles[g.y][g.x], prop: undefined, blocked: false }
       cemetery?.spots.push(g)
@@ -146,7 +148,7 @@ export class Simulation {
       }
       for (const id of ledger.left) {
         const r = this.get(id)!
-        const exit = this.spotAt('gate')
+        const exit = this.content.exit ? this.spotAt(this.content.exit) : null
         this.assign(r, exit ? [{ kind: 'walk', to: exit, label: 'Se marcha del pueblo' }, { kind: 'vanish', label: 'Se fue del pueblo' }] : [{ kind: 'vanish', label: 'Se fue del pueblo' }])
         r.frozen = false
       }
@@ -156,7 +158,7 @@ export class Simulation {
 
   /** Puts back graves dug in an earlier session. */
   restoreGraves(graves: Point[]) {
-    const cemetery = this.world.places.find((p) => p.id === 'cemetery')
+    const cemetery = this.world.places.find((p) => p.id === this.content.graveyard)
     for (const g of graves) {
       this.world.tiles[g.y][g.x] = { ...this.world.tiles[g.y][g.x], prop: 'grave', blocked: true }
       if (cemetery) cemetery.spots = cemetery.spots.filter((s) => s.x !== g.x || s.y !== g.y)
@@ -167,7 +169,7 @@ export class Simulation {
 
   /** A new grave in the cemetery, on a free tile that leaves the rest of it reachable. */
   private digGrave() {
-    const cemetery = this.world.places.find((p) => p.id === 'cemetery')
+    const cemetery = this.world.places.find((p) => p.id === this.content.graveyard)
     if (!cemetery) return
     const occupied = (s: Point) => this.residents.some((r) => r.mode !== 'gone' && Math.floor(r.x) === s.x && Math.floor(r.y) === s.y)
     const outside = this.spotAt('street') ?? this.homeDoor(this.residents[0])
@@ -401,7 +403,7 @@ export class Simulation {
       return
     }
     r.mode = 'idle'
-    const long = r.destination === 'benches' || r.destination === 'field' || r.destination === 'riverbank'
+    const long = !!r.destination && this.placeKinds.linger.has(r.destination)
     r.timer = long ? this.rng.range(10, 25) : this.rng.range(3, 11)
   }
 
@@ -421,7 +423,7 @@ export class Simulation {
   }
 
   private pickDestination(r: Resident, initial: boolean): { kind: string; tile: Point } | null {
-    const options = Object.entries(routineNow(r.profile, this.minutes, this.weather, this.season, this.economy?.laws.curfew))
+    const options = Object.entries(routineNow(r.profile, this.minutes, this.weather, this.season, this.placeKinds, this.economy?.laws.curfew))
       .filter(([kind]) => !(initial && kind === 'home'))
       .filter(([kind]) => kind !== r.destination || kind === 'street' || kind === 'visit')
       .map(([kind, weight]) => ({ item: kind, weight }))

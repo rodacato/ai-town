@@ -24,8 +24,12 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 - Diseño para tablet y móvil: por debajo de 900 px el panel y los cajones se vuelven una hoja inferior, la barra superior se pliega en dos filas, las reacciones son una tira que se desplaza y el mapa se encuadra en el hueco que queda libre (y se reencuadra al plegar la hoja). Entre 900 y 1200 px el panel es más estrecho y la barra no se encima.
 - Accesibilidad: el mapa se enfoca con `Tab` y se recorre con teclado (flechas para moverlo, `N`/`P` para ir de vecino en vecino, con su ficha y un anuncio de dónde está y qué hace), enlace para ir directo a escribir un pregón, y los diálogos dejan inerte lo de detrás para lectores de pantalla y teclado.
 - Preparado para varios mundos: quién gobierna y cómo se le nombra, el gremio y su deudor, quién pide qué y dónde se hace la fiesta salen del mundo (`realm`), no del código. Registro de mundos con selector en Configuración (aparece con más de uno), y cada mundo guarda su partida.
+- Segundo mundo, **Aguamansa**: un pueblo de pescadores a orillas de un lago, con 13 vecinos, playa, muelle, faro y arrozal, gobernado por un alcalde, con sus propios pregones de ejemplo, desenlaces, economía, peticiones y contrabandistas. Reutiliza el kit de arte de Chismeroble; se elige en Configuración y en la terminal con `--mundo`.
+- La arena de la orilla se dibuja como arena.
 
 ### Cambiado
+- Los peligros del destino y del modo dios, los lugares con techo o con ambiente de noche, dónde se entierra y por dónde se va la gente salen del mundo, no del código.
+- El historial y la comparación del banco muestran solo las pruebas del mundo en el que estás, y avisan si hay de otros.
 - El informe de la gobernante se titula «Informe de la corte»; el duelo se llama «Duelo de gobernantes».
 - Contraste AA en el texto de acento (velocidad activa, «Gobierna», enlaces) y en las etiquetas de acción, y la barra de progreso del pregón tiene nombre.
 - Las reglas de la Baronesa reconocen una petición por su tema, no por sus palabras, para que las redactadas por un modelo cuenten igual.

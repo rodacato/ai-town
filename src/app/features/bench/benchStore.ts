@@ -63,6 +63,9 @@ const PREFS_KEY = 'ai-town:bench-prefs'
 export const MAX_REPETITIONS = 5
 
 const uncached = (s: ContenderSpec) => s.kind === 'anthropic' && !!s.noCache
+/** Runs made in the world the app is running now; the others name residents that are not here. */
+export const ofThisWorld = (run: { world: string }) => run.world === town.content.id
+
 export const specId = (s: ContenderSpec) => (s.kind === 'rules' ? 'rules' : `${s.kind}:${s.model.trim()}${uncached(s) ? ':sin-cache' : ''}`)
 export const specLabel = (s: ContenderSpec) => (s.kind === 'rules' ? 'Reglas locales' : `${PRESETS[s.kind].label} · ${s.model.trim() || '¿modelo?'}${uncached(s) ? ' · sin caché' : ''}`)
 

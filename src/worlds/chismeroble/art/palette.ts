@@ -50,6 +50,7 @@ const TERRAIN: TerrainPalette = {
   railing: 0x8d857a,
   field: 0x9b7550,
   fieldRow: 0x86633f,
+  sand: [0xe8d6ab, 0xe3cfa2, 0xecdcb4],
   sideLeft: 0xb89572,
   sideRight: 0xa3805f,
   sideRock: 0x8f7458,

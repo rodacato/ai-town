@@ -91,7 +91,7 @@ describe('a ruler duel', () => {
     const { summarize, ranking } = await import('../src/core/realm/duel')
     const { fateCalendar } = await import('../src/core/realm/reign')
     const { rulesRuler } = await import('../src/core/realm/ruler')
-    const base = { content, days: 41, seed: 8, seasonLength: 10, fate: fateCalendar(8, 41) }
+    const base = { content, days: 41, seed: 8, seasonLength: 10, fate: fateCalendar(content, 8, 41) }
     const absent = summarize('ausente', await runReign({ ...base, rule: async () => ({ thought: '', actions: [], problems: [] }) }))
     const ruled = summarize('reglas', await runReign({ ...base, rule: async (r) => rulesRuler(r) }))
     expect(ruled.won).toBe(true)

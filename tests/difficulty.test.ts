@@ -15,12 +15,12 @@ const rules = content.economy!
 
 describe('difficulty', () => {
   it('leaves a normal game exactly as it was', () => {
-    expect(fateCalendar(12, 40, 'normal')).toEqual(fateCalendar(12, 40))
+    expect(fateCalendar(content, 12, 40, 'normal')).toEqual(fateCalendar(content, 12, 40))
     expect(withDifficulty(rules, 'normal')).toMatchObject({ startTreasury: rules.startTreasury, startGranary: rules.startGranary, harvestFactor: 1, harm: 1, rationCost: 3 })
   })
 
   it('brings more blows and fewer good ones the harder it gets', () => {
-    const count = (d: 'normal' | 'dura' | 'cruel') => fateCalendar(12, 40, d)
+    const count = (d: 'normal' | 'dura' | 'cruel') => fateCalendar(content, 12, 40, d)
     const boons = (d: 'normal' | 'dura' | 'cruel') => count(d).filter((f) => f.visual === 'caravan' || f.visual === 'treasure').length / count(d).length
     expect(count('dura').length).toBeGreaterThan(count('normal').length)
     expect(count('cruel').length).toBeGreaterThan(count('dura').length)
@@ -51,7 +51,7 @@ describe('difficulty', () => {
   })
 
   it('makes the same ruler score less in a crueler year', async () => {
-    const reign = (d: 'normal' | 'cruel') => runReign({ content, days: 41, seed: 3, seasonLength: 10, fate: fateCalendar(3, 41, d), difficulty: d, rule: async (r) => rulesRuler(r) })
+    const reign = (d: 'normal' | 'cruel') => runReign({ content, days: 41, seed: 3, seasonLength: 10, fate: fateCalendar(content, 3, 41, d), difficulty: d, rule: async (r) => rulesRuler(r) })
     const [easy, hard] = await Promise.all([reign('normal'), reign('cruel')])
     const alive = (x: typeof easy) => x.days.at(-1)!.population
     expect(alive(hard) + hard.days.at(-1)!.trust * 20).toBeLessThan(alive(easy) + easy.days.at(-1)!.trust * 20 + 1e-9)
@@ -70,7 +70,7 @@ describe('a duel of rulers', () => {
     const broken = { id: 'roto', label: 'Roto', decide: async () => Promise.reject(new Error('sin red')) }
     const days: Record<string, number> = {}
     const duel = await runDuel({ content, seed: 5, days: 12, difficulty: 'dura', seasonLength: 10, rulers: [absentDuelist, rulesDuelist, broken], onDay: (id, d) => (days[id] = d + 1) })
-    expect(duel.fate).toEqual(fateCalendar(5, 12, 'dura'))
+    expect(duel.fate).toEqual(fateCalendar(content, 5, 12, 'dura'))
     expect(duel.rulers.map((r) => r.label)).toEqual(['Trono vacío', 'Reglas', 'Roto'])
     const roto = duel.rulers.find((r) => r.id === 'roto')!
     // The last dawn ends the year, and nobody governs after it.

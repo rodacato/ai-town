@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { findPath } from '../src/core/world/pathfinding'
 import { createWorld, isWalkable } from '../src/core/world/world'
+import { WORLDS } from '../src/worlds'
 import { content } from './helpers'
 
-describe('world generation', () => {
+describe.each(WORLDS.map((w) => [w.content.name, w.content] as const))('%s', (_, content) => {
   const world = createWorld(content)
   const hub = world.buildings.find((b) => b.id === content.authorityOrigin.building)!.door
 
@@ -46,6 +47,23 @@ describe('world generation', () => {
   it('only routes residents to places that exist', () => {
     const ids = new Set([...world.places.map((p) => p.id), 'home', 'visit'])
     for (const r of content.residents) for (const key of Object.keys(r.routine)) expect(ids.has(key), `${r.id} → ${key}`).toBe(true)
+  })
+
+  it('casts only residents who exist in its realm, examples and economy', () => {
+    const ids = new Set(content.residents.map((r) => r.id))
+    const realm = content.realm!
+    expect(ids.has(realm.guild.debtor)).toBe(true)
+    for (const [topic, id] of Object.entries(realm.petitioners)) expect(ids.has(id!), topic).toBe(true)
+    for (const e of content.examples) if (e.speaker.residentId) expect(ids.has(e.speaker.residentId), e.id).toBe(true)
+    expect(new Set(Object.keys(content.economy!.jobs))).toEqual(ids)
+  })
+
+  it('has an example of every tone and puts every hazard, the exit and the graves in real places', () => {
+    expect(new Set(content.examples.map((e) => e.tone))).toEqual(new Set(['confiable', 'urgente', 'sospechoso', 'emergencia']))
+    const places = new Set(world.places.map((p) => p.id))
+    for (const h of content.hazards) expect(places.has(h.place), `${h.visual} → ${h.place}`).toBe(true)
+    for (const id of [content.exit, content.graveyard, content.gatheringPlace]) if (id) expect(places.has(id), id).toBe(true)
+    expect(content.hazards.some((h) => h.fate)).toBe(true)
   })
 })
 

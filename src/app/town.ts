@@ -618,20 +618,23 @@ class TownController implements TerrariumHost, ThroneHost {
   /** Something unexpected, favouring the eerie after dark. */
   unleashRandom() {
     const night = isNight(this.sim.minutes)
-    const pool: [OutcomeVisual, string, number][] = [
-      ['fire', 'forest', 1],
-      ['monster', 'bridge', 1],
-      ['undead', 'cemetery', night ? 4 : 0.3],
-      ['wolves', 'forest', night ? 3 : 1],
-      ['ghost', 'crypt', night ? 3 : 0.3],
-      ['blaze', 'tavern', 1],
-      ['flood', 'riverbank', this.sim.weather === 'storm' || this.sim.weather === 'rain' ? 3 : 0.5],
-      ['meteor', 'field', 0.6],
-      ['thief', 'market', night ? 0.5 : 1.5],
-      ['caravan', 'gate', night ? 0.2 : 1.5],
-      ['feast', 'plaza', night ? 0.3 : 1],
-      ['treasure', 'crypt', 0.5],
-    ]
+    const storm = this.sim.weather === 'storm' || this.sim.weather === 'rain'
+    const weight: Partial<Record<OutcomeVisual, number>> = {
+      fire: 1,
+      monster: 1,
+      undead: night ? 4 : 0.3,
+      wolves: night ? 3 : 1,
+      ghost: night ? 3 : 0.3,
+      blaze: 1,
+      flood: storm ? 3 : 0.5,
+      meteor: 0.6,
+      thief: night ? 0.5 : 1.5,
+      caravan: night ? 0.2 : 1.5,
+      feast: night ? 0.3 : 1,
+      treasure: 0.5,
+    }
+    const pool = this.content.hazards.map((h): [OutcomeVisual, string, number] => [h.visual, h.place, weight[h.visual] ?? 0.5])
+    if (!pool.length) return
     const total = pool.reduce((n, [, , w]) => n + w, 0)
     let r = Math.random() * total
     const [visual, place] = pool.find(([, , w]) => (r -= w) < 0) ?? pool[0]

@@ -1,6 +1,6 @@
 import type { EconomyRules } from '../economy/economy'
 import type { RealmDef } from '../realm/realmDef'
-import type { OutcomeDef } from '../reactions/outcome'
+import type { OutcomeDef, OutcomeVisual } from '../reactions/outcome'
 import type { Rng } from './rng'
 import type { Building, Point, Tile, TileKind } from './types'
 import type { World } from './world'
@@ -131,6 +131,19 @@ export interface PlaceDef {
   /** Words that make an announcement point at this place; matched accent- and case-insensitively. */
   keywords?: string[]
   spots: (q: PlaceQuery) => Point[]
+  /** Has a roof, so people still go there in foul weather and winter. */
+  indoors?: boolean
+  /** Busier in the evening, like a tavern. */
+  lively?: boolean
+  /** A place people sit a good while, like a bench or a riverbank. */
+  linger?: boolean
+}
+
+/** Where a kind of event happens in this world; with a line for the chronicle, fate can bring it too. */
+export interface Hazard {
+  visual: OutcomeVisual
+  place: string
+  fate?: string
 }
 
 export interface Example {
@@ -163,6 +176,12 @@ export interface WorldContent {
     danger: string[]
     cues: [needle: string, label: string][]
   }
+  /** Where each kind of event strikes, for fate, random events and the god panel. */
+  hazards: Hazard[]
+  /** The place where graves are dug, if the world has one. */
+  graveyard?: string
+  /** The place people walk to when they leave town. */
+  exit?: string
   /** How the town earns, eats and pays; without it the world has no economy. */
   economy?: EconomyRules
   /** Who rules and who plots; worlds with an economy have one. */

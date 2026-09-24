@@ -49,7 +49,7 @@ export class Terrarium {
   private nameOf = (id: string) => residentName(this.host.sim.content, id)
 
   calendar() {
-    return fateCalendar(useTown.getState().seed, GOALS.yearDays + 1, useTown.getState().difficulty)
+    return fateCalendar(this.host.sim.content, useTown.getState().seed, GOALS.yearDays + 1, useTown.getState().difficulty)
   }
 
   /** Called every real second. */

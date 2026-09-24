@@ -11,9 +11,9 @@ describe('the terrarium calendar', () => {
   })
 
   it('deals the same blows of fate for the same seed, at daytime, in real places', () => {
-    const a = fateCalendar(77, 40)
-    expect(fateCalendar(77, 40)).toEqual(a)
-    expect(fateCalendar(78, 40)).not.toEqual(a)
+    const a = fateCalendar(content, 77, 40)
+    expect(fateCalendar(content, 77, 40)).toEqual(a)
+    expect(fateCalendar(content, 78, 40)).not.toEqual(a)
     const places = new Set(new Simulation(content).world.places.map((p) => p.id))
     for (const f of a) {
       expect(f.hour).toBeGreaterThanOrEqual(9)
