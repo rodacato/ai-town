@@ -58,6 +58,7 @@ export function buildPrompt(ctx: DecisionContext) {
     ``,
     `## Situación`,
     `Es ${ctx.situation.time}. ${ctx.situation.season} ${ctx.situation.weather} En este momento: ${ctx.situation.activity}.`,
+    ...needsLines(ctx),
     ``,
     `## Anuncio`,
     a.speakerKind === 'sight' ? 'Nadie te lo ha contado: lo estás viendo con tus propios ojos.' : `Lo dice: ${a.speakerName}${a.relationToSpeaker ? ` (para ti: ${a.relationToSpeaker})` : ''}.`,
@@ -80,4 +81,14 @@ export function buildPrompt(ctx: DecisionContext) {
   }
   lines.push('', '## Vecinos del pueblo (ids válidos para "tell")', ctx.townsfolk.map((p) => `${p.id} (${p.name})`).join(', '))
   return lines.join('\n')
+}
+
+function needsLines(ctx: DecisionContext) {
+  const n = ctx.situation.needs
+  if (!n) return []
+  const out: string[] = []
+  if (n.sick) out.push(`Estás enfermo de hambre: llevas ${n.daysHungry} días sin comer.`)
+  else if (n.daysHungry) out.push(`Llevas ${n.daysHungry} ${n.daysHungry === 1 ? 'día' : 'días'} sin comer.`)
+  out.push(n.broke ? `Solo te quedan ${n.coins} monedas: no te alcanza ni para una ración.` : `Tienes ${n.coins} monedas.`)
+  return out
 }

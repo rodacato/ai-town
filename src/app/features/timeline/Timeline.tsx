@@ -26,6 +26,7 @@ export function Timeline() {
   const reactions = useTown((s) => s.reactions)
   const complete = useTown((s) => s.complete)
   const selectedId = useTown((s) => s.selectedId)
+  const people = useTown((s) => s.realm?.people)
   const stats = computeStats(reactions)
   const total = announcement ? stats.listeners.length : town.content.residents.length
   const thinking = stats.listeners.filter((r) => r.phase === 'thinking').length
@@ -70,7 +71,7 @@ export function Timeline() {
           return (
             <li key={r.id}>
               <button
-                className={`tl-person phase-${phase} ${selectedId === r.id ? 'is-selected' : ''}`}
+                className={`tl-person phase-${phase} ${selectedId === r.id ? 'is-selected' : ''} ${people?.[r.id]?.status === 'dead' || people?.[r.id]?.status === 'gone' ? 'is-away' : ''}`}
                 style={action ? { ['--c' as string]: ACTION_META[action].css } : undefined}
                 onClick={() => town.select(r.id)}
                 onMouseEnter={() => town.highlight(r.id)}

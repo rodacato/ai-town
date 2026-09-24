@@ -26,10 +26,21 @@ export function buildContext(sim: Simulation, a: Announcement, r: Resident, rumo
       place: a.place,
       placeLabel: placeLabel(content, a.place),
     },
-    situation: { activity: statusOf(sim, r), time: `${clock.day} ${clock.time}`, season: SEASON_TEXT[sim.season].sentence, weather: WEATHER_TEXT[sim.weather].sentence },
+    situation: { activity: statusOf(sim, r), time: `${clock.day} ${clock.time}`, season: SEASON_TEXT[sim.season].sentence, weather: WEATHER_TEXT[sim.weather].sentence, ...needsOf(sim, p.id) },
     rumors,
     previous,
     townsfolk: content.residents.filter((x) => x.id !== p.id).map((x) => ({ id: x.id, name: x.name })),
     ...(memory ? { memory: recallFor(memory, a, p.id, speakerName(content, a.speaker)) } : {}),
   }
+}
+
+/** A resident's hunger and purse, only when they are worth mentioning, so a fresh town reads as before. */
+function needsOf(sim: Simulation, id: string) {
+  const e = sim.economy
+  const n = e?.needs[id]
+  if (!e || !n) return {}
+  const coins = e.purses[id] ?? 0
+  const broke = coins < e.foodPrice
+  if (!n.daysHungry && n.status !== 'sick' && !broke) return {}
+  return { needs: { daysHungry: n.daysHungry, sick: n.status === 'sick', coins, broke } }
 }

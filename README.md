@@ -27,6 +27,12 @@ Son 20 residentes, entre ellos un mentiroso compulsivo, un paranoico, una recié
 
 Al pregonar eliges si el anuncio es **verdad**, **mentira** o **al azar**. Los residentes nunca lo saben (no llega al prompt): deciden solo con lo que oyen. Cuando todos han decidido, el mapa lo revela: si era verdad, el dragón incendia el bosque, aparece el troll en el puente, se sirve el festín o brilla el oro; si era mentira, no hay nada y quien fue vuelve a casa decepcionado. Quien está cerca de un peligro real huye. El panel dice cuántos acertaron (creyeron lo verdadero o dudaron de lo falso) y el inspector lo marca en cada residente. Qué ocurre con cada tipo de anuncio se define por palabras clave en `outcomes` del mundo.
 
+## Economía y necesidades
+
+Cada amanecer corre el libro de cuentas: la cosecha llena el granero (Godric, Ottokar, Kael y Elowen; mucho en otoño, casi nada en invierno), cada oficio cobra y paga el impuesto al tesoro, cada quien compra su ración (primero los que tienen más oro, así que los pobres pasan hambre antes) y el tesoro paga a los guardias. Quien pasa un día sin comer tiene hambre; al segundo, si anda desanimado, se va por la puerta sur; al tercero enferma y, si no vuelve a comer, muere y aparece una tumba nueva en el cementerio. Los eventos reales pesan: la crecida arruina el granero, el ladrón vacía el tesoro, la caravana trae comida. El tablero de arriba a la izquierda resume el reino, el inspector muestra cómo está cada residente, y el hambre y el bolsillo vacío llegan al prompt.
+
+El pueblo entero (hora, clima, estación, economía, tumbas y dónde está cada quien) y su memoria se guardan en el navegador hasta que pulses **Reiniciar**, que empieza una partida nueva.
+
 ## El ritmo del pueblo
 
 La rutina de cada residente depende de la hora, el clima y la estación: de 22:00 a 6:00 casi todos duermen en casa, salvo los que tienen rutina nocturna (Rowan canta en la taberna, Kael caza, Mortimer ronda el cementerio, Sir Aldric patrulla); al atardecer vuelven a casa o a la taberna; con lluvia, tormenta o nieve buscan techo, y en invierno salen menos.

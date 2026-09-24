@@ -71,7 +71,7 @@ export const NOTICE_RADIUS = 7
 /** People near a real threat run home; near something good they come over to look for a while. */
 export function react(sim: Simulation, o: Outcome, isBusy: (r: Resident) => boolean = () => false) {
   for (const r of sim.residents) {
-    if (r.mode === 'inside' || isBusy(r)) continue
+    if (r.mode === 'inside' || r.mode === 'gone' || isBusy(r)) continue
     if (Math.hypot(r.x - o.at.x, r.y - o.at.y) > NOTICE_RADIUS * (THREATS.includes(o.visual) ? 1 : 1.5)) continue
     if (THREATS.includes(o.visual)) sim.assign(r, [{ kind: 'enterHome', label: 'Huye despavorido' }])
     else if (o.place) {
