@@ -12,6 +12,7 @@ import { createLlmProvider } from '../src/providers/llm/provider'
 import { createRulesProvider, mockDecision } from '../src/providers/mock'
 import { activeWorld } from '../src/worlds'
 import { seconds, tokens, usd } from '../src/core/format'
+import { cacheText } from '../src/core/reactions/metrics'
 import { bold, connectionForSpec, PRICE_RE, dim, ENV, fail, nodeStream, red, tty } from './cli'
 import { runJudge, summarizeJudgments } from '../src/core/bench/judge'
 import { createModelJudge } from '../src/providers/judge'
@@ -35,6 +36,7 @@ Uso: npm run bench -- [opciones]
       --timeout <s>                      Tiempo máximo por decisión (por defecto 120).
       --price <entrada/salida>           USD por millón de tokens para los modelos sin precio propio, ej. 3/15.
                                          Precio de un solo modelo: -m proveedor:modelo=3/15
+                                         Sin la caché de Anthropic, para medir lo que ahorra: -m anthropic:modelo~sin-cache
       --rapida                           Solo los casos de oro (${GOLDEN_SIZE} decisiones con una respuesta clara), una vez cada uno.
       --juez <proveedor:modelo>          Al terminar, un modelo juzga de 1 a 5 si las decisiones suenan a cada vecino.
       --muestras <n>                     Decisiones que juzga por contendiente (por defecto 12).
@@ -99,6 +101,7 @@ const unknown = ids.filter((id) => !content.examples.some((e) => e.id === id))
 if (unknown.length) fail(`Pregón desconocido: ${unknown.join(', ')}. Hay: ${content.examples.map((e) => e.id).join(', ')}.`)
 const examples = quick ? content.examples : content.examples.filter((e) => ids.includes(e.id))
 
+const NO_CACHE = '~sin-cache'
 const connectionFor = (spec: string) => connectionForSpec(spec, { concurrency, price })
 
 const contenders: RunSetup['contenders'] = []
@@ -109,10 +112,11 @@ if (!args['skip-rules']) {
   })
 }
 for (const spec of args.model) {
-  const c = connectionFor(spec)
-  const id = `${c.kind}:${c.model}${c.host !== DEFAULT_SETTINGS.connections[c.kind].host ? `@${c.host}` : ''}`
+  const noCache = spec.endsWith(NO_CACHE)
+  const c = { ...connectionFor(noCache ? spec.slice(0, -NO_CACHE.length) : spec), promptCache: !noCache }
+  const id = `${c.kind}:${c.model}${c.host !== DEFAULT_SETTINGS.connections[c.kind].host ? `@${c.host}` : ''}${noCache ? ':sin-cache' : ''}`
   if (contenders.some((x) => x.contender.id === id)) fail(`«${spec}» está repetido.`)
-  const label = `${PRESETS[c.kind].label} · ${c.model}`
+  const label = `${PRESETS[c.kind].label} · ${c.model}${noCache ? ' · sin caché' : ''}`
   contenders.push({
     contender: { id, label, provider: createLlmProvider(c, nodeStream), concurrency: c.concurrency, timeoutMs },
     info: { id, label, kind: c.kind, model: c.model, host: c.host, concurrency: c.concurrency },
@@ -223,11 +227,12 @@ function printReport(run: BenchRun) {
       !rules && secs && r.errors < r.trials ? (r.trials / secs).toFixed(1) : '—',
       m.tokensPerSecond ? m.tokensPerSecond.toFixed(0) : '—',
       m.inputTokens ? `${k(m.inputTokens)} → ${k(m.outputTokens)}` : '—',
+      cacheText(m),
       rules ? '—' : usd(m.costUsd, m.costEstimated),
       rules || m.costUsd === null || !decided ? '—' : usd((m.costUsd / decided) * 1000, m.costEstimated),
     ]
   }
-  const head = ['Contendiente', 'Formato', 'Consist.', 'Acierto', 'Oro', 'Personaje', 'Reglas', 'Errores', '1.ª palabra', 'p50 / p95', 'Pet/s', 'Tok/s', 'Tokens', 'Costo', '$/1k dec.']
+  const head = ['Contendiente', 'Formato', 'Consist.', 'Acierto', 'Oro', 'Personaje', 'Reglas', 'Errores', '1.ª palabra', 'p50 / p95', 'Pet/s', 'Tok/s', 'Tokens', 'Caché', 'Costo', '$/1k dec.']
   const rows = run.report.contenders.map(row)
   const widths = head.map((h, i) => Math.max(h.length, ...rows.map((r) => r[i].length)))
   const fmt = (cells: string[]) => cells.map((c, i) => (i ? c.padStart(widths[i]) : c.padEnd(widths[i]))).join('  ')

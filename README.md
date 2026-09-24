@@ -89,6 +89,8 @@ Bartolo le debe una fortuna a un gremio de ladrones. El gremio conspira más cua
 
 El costo sale del host cuando lo reporta (SheLLM) o se estima con el precio por millón de tokens. Los modelos de Claude traen su precio de lista (con la fecha en que se revisó); para los demás puedes escribir uno en Configuración, y vale solo para ese modelo. Los modelos locales cuestan $0; si no hay precio, se dice «sin precio», nunca $0. Lo estimado lleva «≈».
 
+Con Anthropic, cada decisión usa la **caché de prompts**: las instrucciones y el anuncio (con la lista de vecinos) son iguales para todo el pueblo y van primero, marcados para la caché; lo propio de cada residente va después. Leer de la caché cuesta la décima parte y escribirla un cuarto más. El inspector muestra los tokens leídos y escritos, y el banco una columna **Caché** con la parte del prompt que salió de ella y lo que ahorró. Para medirlo, añade el mismo modelo con la casilla **Sin caché** (o `-m anthropic:modelo~sin-cache` en la terminal) y compara. Anthropic solo guarda prefijos a partir de un mínimo de tokens que depende del modelo; por debajo, la columna queda en «—».
+
 ### Banco de pruebas
 
 El botón **Pruebas** compara modelos con los mismos pregones y residentes. Una semilla fija reconstruye el mismo pueblo en el mismo momento, así que todos reciben prompts idénticos, hoy o dentro de un mes. Antes de correr, estima el costo con los prompts reales. Mide:

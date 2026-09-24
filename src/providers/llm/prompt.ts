@@ -35,10 +35,24 @@ Responde SOLO con un objeto JSON válido, sin texto antes ni después y sin bloq
 }
 Escribe siempre en español.`
 
-export function buildPrompt(ctx: DecisionContext) {
+/**
+ * The prompt in two parts: what every resident hearing the same announcement shares (it goes first, so it can be
+ * cached), and what is only theirs.
+ */
+export function buildPromptParts(ctx: DecisionContext): { shared: string; own: string } {
   const r = ctx.resident
   const a = ctx.announcement
-  const lines = [
+  const everyone = [...ctx.townsfolk, { id: r.id, name: r.name }].sort((x, y) => x.id.localeCompare(y.id))
+  const shared = [
+    `## Anuncio`,
+    a.speakerKind === 'sight' ? 'Nadie te lo ha contado: lo estás viendo con tus propios ojos.' : `Lo dice: ${a.speakerName}.`,
+    `Mensaje: «${a.text}»`,
+    a.placeLabel ? `Lugar mencionado: ${a.placeLabel}.` : 'No menciona un lugar concreto.',
+    ``,
+    `## Vecinos del pueblo (ids válidos para "tell"; no te incluyas a ti)`,
+    everyone.map((p) => `${p.id} (${p.name})`).join(', '),
+  ]
+  const own = [
     `## Residente`,
     `id: ${r.id}`,
     `${r.name}, ${r.age} años, ${r.occupation}.`,
@@ -55,32 +69,32 @@ export function buildPrompt(ctx: DecisionContext) {
     ``,
     `## Relaciones`,
     ...(ctx.relationships.length ? ctx.relationships.map((rel) => `- ${rel.name} (id: ${rel.id}): ${rel.label}`) : ['- Nadie: acabas de llegar y aún no conoces a nadie en el pueblo.']),
+    ...(a.relationToSpeaker ? [`- Quien anuncia es, para ti: ${a.relationToSpeaker}.`] : []),
     ``,
     `## Situación`,
     `Es ${ctx.situation.time}. ${ctx.situation.season} ${ctx.situation.weather} En este momento: ${ctx.situation.activity}.`,
     ...needsLines(ctx),
-    ``,
-    `## Anuncio`,
-    a.speakerKind === 'sight' ? 'Nadie te lo ha contado: lo estás viendo con tus propios ojos.' : `Lo dice: ${a.speakerName}${a.relationToSpeaker ? ` (para ti: ${a.relationToSpeaker})` : ''}.`,
-    `Mensaje: «${a.text}»`,
-    a.placeLabel ? `Lugar mencionado: ${a.placeLabel}.` : 'No menciona un lugar concreto.',
   ]
   const m = ctx.memory
   if (m && (m.record || m.personal || m.recent.length)) {
-    lines.push('', '## Lo que recuerdas')
-    if (m.record) lines.push(`- ${m.record}`)
-    if (m.personal) lines.push(`- ${m.personal}`)
-    if (m.recent.length) lines.push(`- Lo último que pasó en el pueblo: ${m.recent.join('; ')}.`)
+    own.push('', '## Lo que recuerdas')
+    if (m.record) own.push(`- ${m.record}`)
+    if (m.personal) own.push(`- ${m.personal}`)
+    if (m.recent.length) own.push(`- Lo último que pasó en el pueblo: ${m.recent.join('; ')}.`)
   }
   if (ctx.rumors.length) {
-    lines.push('', '## Lo que te han contado después')
-    for (const rumor of ctx.rumors) lines.push(`- ${rumor.fromName}${rumor.relation ? ` (${rumor.relation})` : ''} vino a decirte: «${rumor.message}»`)
+    own.push('', '## Lo que te han contado después')
+    for (const rumor of ctx.rumors) own.push(`- ${rumor.fromName}${rumor.relation ? ` (${rumor.relation})` : ''} vino a decirte: «${rumor.message}»`)
   }
   if (ctx.previous) {
-    lines.push('', '## Tu decisión anterior', `Habías decidido "${ctx.previous.action}" y dijiste: «${ctx.previous.speech}». Puedes mantenerla o cambiarla.`)
+    own.push('', '## Tu decisión anterior', `Habías decidido "${ctx.previous.action}" y dijiste: «${ctx.previous.speech}». Puedes mantenerla o cambiarla.`)
   }
-  lines.push('', '## Vecinos del pueblo (ids válidos para "tell")', ctx.townsfolk.map((p) => `${p.id} (${p.name})`).join(', '))
-  return lines.join('\n')
+  return { shared: shared.join('\n'), own: own.join('\n') }
+}
+
+export function buildPrompt(ctx: DecisionContext) {
+  const { shared, own } = buildPromptParts(ctx)
+  return `${shared}\n\n${own}`
 }
 
 function needsLines(ctx: DecisionContext) {

@@ -87,6 +87,8 @@ const channel = new ProxyChannel()
 
 export interface ChatOptions {
   maxTokens?: number
+  /** Shared, cacheable start of the prompt; `prompt` is what follows it. */
+  prefix?: string
   tag?: string
   timeoutMs?: number
 }
@@ -95,7 +97,7 @@ export type ChatStream = (connection: Connection, system: string, prompt: string
 
 /** Streams a completion through the local proxy when there is one, or straight from the browser otherwise. */
 export async function* streamChat(connection: Connection, system: string, prompt: string, signal: AbortSignal, opts: ChatOptions = {}): AsyncGenerator<StreamEvent> {
-  const req: CompletionRequest = { system, prompt, maxTokens: opts.maxTokens, timeoutMs: opts.timeoutMs }
+  const req: CompletionRequest = { system, prompt, prefix: opts.prefix, cache: connection.promptCache !== false, maxTokens: opts.maxTokens, timeoutMs: opts.timeoutMs }
   if ((await transportMode()) === 'proxy') yield* channel.stream(connection, req, signal, opts.tag)
   else yield* completionEvents(connection, req, signal, { browser: true })
 }

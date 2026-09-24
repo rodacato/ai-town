@@ -57,9 +57,18 @@
 
 .contenders li {
   display: grid;
-  grid-template-columns: minmax(140px, 200px) 1fr auto;
+  grid-template-columns: minmax(140px, 200px) 1fr auto auto;
   align-items: center;
   gap: 8px;
+}
+
+.contenders li > .icon-btn {
+  grid-column: -2 / -1;
+}
+
+.contender-cache {
+  font-size: 12.5px;
+  white-space: nowrap;
 }
 
 .contender-note {
@@ -319,7 +328,7 @@
 
 @media (max-width: 640px) {
   .contenders li {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: 1fr auto auto;
   }
 
   .contenders li > :nth-child(2) {

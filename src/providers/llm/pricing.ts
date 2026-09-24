@@ -47,15 +47,25 @@ export function priceInfo(c: Connection): { price: Price; source: PriceSource } 
 
 export const priceFor = (c: Connection) => priceInfo(c)?.price ?? null
 
-export function estimateCost(price: Price | null, inputTokens?: number, outputTokens?: number) {
+/** Prompt cache prices against the normal input price: reads about a tenth, 5-minute writes a quarter more. */
+export const CACHE_READ = 0.1
+export const CACHE_WRITE = 1.25
+
+export function estimateCost(price: Price | null, inputTokens?: number, outputTokens?: number, cacheRead = 0, cacheWrite = 0) {
   if (!price || inputTokens === undefined || outputTokens === undefined) return undefined
-  return (inputTokens * price.input + outputTokens * price.output) / 1_000_000
+  return (inputTokens * price.input + cacheRead * price.input * CACHE_READ + cacheWrite * price.input * CACHE_WRITE + outputTokens * price.output) / 1_000_000
 }
+
+/** What the cache saved against sending every token at the normal input price; negative while it is still being written. */
+export const cacheSavings = (price: Price, cacheRead: number, cacheWrite: number) => (cacheRead * price.input * (1 - CACHE_READ) - cacheWrite * price.input * (CACHE_WRITE - 1)) / 1_000_000
 
 /** A call's usage with its cost: the host's figure when it reports one, else estimated from the price, marked as such. */
 export function withCost(c: Connection, usage: TokenUsage): TokenUsage {
+  const price = priceFor(c)
+  const cached = usage.cacheReadTokens || usage.cacheWriteTokens
+  if (price && cached) usage = { ...usage, cacheSavedUsd: cacheSavings(price, usage.cacheReadTokens ?? 0, usage.cacheWriteTokens ?? 0) }
   if (usage.costUsd !== undefined) return { ...usage, costSource: 'host' }
-  const estimated = estimateCost(priceFor(c), usage.inputTokens, usage.outputTokens)
+  const estimated = estimateCost(priceFor(c), usage.inputTokens, usage.outputTokens, usage.cacheReadTokens, usage.cacheWriteTokens)
   return { ...usage, costUsd: estimated, costSource: estimated === undefined ? undefined : 'table' }
 }
 

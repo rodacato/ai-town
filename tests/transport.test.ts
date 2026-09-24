@@ -96,3 +96,42 @@ describe('host and error helpers', () => {
     expect(describeError('raro')).toBe('Error desconocido.')
   })
 })
+
+describe('Anthropic prompt cache', () => {
+  const anthropic: Target = { kind: 'anthropic', protocol: 'anthropic', host: 'https://api.anthropic.com', apiKey: 'sk-ant-test', model: 'claude-sonnet-5' }
+  const event = (type: string, data: object) => `event: ${type}\ndata: ${JSON.stringify({ type, ...data })}\n\n`
+  const reply = () =>
+    sse([
+      event('message_start', {
+        message: { id: 'm1', type: 'message', role: 'assistant', model: 'claude-sonnet-5', content: [], stop_reason: null, stop_sequence: null, usage: { input_tokens: 150, output_tokens: 1, cache_read_input_tokens: 1800, cache_creation_input_tokens: 0 } },
+      }),
+      event('content_block_start', { index: 0, content_block: { type: 'text', text: '' } }),
+      event('content_block_delta', { index: 0, delta: { type: 'text_delta', text: '{"ok":1}' } }),
+      event('content_block_stop', { index: 0 }),
+      event('message_delta', { delta: { stop_reason: 'end_turn', stop_sequence: null }, usage: { output_tokens: 40 } }),
+      event('message_stop', {}),
+    ])
+
+  it('marks the system prompt and the shared prefix for caching and reports what was read', async () => {
+    const fetch = vi.fn(async () => reply())
+    vi.stubGlobal('fetch', fetch)
+    const usage = await streamCompletion(anthropic, { ...req, prefix: 'anuncio', cache: true }, () => {}, new AbortController().signal)
+    expect(usage).toMatchObject({ inputTokens: 150, outputTokens: 40, cacheReadTokens: 1800 })
+    const body = JSON.parse((fetch.mock.calls[0] as unknown as [string, RequestInit])[1].body as string)
+    expect(body.system).toEqual([{ type: 'text', text: 'sys', cache_control: { type: 'ephemeral' } }])
+    expect(body.messages[0].content).toEqual([
+      { type: 'text', text: 'anuncio', cache_control: { type: 'ephemeral' } },
+      { type: 'text', text: 'hola' },
+    ])
+  })
+
+  it('sends the same text without cache marks when the cache is off', async () => {
+    const fetch = vi.fn(async () => reply())
+    vi.stubGlobal('fetch', fetch)
+    await streamCompletion(anthropic, { ...req, prefix: 'anuncio', cache: false }, () => {}, new AbortController().signal)
+    const body = JSON.parse((fetch.mock.calls[0] as unknown as [string, RequestInit])[1].body as string)
+    expect(body.system).toBe('sys')
+    expect(JSON.stringify(body)).not.toContain('cache_control')
+    expect(body.messages[0].content.map((c: { text: string }) => c.text)).toEqual(['anuncio', 'hola'])
+  })
+})
