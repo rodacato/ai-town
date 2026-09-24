@@ -68,13 +68,30 @@
   }
 }
 
-/* Right panel */
-.right-panel {
+/* Right column: a drawer (god or throne) on top, the announcement panel in the lower half. */
+.right-column {
   position: absolute;
   top: 84px;
   right: var(--gutter);
   bottom: var(--gutter);
+  z-index: 7;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   width: var(--panel-w);
+  pointer-events: none;
+}
+
+.right-column > * {
+  pointer-events: auto;
+}
+
+/* When space runs short the announcement panel gives way first, and scrolls inside. */
+.right-panel {
+  flex: 0 20 auto;
+  height: 52%;
+  min-height: 180px;
+  margin-top: auto;
   border-radius: var(--r-xl);
   overflow: hidden;
   display: flex;

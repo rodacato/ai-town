@@ -109,3 +109,15 @@
   background: #e7e2dc;
   color: #5d554d;
 }
+
+/* The panel sits in the lower half of the screen, so the send button stays in reach while scrolling. */
+.composer-send {
+  position: sticky;
+  bottom: 16px;
+  z-index: 1;
+  box-shadow: 0 6px 18px rgba(46, 42, 38, 0.16);
+}
+
+.composer {
+  gap: 16px;
+}

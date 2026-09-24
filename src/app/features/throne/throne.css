@@ -10,9 +10,9 @@
 }
 
 .throne-laws {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 16px;
 }
 
 .throne .btn-secondary.compact:disabled {

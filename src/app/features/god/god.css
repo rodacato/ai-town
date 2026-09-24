@@ -1,15 +1,11 @@
-/* Opens under its top-bar button, over the side panel, leaving the map in view. */
+/* Opens under its top-bar button, above the announcement panel, leaving the map in view. */
 .god-panel {
-  position: absolute;
-  top: 84px;
-  right: var(--gutter);
-  z-index: 12;
+  flex: 0 1 auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  width: 340px;
-  max-height: calc(100dvh - 84px - var(--gutter));
-  padding: 16px 18px 18px;
+  gap: 12px;
+  padding: 14px 18px 16px;
   border-radius: var(--r-xl);
   overflow-y: auto;
   box-shadow: var(--shadow-lg, 0 18px 40px rgba(46, 42, 38, 0.18));
