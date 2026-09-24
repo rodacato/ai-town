@@ -6,7 +6,63 @@ import { shade } from '../../../render/palette'
 import { C } from './palette'
 
 export function drawLandmark(l: Landmark): ArtSprite {
+  if (l.kind === 'guard-post') return guardPost(l)
   return l.kind === 'crypt' ? crypt(l) : greatOak(l)
+}
+
+/** A timber watch post on a stone footing, with a brazier that burns through the night. */
+function guardPost(l: Landmark): ArtSprite {
+  const view = new Container()
+  const g = new Graphics()
+  view.addChild(g)
+  const { x, y, size: n } = l
+  const box = (x0: number, y0: number, x1: number, y1: number, z0: number, z1: number, top: number, left: number, right: number) => {
+    g.poly(isoPoly([x0, y1, z0], [x1, y1, z0], [x1, y1, z1], [x0, y1, z1])).fill(left)
+    g.poly(isoPoly([x1, y0, z0], [x1, y1, z0], [x1, y1, z1], [x1, y0, z1])).fill(right)
+    g.poly(isoPoly([x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1])).fill(top)
+  }
+  g.poly(isoPoly([x - 0.1, y - 0.1, 0], [x + n + 0.1, y - 0.1, 0], [x + n + 0.1, y + n + 0.1, 0], [x - 0.1, y + n + 0.1, 0])).fill({ color: C.shadow, alpha: 0.15 })
+  box(x + 0.1, y + 0.1, x + n - 0.1, y + n - 0.1, 0, 10, C.stone, shade(C.stone, -0.12), shade(C.stone, -0.22))
+  const [ix0, iy0, ix1, iy1] = [x + 0.35, y + 0.35, x + n - 0.35, y + n - 0.35]
+  box(ix0, iy0, ix1, iy1, 10, 52, C.wood, shade(C.wood, -0.1), shade(C.wood, -0.24))
+  for (let k = 1; k < 4; k++) {
+    const u = ix0 + ((ix1 - ix0) * k) / 4
+    g.moveTo(...isoFlat(u, iy1, 12)).lineTo(...isoFlat(u, iy1, 50)).stroke({ width: 1, color: C.woodDark, alpha: 0.5 })
+    const v = iy0 + ((iy1 - iy0) * k) / 4
+    g.moveTo(...isoFlat(ix1, v, 12)).lineTo(...isoFlat(ix1, v, 50)).stroke({ width: 1, color: C.woodDark, alpha: 0.5 })
+  }
+  const [wx, wy] = isoFlat((ix0 + ix1) / 2, iy1, 40)
+  g.rect(wx - 3, wy - 5, 6, 7).fill(0x3a2e26)
+  box(x + 0.15, y + 0.15, x + n - 0.15, y + n - 0.15, 52, 56, shade(C.wood, 0.08), C.woodDark, shade(C.woodDark, -0.15))
+  const [cx, cy] = isoFlat(x + n / 2, y + n / 2, 56)
+  const peak = cy - 22
+  const [lx, ly] = isoFlat(x + 0.15, y + n - 0.15, 56)
+  const [rx, ry] = isoFlat(x + n - 0.15, y + 0.15, 56)
+  const [fx, fy] = isoFlat(x + n - 0.15, y + n - 0.15, 56)
+  g.poly([lx, ly, fx, fy, cx, peak]).fill(C.tiles)
+  g.poly([fx, fy, rx, ry, cx, peak]).fill(shade(C.tiles, -0.2))
+  g.moveTo(cx, peak).lineTo(cx, peak - 16).stroke({ width: 1.4, color: C.woodDark })
+  const flag = new Graphics().poly([0, 0, 12, 3, 0, 7]).fill(C.crimson)
+  flag.position.set(cx + 0.7, peak - 16)
+  view.addChild(flag)
+
+  const [bx, by] = isoFlat(x + n - 0.22, y + n - 0.22, 10)
+  g.rect(bx - 1, by - 16, 2, 16).fill(C.iron)
+  g.poly([bx - 6, by - 18, bx + 6, by - 18, bx + 4, by - 13, bx - 4, by - 13]).fill(C.iron)
+  const fire = new Graphics()
+  fire.poly([-4, 0, 0, -10, 4, 0]).fill(C.fire)
+  fire.poly([-2, 0, 0, -6, 2, 0]).fill(0xffe08a)
+  fire.position.set(bx, by - 18)
+  view.addChild(fire)
+  return {
+    view,
+    depth: x + y + n,
+    glows: [{ x: bx, y: by - 24, r: 64, color: C.fire }],
+    update: (t) => {
+      flag.skew.y = Math.sin(t * 2.6) * 0.14
+      fire.scale.set(1 + Math.sin(t * 12) * 0.1, 1 + Math.sin(t * 15) * 0.15)
+    },
+  }
 }
 
 /** The gossiping oak at the heart of the plaza, with a notice board and lanterns. */

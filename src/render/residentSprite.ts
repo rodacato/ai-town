@@ -33,11 +33,11 @@ export class ResidentSprite {
   readonly view = new Container()
   private stateRing = new Graphics()
   readonly reactionBubble = new Bubble()
-  private body = new Container()
-  private legL = new Graphics()
-  private legR = new Graphics()
-  private armL = new Graphics()
-  private armR = new Graphics()
+  private body: Container
+  private legL: Graphics
+  private legR: Graphics
+  private armL: Graphics
+  private armR: Graphics
   private ring = new Graphics()
   private bubble = new Container()
   private dots: Graphics[] = []
@@ -53,7 +53,7 @@ export class ResidentSprite {
     private overlay: Container,
   ) {
     const { look, age } = resident.profile
-    const { scale, wide } = buildOf(look, age)
+    const { scale } = buildOf(look, age)
     this.headHeight = 38 * scale
     this.view.eventMode = 'static'
     this.view.cursor = 'pointer'
@@ -67,30 +67,13 @@ export class ResidentSprite {
     this.stateRing.visible = false
     this.view.addChild(this.stateRing, this.ring)
 
-    const shadow = new Graphics().ellipse(0, 0, 7.5 * scale, 3.4 * scale).fill({ color: PAL.shadow, alpha: 0.2 })
-    this.view.addChild(shadow)
-
-    this.body.scale.set(scale * wide, scale)
-    this.view.addChild(this.body)
-    for (const [leg, lx] of [
-      [this.legL, -3.4],
-      [this.legR, 0.6],
-    ] as const) {
-      leg.roundRect(0, -8, 2.8, 8, 1.2).fill(look.pants)
-      leg.roundRect(-0.2, -1.6, 3.4, 1.8, 0.8).fill(shade(look.pants, -0.45))
-      leg.x = lx
-      this.body.addChild(leg)
-    }
-    this.body.addChild(drawBack(look))
-    this.armL.roundRect(-1.3, 0, 2.6, 8, 1.3).fill(shade(look.shirt, -0.12))
-    this.armL.position.set(-5.6, -17)
-    this.body.addChild(this.armL)
-    this.body.addChild(drawTorso(look))
-    this.armR.roundRect(-1.3, 0, 2.6, 8, 1.3).fill(look.shirt)
-    this.armR.circle(0, 8, 1.5).fill(look.skin)
-    this.armR.position.set(5.6, -17)
-    this.body.addChild(this.armR)
-    this.body.addChild(drawHead(look, age))
+    const figure = buildFigure(look, age)
+    this.body = figure.body
+    this.legL = figure.legL
+    this.legR = figure.legR
+    this.armL = figure.armL
+    this.armR = figure.armR
+    this.view.addChild(figure.shadow, this.body)
 
     this.buildBubble(scale)
   }
@@ -151,6 +134,34 @@ export class ResidentSprite {
   }
 }
 
+/** A person in the town's style, feet at the origin; the parts animate separately. */
+export function buildFigure(look: Look, age: number) {
+  const { scale, wide } = buildOf(look, age)
+  const shadow = new Graphics().ellipse(0, 0, 7.5 * scale, 3.4 * scale).fill({ color: PAL.shadow, alpha: 0.2 })
+  const body = new Container()
+  body.scale.set(scale * wide, scale)
+  const legL = new Graphics()
+  const legR = new Graphics()
+  for (const [leg, lx] of [
+    [legL, -3.4],
+    [legR, 0.6],
+  ] as const) {
+    leg.roundRect(0, -8, 2.8, 8, 1.2).fill(look.pants)
+    leg.roundRect(-0.2, -1.6, 3.4, 1.8, 0.8).fill(shade(look.pants, -0.45))
+    leg.x = lx
+    body.addChild(leg)
+  }
+  body.addChild(drawBack(look))
+  const armL = new Graphics().roundRect(-1.3, 0, 2.6, 8, 1.3).fill(shade(look.shirt, -0.12))
+  armL.position.set(-5.6, -17)
+  body.addChild(armL, drawTorso(look))
+  const armR = new Graphics().roundRect(-1.3, 0, 2.6, 8, 1.3).fill(look.shirt)
+  armR.circle(0, 8, 1.5).fill(look.skin)
+  armR.position.set(5.6, -17)
+  body.addChild(armR, drawHead(look, age))
+  return { shadow, body, legL, legR, armL, armR, scale }
+}
+
 function drawTorso(look: Look) {
   const g = new Graphics()
   g.roundRect(-5.8, -18, 11.6, 11.5, 4).fill(look.shirt)
@@ -185,6 +196,10 @@ function drawBack(look: Look) {
       g.moveTo(-4, -12).lineTo(1, -27).stroke({ width: 1.6, color: 0x6b4a33, cap: 'round' })
       g.ellipse(-5, -10, 4.2, 5.2).fill(0xb98b63)
       g.circle(-5, -11, 1.2).fill(0x4a3526)
+      break
+    case 'shovel':
+      g.moveTo(-7, -2).lineTo(2, -27).stroke({ width: 1.6, color: 0x8a5f40, cap: 'round' })
+      g.poly([-9, 0, -5, -5, -3, -3, -6, 3]).fill(0x8d949c)
       break
     case 'axe':
       g.moveTo(-7, -4).lineTo(3, -27).stroke({ width: 1.8, color: 0x8a5f40, cap: 'round' })

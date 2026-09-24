@@ -17,6 +17,14 @@ export function drawProp(kind: string, x: number, y: number): PropSprite | null 
   view.addChild(g)
   const shadow = (rx: number, ry: number, a = 0.14) => g.ellipse(0, 0, rx, ry).fill({ color: C.shadow, alpha: a })
 
+  const [style, dirs] = kind.split('-')
+  if ((style === 'fence' || style === 'palisade') && dirs) {
+    view.position.set(center.x, center.y)
+    if (style === 'fence') fence(g, dirs)
+    else palisade(g, dirs)
+    return { view, depth }
+  }
+
   switch (kind) {
     case 'tree': {
       const s = 0.85 + h * 0.35
@@ -234,7 +242,67 @@ export function drawProp(kind: string, x: number, y: number): PropSprite | null 
       g.moveTo(0, -24).lineTo(0, -14).stroke({ width: 1, color: C.woodDark })
       g.rect(-2.5, -14, 5, 4).fill(C.wood)
       return { view, depth }
+    case 'grave': {
+      const tilt = (h - 0.5) * 0.18
+      shadow(8, 3.5, 0.12)
+      g.ellipse(0, 1, 7, 3).fill({ color: 0x7fa874, alpha: 0.7 })
+      const stone = new Graphics()
+      stone.moveTo(-5, 0).lineTo(-5, -12).quadraticCurveTo(0, -19, 5, -12).lineTo(5, 0).fill(0xb3ada3)
+      stone.moveTo(1.5, 0).lineTo(1.5, -15.5).quadraticCurveTo(4, -14.5, 5, -12).lineTo(5, 0).fill(0x9c968c)
+      stone.moveTo(-2.5, -11).lineTo(2, -11).moveTo(-2.5, -8).lineTo(1, -8).stroke({ width: 0.8, color: 0x827c73 })
+      stone.rotation = tilt
+      stone.scale.set(1.35)
+      view.addChild(stone)
+      return { view, depth }
+    }
+    case 'grave-cross':
+      shadow(9, 4, 0.12)
+      g.ellipse(0, 1, 8, 3.4).fill({ color: 0x7fa874, alpha: 0.7 })
+      g.rect(-2, -27, 4, 27).fill(0xa9a399)
+      g.rect(-8, -20, 16, 4).fill(0xa9a399)
+      g.circle(0, -18, 4.6).stroke({ width: 1.5, color: 0x948e84 })
+      return { view, depth }
+    case 'dead-tree': {
+      shadow(12, 5, 0.12)
+      g.poly([-3, 0, -2, -22, 2, -22, 3, 0]).fill(0x6e5a4a)
+      const branch = (x0: number, y0: number, x1: number, y1: number, w: number) => g.moveTo(x0, y0).lineTo(x1, y1).stroke({ width: w, color: 0x6e5a4a, cap: 'round' })
+      branch(0, -20, -10, -32, 2)
+      branch(-6, -26, -12, -26, 1.2)
+      branch(0, -21, 9, -30, 1.8)
+      branch(5, -26, 7, -35, 1.1)
+      branch(0, -22, 1, -36, 1.6)
+      return { view, depth }
+    }
     default:
       return null
   }
+}
+
+const HALF: Record<string, [number, number]> = { e: isoFlat(0.5, 0), w: isoFlat(-0.5, 0), s: isoFlat(0, 0.5), n: isoFlat(0, -0.5) }
+
+/** Low rail fence; `dirs` lists which neighbours (n, e, s, w) it joins, so runs and corners line up. */
+function fence(g: Graphics, dirs: string) {
+  const ordered = [...dirs].sort((a, b) => 'nwes'.indexOf(a) - 'nwes'.indexOf(b))
+  for (const d of ordered) {
+    const [ex, ey] = HALF[d]
+    for (const h of [5, 10]) g.moveTo(0, -h).lineTo(ex, ey - h).stroke({ width: 1.8, color: C.woodDark })
+    g.rect(ex - 1.3, ey - 13, 2.6, 13).fill(C.wood)
+  }
+  g.rect(-1.5, -14, 3, 14).fill(C.wood)
+  g.rect(-1.5, -14, 3, 2).fill(shade(C.wood, 0.15))
+}
+
+/** Tall wall of sharpened logs for the guard post. */
+function palisade(g: Graphics, dirs: string) {
+  const ordered = [...dirs].sort((a, b) => 'nwes'.indexOf(a) - 'nwes'.indexOf(b))
+  const stake = (px: number, py: number, k: number) => {
+    const hgt = 24 + k * 4
+    g.poly([px - 3, py, px - 3, py - hgt, px, py - hgt - 5, px + 3, py - hgt, px + 3, py]).fill(C.wood)
+    g.poly([px, py - hgt - 5, px + 3, py - hgt, px + 3, py, px, py]).fill(shade(C.wood, -0.18))
+  }
+  for (const d of ordered) {
+    const [ex, ey] = HALF[d]
+    for (let i = 3; i >= 1; i--) stake((ex * i) / 3, (ey * i) / 3, (i * 7) % 3)
+  }
+  stake(0, 0, 1)
 }

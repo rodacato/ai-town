@@ -1,4 +1,4 @@
-import type { LayoutTools, PlaceQuery, WorldContent } from './content'
+import type { LayoutTools, PlaceQuery, Sentry, WorldContent } from './content'
 import { createRng } from './rng'
 import type { Building, Landmark, Place, Point, Tile, TileKind } from './types'
 
@@ -7,6 +7,7 @@ export interface World {
   tiles: Tile[][]
   buildings: Building[]
   landmarks: Landmark[]
+  sentries: Sentry[]
   places: Place[]
 }
 
@@ -76,6 +77,8 @@ export function createWorld(content: WorldContent): World {
   })
   for (const b of buildings) carveToStreet(tiles, b.door)
   for (const p of L.props) setProp(p.x, p.y, p.kind)
+  // Residents walk around guards rather than through them.
+  for (const s of L.sentries ?? []) at(s.x, s.y)!.blocked = true
 
   const tools: LayoutTools = {
     size: N,
@@ -99,7 +102,7 @@ export function createWorld(content: WorldContent): World {
   }
   L.decorate?.(tools)
 
-  const world: World = { size: N, tiles, buildings, landmarks: L.landmarks, places: [] }
+  const world: World = { size: N, tiles, buildings, landmarks: L.landmarks, sentries: L.sentries ?? [], places: [] }
   world.places = buildPlaces(world, content)
   return world
 }
