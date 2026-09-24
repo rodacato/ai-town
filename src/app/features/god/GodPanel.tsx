@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { OutcomeVisual } from '../../../core/reactions/outcome'
 import { formatClock } from '../../../core/sim/clock'
+import { SEASONS, SEASON_TEXT, type Season } from '../../../core/sim/season'
 import { WEATHERS, WEATHER_TEXT, type Weather } from '../../../core/sim/weather'
 import { useTown } from '../../store'
 import { Bolt, Close } from '../../shared/icons'
@@ -19,6 +20,7 @@ const SPEEDS: [string, number][] = [
   ['×2', 2],
   ['×4', 4],
 ]
+const SEASON_ICON: Record<Season, string> = { spring: '🌸', summer: '☀️', autumn: '🍂', winter: '❄️' }
 const WEATHER_ICON: Record<Weather, string> = { clear: '☀️', rain: '🌧️', storm: '⛈️', snow: '❄️', fog: '🌫️' }
 /** What can be unleashed and where it happens unless the user picks a place. */
 const EVENTS: { visual: OutcomeVisual; icon: string; label: string; place: string }[] = [
@@ -35,7 +37,7 @@ export function GodPanel() {
 }
 
 function Drawer() {
-  const { minutes, speed, weather, godEvent, curfew, setGodOpen } = useTown()
+  const { minutes, speed, weather, season, godEvent, curfew, setGodOpen } = useTown()
   const [place, setPlace] = useState('auto')
   const ref = useRef<HTMLElement>(null)
   const places = town.sim.world.places.filter((p) => p.keywords.length && p.spots.length)
@@ -86,6 +88,18 @@ function Drawer() {
       </section>
 
       <section>
+        <h3 className="section-label">Estación</h3>
+        <div className="god-grid four" role="radiogroup" aria-label="Estación">
+          {SEASONS.map((s) => (
+            <button key={s} role="radio" aria-checked={season === s} className={`god-btn stacked ${season === s ? 'is-active' : ''}`} onClick={() => town.setSeason(s)}>
+              <span aria-hidden>{SEASON_ICON[s]}</span>
+              {SEASON_TEXT[s].label}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section>
         <h3 className="section-label">Clima</h3>
         <div className="god-grid five" role="radiogroup" aria-label="Clima">
           {WEATHERS.map((w) => (
@@ -95,7 +109,7 @@ function Drawer() {
             </button>
           ))}
         </div>
-        <p className="field-hint">Los residentes lo notan: el clima entra en lo que el modelo sabe.</p>
+        <p className="field-hint">Los residentes lo notan: la estación y el clima entran en lo que el modelo sabe.</p>
       </section>
 
       <section>

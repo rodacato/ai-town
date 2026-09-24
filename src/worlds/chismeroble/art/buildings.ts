@@ -22,7 +22,8 @@ import {
   type RoofTexture,
 } from '../../../render/kit'
 import { shade } from '../../../render/palette'
-import { C } from './palette'
+import { C, SEASON_LOOK, type SeasonLook } from './palette'
+import type { Season } from '../../../core/sim/season'
 
 type Anim = (t: number, dt: number) => void
 
@@ -37,9 +38,10 @@ interface Ctx {
   doorFace: Face
   otherFace: Face
   doorU: number
+  look: SeasonLook
 }
 
-export function drawBuilding(b: Building): BuildingSprite {
+export function drawBuilding(b: Building, season: Season = 'summer'): BuildingSprite {
   const fp = { x: b.x, y: b.y, n: b.size }
   const { left, right } = faces(fp)
   const view = new Container()
@@ -57,6 +59,7 @@ export function drawBuilding(b: Building): BuildingSprite {
     doorFace: b.doorSide === 'left' ? left : right,
     otherFace: b.doorSide === 'left' ? right : left,
     doorU: b.doorSide === 'left' ? mid + 0.5 : b.size - mid - 0.5,
+    look: SEASON_LOOK[season],
   }
   groundShadow(g, fp)
   ;(DRAW[b.kind] ?? cottage)(ctx)
@@ -412,15 +415,17 @@ function treehouse(ctx: Ctx) {
   const canopy = new Container()
   canopy.position.set(bx, by - deck - 30)
   const cg = new Graphics()
+  const leaf = ctx.look.leaf
   const blobs: [number, number, number, number][] = [
-    [-34, -4, 26, C.leaf[2]],
-    [34, -2, 26, C.leaf[2]],
-    [-18, -26, 30, C.leaf[0]],
-    [20, -26, 30, C.leaf[1]],
-    [0, -44, 30, C.leaf[3]],
-    [-8, -54, 14, C.leafLight],
+    [-34, -4, 26, leaf[2]],
+    [34, -2, 26, leaf[2]],
+    [-18, -26, 30, leaf[0]],
+    [20, -26, 30, leaf[1]],
+    [0, -44, 30, leaf[3]],
+    [-8, -54, 14, ctx.look.leafLight],
   ]
   for (const [ox, oy, r, c] of blobs) cg.circle(ox, oy, r).fill(c)
+  if (ctx.look.blossom) for (let i = 0; i < 9; i++) cg.circle(-30 + i * 7.5, -40 + ((i * 13) % 30), 2.4).fill(ctx.look.blossom)
   for (const [ox, oy] of [
     [-30, 10],
     [28, 12],

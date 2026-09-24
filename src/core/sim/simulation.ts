@@ -3,6 +3,7 @@ import { findPath } from '../world/pathfinding'
 import { createRng, type Rng } from '../world/rng'
 import type { Point } from '../world/types'
 import { createWorld, isWalkable, type World } from '../world/world'
+import type { Season } from './season'
 import type { Weather } from './weather'
 
 export type ResidentMode = 'walking' | 'idle' | 'inside'
@@ -53,6 +54,7 @@ export class Simulation {
   readonly residents: Resident[] = []
   minutes = START_MINUTES
   weather: Weather = 'clear'
+  season: Season = 'summer'
   private rng: Rng
   private chatCheck = 0
   private tickers = new Set<(dt: number) => void>()
@@ -71,6 +73,7 @@ export class Simulation {
     this.rng = createRng(seed)
     this.minutes = START_MINUTES
     this.weather = 'clear'
+    this.season = 'summer'
     const fresh = this.residents.map((r) => this.spawn(r.profile))
     fresh.forEach((f, i) => Object.assign(this.residents[i], f))
   }

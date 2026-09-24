@@ -3,9 +3,11 @@ import { hash2 } from '../../../core/world/rng'
 import type { PropSprite } from '../../../render/art'
 import { iso, isoFlat, isoPoly } from '../../../render/iso'
 import { shade } from '../../../render/palette'
-import { C } from './palette'
+import { C, SEASON_LOOK } from './palette'
+import type { Season } from '../../../core/sim/season'
 
-export function drawProp(kind: string, x: number, y: number): PropSprite | null {
+export function drawProp(kind: string, x: number, y: number, season: Season = 'summer'): PropSprite | null {
+  const look = SEASON_LOOK[season]
   const h = hash2(x, y, 21)
   const jitter = { x: (hash2(x, y, 22) - 0.5) * 0.3, y: (hash2(x, y, 23) - 0.5) * 0.3 }
   const c = iso(x + 0.5 + jitter.x, y + 0.5 + jitter.y)
@@ -33,13 +35,14 @@ export function drawProp(kind: string, x: number, y: number): PropSprite | null 
       const crown = new Container()
       crown.position.set(0, -14 * s)
       const cg = new Graphics()
-      const leaf = C.leaf[Math.floor(h * C.leaf.length)]
+      const leaf = look.leaf[Math.floor(h * look.leaf.length)]
       const r = 13 * s
       cg.circle(-r * 0.55, -r * 0.55, r * 0.8).fill(shade(leaf, -0.1))
       cg.circle(r * 0.55, -r * 0.5, r * 0.8).fill(shade(leaf, -0.14))
       cg.circle(0, -r * 1.05, r * 0.95).fill(leaf)
       cg.circle(-r * 0.25, -r * 1.3, r * 0.5).fill(shade(leaf, 0.12))
-      if (h > 0.7) for (let i = 0; i < 4; i++) cg.circle(-r * 0.5 + i * r * 0.35, -r * (0.6 + (i % 2) * 0.5), 1.8).fill(0xd9534f)
+      if (look.blossom) for (let i = 0; i < 6; i++) cg.circle(-r * 0.7 + i * r * 0.28, -r * (0.5 + (i % 3) * 0.35), 2).fill(look.blossom)
+      else if (h > 0.7 && season !== 'winter') for (let i = 0; i < 4; i++) cg.circle(-r * 0.5 + i * r * 0.35, -r * (0.6 + (i % 2) * 0.5), 1.8).fill(0xd9534f)
       crown.addChild(cg)
       view.addChild(crown)
       return { view, depth, sway: { target: crown, phase: h * 10, amount: 0.035 } }
@@ -58,6 +61,7 @@ export function drawProp(kind: string, x: number, y: number): PropSprite | null 
         const base = -(i * 10) * s
         cg.poly([-w, base, 0, top - 6 * s, 0, base + 2]).fill(color)
         cg.poly([0, top - 6 * s, w, base, 0, base + 2]).fill(shade(color, -0.15))
+        if (look.snowCaps) cg.poly([-w * 0.45, top + (base - top) * 0.35, 0, top - 6 * s, w * 0.45, top + (base - top) * 0.35]).fill(0xf4f7f8)
       }
       crown.addChild(cg)
       view.addChild(crown)
@@ -65,12 +69,21 @@ export function drawProp(kind: string, x: number, y: number): PropSprite | null 
     }
     case 'bush':
       shadow(11, 5, 0.12)
-      g.circle(-5, -5, 6).fill(shade(C.bush, -0.1))
-      g.circle(5, -5, 6).fill(shade(C.bush, -0.15))
-      g.circle(0, -8, 7).fill(C.bush)
-      if (h > 0.5) for (let i = 0; i < 3; i++) g.circle(-4 + i * 4, -9 + (i % 2) * 3, 1.3).fill(0x7b5ea7)
+      g.circle(-5, -5, 6).fill(shade(look.bush, -0.1))
+      g.circle(5, -5, 6).fill(shade(look.bush, -0.15))
+      g.circle(0, -8, 7).fill(look.bush)
+      if (h > 0.5 && season !== 'winter') for (let i = 0; i < 3; i++) g.circle(-4 + i * 4, -9 + (i % 2) * 3, 1.3).fill(0x7b5ea7)
       return { view, depth }
     case 'flowers':
+      if (look.ground === 'bare') return null
+      if (look.ground === 'leaves') {
+        for (let i = 0; i < 7; i++) {
+          const fx = (hash2(x, y, 30 + i) - 0.5) * 28
+          const fy = (hash2(x, y, 40 + i) - 0.5) * 12
+          g.ellipse(fx, fy, 3, 1.6).fill(look.leaf[i % look.leaf.length])
+        }
+        return { view, depth: depth - 0.5 }
+      }
       for (let i = 0; i < 6; i++) {
         const fx = (hash2(x, y, 30 + i) - 0.5) * 26
         const fy = (hash2(x, y, 40 + i) - 0.5) * 12
@@ -209,6 +222,7 @@ export function drawProp(kind: string, x: number, y: number): PropSprite | null 
       for (let i = -2; i <= 2; i++) g.moveTo(i * 4, -24 + Math.abs(i) * 2).lineTo(i * 5, -3).stroke({ width: 1, color: shade(C.thatch, -0.25), alpha: 0.5 })
       return { view, depth }
     case 'pumpkin':
+      if (season === 'winter') return null
       for (let i = 0; i < 3; i++) {
         const [fx, fy] = isoFlat(-0.3 + i * 0.3, 0, 0)
         const s = 0.8 + hash2(x, y, 90 + i) * 0.4
@@ -219,6 +233,7 @@ export function drawProp(kind: string, x: number, y: number): PropSprite | null 
       }
       return { view, depth: depth - 0.5 }
     case 'mushrooms':
+      if (season === 'winter') return null
       for (let i = 0; i < 3; i++) {
         const fx = (hash2(x, y, 110 + i) - 0.5) * 18
         const fy = (hash2(x, y, 120 + i) - 0.5) * 8

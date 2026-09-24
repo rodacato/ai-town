@@ -3,11 +3,12 @@ import type { Landmark } from '../../../core/world/types'
 import type { ArtSprite } from '../../../render/art'
 import { iso, isoFlat, isoPoly } from '../../../render/iso'
 import { shade } from '../../../render/palette'
-import { C } from './palette'
+import { C, SEASON_LOOK, type SeasonLook } from './palette'
+import type { Season } from '../../../core/sim/season'
 
-export function drawLandmark(l: Landmark): ArtSprite {
+export function drawLandmark(l: Landmark, season: Season = 'summer'): ArtSprite {
   if (l.kind === 'guard-post') return guardPost(l)
-  return l.kind === 'crypt' ? crypt(l) : greatOak(l)
+  return l.kind === 'crypt' ? crypt(l) : greatOak(l, SEASON_LOOK[season])
 }
 
 /** A timber watch post on a stone footing, with a brazier that burns through the night. */
@@ -66,7 +67,7 @@ function guardPost(l: Landmark): ArtSprite {
 }
 
 /** The gossiping oak at the heart of the plaza, with a notice board and lanterns. */
-function greatOak(l: Landmark): ArtSprite {
+function greatOak(l: Landmark, look: SeasonLook): ArtSprite {
   const c = iso(l.x + l.size / 2, l.y + l.size / 2)
   const view = new Container()
   view.position.set(c.x, c.y)
@@ -100,14 +101,14 @@ function greatOak(l: Landmark): ArtSprite {
   crown.position.set(0, -58)
   const cg = new Graphics()
   const blobs: [number, number, number, number][] = [
-    [-52, 6, 30, C.leaf[2]],
-    [52, 8, 30, C.leaf[2]],
-    [-34, -24, 36, C.leaf[0]],
-    [36, -22, 36, C.leaf[1]],
-    [0, -12, 38, C.leaf[3]],
-    [-8, -50, 38, C.leaf[0]],
-    [24, -48, 26, C.leaf[3]],
-    [-20, -66, 16, C.leafLight],
+    [-52, 6, 30, look.leaf[2]],
+    [52, 8, 30, look.leaf[2]],
+    [-34, -24, 36, look.leaf[0]],
+    [36, -22, 36, look.leaf[1]],
+    [0, -12, 38, look.leaf[3]],
+    [-8, -50, 38, look.leaf[0]],
+    [24, -48, 26, look.leaf[3]],
+    [-20, -66, 16, look.leafLight],
   ]
   for (const [ox, oy, r, color] of blobs) cg.circle(ox, oy, r).fill(color)
   for (const [ox, oy] of [
@@ -117,6 +118,8 @@ function greatOak(l: Landmark): ArtSprite {
     [46, -10],
   ])
     cg.circle(ox, oy, 2.5).fill(0xe0b24f)
+  if (look.blossom)
+    for (let i = 0; i < 16; i++) cg.circle(-48 + ((i * 29) % 96), -70 + ((i * 17) % 80), 3).fill(look.blossom)
   crown.addChild(cg)
   const lanterns = new Graphics()
   for (const [ox, oy] of [

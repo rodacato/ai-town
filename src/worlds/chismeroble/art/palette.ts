@@ -1,3 +1,4 @@
+import type { Season } from '../../../core/sim/season'
 import type { TerrainPalette } from '../../../render/art'
 
 export const C = {
@@ -52,4 +53,71 @@ export const TERRAIN: TerrainPalette = {
   sideLeft: 0xb89572,
   sideRight: 0xa3805f,
   sideRock: 0x8f7458,
+}
+
+/** What changes with the season: foliage, the ground and what grows on it. */
+export interface SeasonLook {
+  leaf: readonly number[]
+  leafLight: number
+  bush: number
+  /** Blossom dotted over tree crowns, if any. */
+  blossom: number | null
+  /** What flower tiles show: flowers, fallen leaves, or nothing under the snow. */
+  ground: 'flowers' | 'leaves' | 'bare'
+  snowCaps: boolean
+  grass: readonly number[]
+  grassDark: number
+  grassTuft: number
+}
+
+export const SEASON_LOOK: Record<Season, SeasonLook> = {
+  spring: {
+    leaf: [0x8fc57a, 0x9fd08a, 0x86bd74, 0xa8d69a],
+    leafLight: 0xc8e6b8,
+    bush: 0x7fb070,
+    blossom: 0xf6b8c8,
+    ground: 'flowers',
+    snowCaps: false,
+    grass: [0xa8d098, 0xa2cb92, 0xafd49f, 0x9ec78f],
+    grassDark: 0x86b27a,
+    grassTuft: 0x80ab72,
+  },
+  summer: {
+    leaf: C.leaf,
+    leafLight: C.leafLight,
+    bush: C.bush,
+    blossom: null,
+    ground: 'flowers',
+    snowCaps: false,
+    grass: TERRAIN.grass,
+    grassDark: TERRAIN.grassDark,
+    grassTuft: TERRAIN.grassTuft,
+  },
+  autumn: {
+    leaf: [0xe0913f, 0xd46a3a, 0xe8b04a, 0xc4552f],
+    leafLight: 0xf2c46b,
+    bush: 0xb88a4a,
+    blossom: null,
+    ground: 'leaves',
+    snowCaps: false,
+    grass: [0xc2c08a, 0xbcb982, 0xc8c692, 0xb6b27c],
+    grassDark: 0xa39f68,
+    grassTuft: 0x9e9a62,
+  },
+  winter: {
+    leaf: [0xe9eef0, 0xdfe7ea, 0xf2f5f6, 0xd6dfe3],
+    leafLight: 0xffffff,
+    bush: 0xd8e2e4,
+    blossom: null,
+    ground: 'bare',
+    snowCaps: true,
+    grass: [0xe6ecee, 0xdde5e8, 0xeef2f3, 0xd8e1e4],
+    grassDark: 0xc4cfd3,
+    grassTuft: 0xb7c3c7,
+  },
+}
+
+export const terrainFor = (season: Season): TerrainPalette => {
+  const L = SEASON_LOOK[season]
+  return { ...TERRAIN, grass: L.grass, grassDark: L.grassDark, grassTuft: L.grassTuft }
 }

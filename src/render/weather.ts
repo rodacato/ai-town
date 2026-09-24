@@ -1,4 +1,5 @@
 import { Container, Graphics } from 'pixi.js'
+import type { Season } from '../core/sim/season'
 import type { Weather } from '../core/sim/weather'
 
 interface Drop {
@@ -121,3 +122,46 @@ export const WEATHER_GRADE: Record<Weather, [number, number][]> = {
   ],
 }
 
+
+const DRIFT: Partial<Record<Season, readonly number[]>> = {
+  spring: [0xf6b8c8, 0xfbd3de, 0xffffff],
+  autumn: [0xe0913f, 0xd46a3a, 0xe8b04a, 0xc4552f],
+}
+
+/** Petals in spring and leaves in autumn, tumbling slowly over the island. */
+export class SeasonFx {
+  readonly view = new Container()
+  private bits: { g: Graphics; x: number; y: number; speed: number; spin: number; phase: number }[] = []
+  private season: Season | null = null
+
+  constructor(
+    private span: number,
+    private depth: number,
+  ) {}
+
+  set(season: Season) {
+    if (season === this.season) return
+    this.season = season
+    for (const b of this.bits) b.g.destroy()
+    this.bits = []
+    const colors = DRIFT[season]
+    if (!colors) return
+    for (let i = 0; i < 90; i++) {
+      const g = new Graphics().ellipse(0, 0, 3.2, 1.8).fill(colors[i % colors.length])
+      this.view.addChild(g)
+      this.bits.push({ g, x: (Math.random() - 0.5) * this.span * 2, y: Math.random() * this.depth, speed: 18 + Math.random() * 22, spin: 1 + Math.random() * 2, phase: Math.random() * 6 })
+    }
+  }
+
+  update(dt: number, time: number, calm: boolean) {
+    for (const b of this.bits) {
+      if (!calm) {
+        b.y += b.speed * dt
+        b.x += Math.sin(time * 0.9 + b.phase) * 14 * dt
+        if (b.y > this.depth) b.y = -60
+      }
+      b.g.position.set(b.x, b.y)
+      b.g.rotation = calm ? b.phase : time * b.spin + b.phase
+    }
+  }
+}
