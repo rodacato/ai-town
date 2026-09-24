@@ -133,6 +133,8 @@ export interface Example {
   tone: 'confiable' | 'urgente' | 'sospechoso' | 'emergencia'
   speaker: { kind: SpeakerKind; residentId?: string }
   text: string
+  /** Whether it is true in this world's story; the benchmark scores beliefs against it. */
+  truth?: boolean
 }
 
 export interface WorldContent {

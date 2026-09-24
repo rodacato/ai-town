@@ -252,6 +252,7 @@ function Result({ run }: { run: BenchRun }) {
               <th scope="col">Contendiente</th>
               <th scope="col" title="Respuestas con el JSON pedido, sin arreglos">Formato</th>
               <th scope="col" title="Cuántas repeticiones coinciden con la acción más común del residente">Consistencia</th>
+              <th scope="col" title="Creencias que coinciden con lo que de verdad pasó: le creyó a lo cierto y dudó de lo falso">Acierto</th>
               <th scope="col" title="Decisiones que no contradicen la personalidad del residente (miedosos que no van al peligro, escépticos que no se tragan lo sospechoso…)">Personaje</th>
               {hasRef && <th scope="col" title="Acción más común igual a la de las reglas locales; una referencia, no la verdad">Como las reglas</th>}
               <th scope="col">Errores</th>
@@ -299,7 +300,8 @@ function Result({ run }: { run: BenchRun }) {
         {run.scenarios.map((s) => (
           <div key={s.id} className="scenario-result">
             <p>
-              <span className={`tone tone-${s.tone}`}>{s.tone}</span> {s.text}
+              <span className={`tone tone-${s.tone}`}>{s.tone}</span>
+              {s.truth !== undefined && <span className={`truth-chip ${s.truth ? 'is-true' : 'is-false'}`}>{s.truth ? 'era verdad' : 'era mentira'}</span>} {s.text}
             </p>
             {reports.map((r) => {
               const d = r.byScenario[s.id]
@@ -368,6 +370,9 @@ function Row({ r, label, hasRef, ms }: { r: ContenderReport; label: string; hasR
       <th scope="row">{label}</th>
       <td className="mono">{r.format.checked ? pct(r.format.ok / r.format.checked) : '—'}</td>
       <td className="mono">{pct(r.consistency)}</td>
+      <td className="mono" title={r.truth != null ? `Se tragó ${r.fooled ?? 0} mentiras · dudó de ${r.doubted ?? 0} verdades` : undefined}>
+        {pct(r.truth ?? null)}
+      </td>
       <td className="mono">{pct(r.persona ?? null)}</td>
       {hasRef && <td className="mono">{r.contender === 'rules' ? '—' : pct(r.referenceAgreement)}</td>}
       <td className={`mono ${r.errors ? 'is-bad' : ''}`}>{r.errors ? `${r.errors}/${r.trials}` : '0'}</td>

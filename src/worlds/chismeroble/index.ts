@@ -73,24 +73,28 @@ export const chismeroble: WorldContent = {
   examples: [
     {
       id: 'banquet',
+      truth: true,
       tone: 'confiable',
       speaker: { kind: 'authority' },
       text: '¡Por orden de la Baronesa! Esta tarde hay banquete gratis en la Plaza del Pregón: jabalí asado y aguamiel para todos.',
     },
     {
       id: 'troll',
+      truth: true,
       tone: 'urgente',
       speaker: { kind: 'neighbor', residentId: 'kael' },
       text: 'Cuidado: vi huellas de troll junto al puente de piedra. Que nadie lo cruce hasta que la guardia lo revise.',
     },
     {
       id: 'crypt',
+      truth: false,
       tone: 'sospechoso',
       speaker: { kind: 'stranger' },
       text: 'Pago cien monedas de oro a quien baje conmigo a la cripta a medianoche. Vengan solos y no se lo cuenten a nadie.',
     },
     {
       id: 'dragon',
+      truth: true,
       tone: 'emergencia',
       speaker: { kind: 'authority' },
       text: '¡Alerta! Refúgiense en sus casas y apaguen los fuegos: un dragón rojo sobrevuela el Bosque Susurrante.',

@@ -224,6 +224,7 @@ function printReport(run: BenchRun) {
       label(r.contender),
       r.format.checked ? pct(r.format.ok / r.format.checked) : '—',
       pct(r.consistency),
+      pct(r.truth ?? null),
       pct(r.persona ?? null),
       rules ? '—' : pct(r.referenceAgreement),
       r.errors ? `${r.errors}/${r.trials}` : '0',
@@ -234,7 +235,7 @@ function printReport(run: BenchRun) {
       m.costUsd === null ? '—' : `${m.costEstimated ? '≈' : ''}$${m.costUsd.toFixed(m.costUsd < 0.01 ? 4 : 2)}`,
     ]
   }
-  const head = ['Contendiente', 'Formato', 'Consist.', 'Personaje', 'Reglas', 'Errores', 'p50 / p95', 'Pet/s', 'Tok/s', 'Tokens', 'Costo']
+  const head = ['Contendiente', 'Formato', 'Consist.', 'Acierto', 'Personaje', 'Reglas', 'Errores', 'p50 / p95', 'Pet/s', 'Tok/s', 'Tokens', 'Costo']
   const rows = run.report.contenders.map(row)
   const widths = head.map((h, i) => Math.max(h.length, ...rows.map((r) => r[i].length)))
   const fmt = (cells: string[]) => cells.map((c, i) => (i ? c.padStart(widths[i]) : c.padEnd(widths[i]))).join('  ')
