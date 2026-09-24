@@ -1,3 +1,4 @@
+import { hourOf } from './clock'
 import type { ResidentProfile } from '../world/content'
 import type { Season } from './season'
 import { isFoul, type Weather } from './weather'
@@ -6,13 +7,13 @@ import { isFoul, type Weather } from './weather'
 const INDOORS = new Set(['home', 'tavern', 'temple', 'forge', 'potions', 'tower', 'mill', 'keep', 'visit'])
 
 export const isNight = (minutes: number) => {
-  const h = (minutes / 60) % 24
+  const h = hourOf(minutes)
   return h >= 22 || h < 6
 }
 
 /** Where someone feels like going right now: their routine, bent by the hour, the weather and the season. */
 export function routineNow(p: ResidentProfile, minutes: number, weather: Weather, season: Season, curfew = false): Record<string, number> {
-  const h = (minutes / 60) % 24
+  const h = hourOf(minutes)
   if (curfew && (h >= 20 || h < 6)) return { home: 1 }
   if (isNight(minutes)) return p.nightRoutine ?? { home: 1 }
   const weights: Record<string, number> = { ...p.routine }
@@ -37,6 +38,6 @@ export function routineNow(p: ResidentProfile, minutes: number, weather: Weather
 
 /** At night people without a night routine stay in until morning. */
 export const staysIn = (p: ResidentProfile, minutes: number, curfew = false) => {
-  const h = (minutes / 60) % 24
+  const h = hourOf(minutes)
   return curfew ? h >= 20 || h < 6 : isNight(minutes) && !p.nightRoutine
 }

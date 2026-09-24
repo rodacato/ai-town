@@ -1,4 +1,4 @@
-import { alive, averageMood, foodDays, type Economy } from '../economy/economy'
+import { alive, averageMood, foodDays, lawsInForce, type Economy } from '../economy/economy'
 import type { TownMemory } from '../memory/memory'
 import { createRng } from '../world/rng'
 import type { WorldContent } from '../world/content'
@@ -108,9 +108,7 @@ export function buildReport(input: {
 }
 
 export function reportText(r: RoyalReport) {
-  const laws = Object.entries({ curfew: 'toque de queda', rationing: 'racionamiento', levy: 'leva de guardias' })
-    .filter(([k]) => r.laws[k as keyof RoyalReport['laws']])
-    .map(([, v]) => v)
+  const laws = lawsInForce(r.laws)
   return [
     `# Informe del castillo · amanecer del día ${r.day + 1}`,
     `${SEASON_TEXT[r.season].sentence} ${WEATHER_TEXT[r.weather].sentence}`,

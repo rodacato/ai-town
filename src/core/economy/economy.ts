@@ -53,6 +53,11 @@ export interface Laws {
   levy: boolean
 }
 
+export const LAW_NAME: Record<keyof Laws, string> = { curfew: 'toque de queda', rationing: 'racionamiento', levy: 'leva de guardias' }
+
+/** The standing laws, by name, for reports and prompts. */
+export const lawsInForce = (laws: Laws) => (Object.keys(LAW_NAME) as (keyof Laws)[]).filter((k) => laws[k]).map((k) => LAW_NAME[k])
+
 export interface Ledger {
   day: number
   harvest: number

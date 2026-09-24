@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { OutcomeVisual } from '../../../core/reactions/outcome'
-import { formatClock } from '../../../core/sim/clock'
+import { formatClock, hourOf } from '../../../core/sim/clock'
 import { SEASONS, SEASON_TEXT, type Season } from '../../../core/sim/season'
 import { WEATHERS, WEATHER_TEXT, type Weather } from '../../../core/sim/weather'
 import { useTown } from '../../store'
@@ -56,7 +56,7 @@ const EVENTS: { visual: OutcomeVisual; icon: string; label: string; place: strin
 
 /** Which preset the clock is closest to, so the time control shows where the day is. */
 function period(minutes: number) {
-  const h = (minutes / 60) % 24
+  const h = hourOf(minutes)
   return h >= 5 && h < 8 ? 0 : h >= 8 && h < 17 ? 1 : h >= 17 && h < 20 ? 2 : 3
 }
 
@@ -118,7 +118,7 @@ function Terrarium() {
   const { autoplay, seed, fateDone, residentsOnModel, realm, season, standing, llm } = useTown()
   const file = useRef<HTMLInputElement>(null)
   const day = realm?.day ?? 0
-  const coming = town.fateCalendar().filter((f) => f.day > fateDone && f.day >= day).slice(0, 3)
+  const coming = town.terrarium.calendar().filter((f) => f.day > fateDone && f.day >= day).slice(0, 3)
   const save = () => {
     const { name, text } = town.exportGame()
     const a = document.createElement('a')
@@ -281,7 +281,7 @@ function TownActions() {
         <button className="btn-secondary compact" onClick={() => town.surprise()}>
           Pregón sorpresa
         </button>
-        <button className="btn-secondary compact" onClick={() => town.stirGuild()}>
+        <button className="btn-secondary compact" onClick={() => town.throne.stirGuild()}>
           🗡️ Azuzar al gremio de ladrones
         </button>
       </div>

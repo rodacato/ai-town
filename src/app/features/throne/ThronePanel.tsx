@@ -74,7 +74,7 @@ function Govern() {
   const [proclaim, setProclaim] = useState(true)
   const e = town.sim.economy
   if (!realm || !e) return null
-  const act = (d: Decree) => town.decree(d, proclaim)
+  const act = (d: Decree) => town.throne.decree(d, proclaim)
   const living = Object.values(realm.people).filter((p) => p.status !== 'dead' && p.status !== 'gone').length
   const hungry = Object.values(realm.people).filter((p) => p.daysHungry > 0 || p.coins < realm.foodPrice).length
 
@@ -155,7 +155,7 @@ function BaronessRoom() {
     <div className="throne-room">
       <div className="field">
         <span className="field-label">¿Quién gobierna?</span>
-        <Choice label="Quién gobierna" options={MODES.map(([m]) => m)} value={rulerMode} onPick={(m) => town.setRulerMode(m)} render={(m) => MODES.find(([k]) => k === m)![1]} />
+        <Choice label="Quién gobierna" options={MODES.map(([m]) => m)} value={rulerMode} onPick={(m) => town.throne.setRulerMode(m)} render={(m) => MODES.find(([k]) => k === m)![1]} />
         <span className="field-hint">
           {rulerMode === 'manual'
             ? 'Gobiernas tú desde la pestaña Gobernar. La Baronesa solo actúa si se lo pides.'
@@ -166,7 +166,7 @@ function BaronessRoom() {
                 : 'No hay modelo configurado: elige uno en Configuración. Mientras, gobierna con reglas.'}
         </span>
       </div>
-      <button className="btn-secondary compact" onClick={() => void town.reign(true)} disabled={rulerBusy}>
+      <button className="btn-secondary compact" onClick={() => void town.throne.reign(true)} disabled={rulerBusy}>
         {rulerBusy ? 'La Baronesa está pensando…' : '🗝️ Consultar a la Baronesa ahora'}
       </button>
 
@@ -220,7 +220,7 @@ function BaronessRoom() {
               ))}
             </ul>
             {mailbox.some((l) => !l.seen) && (
-              <button className="btn-link" onClick={() => town.markLettersSeen()}>
+              <button className="btn-link" onClick={() => town.throne.markLettersSeen()}>
                 Marcar como leídas
               </button>
             )}
