@@ -1,5 +1,5 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { dirname } from 'node:path'
+import { dirname, join } from 'node:path'
 import { parseArgs } from 'node:util'
 import { errorSummary, type ContenderReport } from '../src/core/bench/analysis'
 import { RULE_LABEL } from '../src/core/bench/coherence'
@@ -17,6 +17,7 @@ import { runJudge, summarizeJudgments } from '../src/core/bench/judge'
 import { createModelJudge } from '../src/providers/judge'
 import { nameOf } from '../src/core/lang'
 import { GOLDEN_SIZE } from '../src/core/bench/golden'
+import { runFileName } from '../src/core/bench/bundle'
 import { ACTION_META } from '../src/theme/actions'
 
 const HELP = `Banco de pruebas de AI Town desde la terminal.
@@ -37,7 +38,7 @@ Uso: npm run bench -- [opciones]
       --rapida                           Solo los casos de oro (${GOLDEN_SIZE} decisiones con una respuesta clara), una vez cada uno.
       --juez <proveedor:modelo>          Al terminar, un modelo juzga de 1 a 5 si las decisiones suenan a cada vecino.
       --muestras <n>                     Decisiones que juzga por contendiente (por defecto 12).
-  -o, --out <archivo.json>               Dónde guardar la corrida (por defecto bench-results/).
+  -o, --out <archivo.json>               Dónde guardar la corrida (por defecto AI_TOWN_RUNS_DIR o bench-results/).
       --dry-run                          Muestra el plan sin hacer peticiones.
       --compare <antes.json> <después.json>
                                          Compara dos corridas guardadas en vez de correr una.
@@ -46,7 +47,8 @@ Uso: npm run bench -- [opciones]
 Hosts y keys salen de .env / .env.local:
   ANTHROPIC_API_KEY · OPENAI_API_KEY · SHELLM_HOST, SHELLM_KEY · CUSTOM_LLM_HOST, CUSTOM_LLM_KEY, CUSTOM_LLM_PROTOCOL
 
-El JSON resultante se puede importar en el historial del Banco de pruebas del navegador.`
+El JSON resultante se puede importar en el historial del Banco de pruebas del navegador. Con AI_TOWN_RUNS_DIR apuntando a la
+carpeta compartida que enlazaste en el navegador, cada corrida aparece allí sola.`
 
 const { values: args, positionals } = parseArgs({
   allowPositionals: true,
@@ -162,7 +164,8 @@ process.stdout.write('\n\n')
 printReport(run)
 if (args.juez && run.trials.length && !run.cancelled) await judge(run)
 
-const out = args.out ?? `bench-results/${content.id}-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.json`
+// A synced folder shared with the browser's history, if set; bench-results/ otherwise.
+const out = args.out ?? join(process.env.AI_TOWN_RUNS_DIR || 'bench-results', runFileName(run))
 if (run.trials.length) {
   mkdirSync(dirname(out), { recursive: true })
   writeFileSync(out, JSON.stringify(run, null, 2))
