@@ -39,9 +39,8 @@ export function Composer() {
 
   return (
     <div className="panel-view composer">
-      <header className="panel-header">
+      <header className="panel-header" title={town.content.copy.composerSubtitle}>
         <h2>{town.content.copy.composerTitle}</h2>
-        <p>{town.content.copy.composerSubtitle}</p>
       </header>
 
       <div className="field">
@@ -58,7 +57,7 @@ export function Composer() {
           <textarea
             id="announcement"
             ref={area}
-            rows={3}
+            rows={2}
             value={text}
             placeholder="Ej. Esta tarde hay música en la plaza…"
             onChange={(e) => setText(e.target.value)}
@@ -80,7 +79,7 @@ export function Composer() {
 
       <TruthPicker />
 
-      <button className="btn-primary" disabled={!canSend} onClick={() => town.transmit()}>
+      <button className="btn-primary composer-send" disabled={!canSend} onClick={() => town.transmit()}>
         <Megaphone width={17} height={17} />
         {town.content.copy.broadcast}
         <kbd>{isMac ? '⌘' : 'Ctrl'} ↵</kbd>

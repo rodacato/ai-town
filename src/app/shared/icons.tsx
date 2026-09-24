@@ -197,3 +197,15 @@ export const Bolt = (p: SVGProps<SVGSVGElement>) => (
     <path d="M13 3 5 13.5h6L10 21l8-10.5h-6L13 3Z" />
   </svg>
 )
+
+export const Pause = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <path d="M9 5v14M15 5v14" />
+  </svg>
+)
+
+export const Play = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <path d="M7 5v14l12-7L7 5Z" />
+  </svg>
+)

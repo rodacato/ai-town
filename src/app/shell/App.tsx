@@ -62,9 +62,11 @@ export function App() {
       <MapHint />
       <HoverTag />
       <Timeline />
-      <RightPanel />
-      <GodPanel />
-      <ThronePanel />
+      <div className="right-column">
+        <GodPanel />
+        <ThronePanel />
+        <RightPanel />
+      </div>
       <EndScreen />
       <ChronicleModal />
       <Toasts />

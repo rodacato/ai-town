@@ -7,7 +7,7 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 4px 14px;
-  max-width: min(460px, calc(100vw - var(--panel-w) - var(--gutter) * 3));
+  max-width: min(620px, calc(100vw - var(--panel-w) - var(--gutter) * 3));
   padding: 8px 14px;
   border-radius: 999px;
   font-size: 13px;
@@ -127,4 +127,67 @@
   .end-stats {
     grid-template-columns: 1fr;
   }
+}
+
+.realm-ruler {
+  max-width: 150px;
+  padding: 2px 8px;
+  margin-left: -6px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-size: 12px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/* Instant explanations under each figure. */
+.realm-hud [data-tip] {
+  position: relative;
+}
+
+.realm-hud [data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 50%;
+  z-index: 10;
+  width: 240px;
+  padding: 8px 11px;
+  border-radius: 10px;
+  background: var(--ink);
+  color: #fff;
+  font-family: var(--font-body, inherit);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.45;
+  text-align: left;
+  white-space: normal;
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  transform: translate(-50%, -4px);
+  transition:
+    opacity 120ms var(--ease-out),
+    transform 120ms var(--ease-out);
+  pointer-events: none;
+}
+
+.realm-hud [data-tip]:first-child::after {
+  left: 0;
+  transform: translate(0, -4px);
+}
+
+.realm-hud [data-tip]:hover::after,
+.realm-hud [data-tip]:focus-visible::after {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.realm-hud [data-tip]:first-child:hover::after,
+.realm-hud [data-tip]:first-child:focus-visible::after {
+  transform: none;
 }

@@ -31,7 +31,7 @@ import { exportGame, forgetTown, importGame, restoreTown, saveTown } from './tow
 import { speakerName } from '../core/reactions/announcement'
 import type { Outcome } from '../core/reactions/outcome'
 
-export const LAYOUT = { panelWidth: 380, gutter: 24, timelineHeight: 92 }
+export const LAYOUT = { panelWidth: 440, gutter: 24, timelineHeight: 92 }
 const MAP_INSETS = { right: LAYOUT.panelWidth + LAYOUT.gutter + 16, bottom: LAYOUT.timelineHeight + LAYOUT.gutter + 12 }
 const REASONING_FLUSH_MS = 120
 const LOG_LIMIT = 400

@@ -120,16 +120,15 @@ function Govern() {
             <span>{label}</span>
           </label>
         ))}
+        <label className="check" title="Un pregón cierto suma confianza">
+          <input type="checkbox" checked={proclaim} onChange={(ev) => setProclaim(ev.target.checked)} />
+          <span>Pregonar cada decreto</span>
+        </label>
       </div>
-
-      <label className="check">
-        <input type="checkbox" checked={proclaim} onChange={(ev) => setProclaim(ev.target.checked)} />
-        <span>Pregonar cada decreto (un pregón cierto suma confianza)</span>
-      </label>
 
       {chronicle.length > 0 && (
         <ul className="god-memory-log">
-          {chronicle.slice(-4).reverse().map((c, i) => (
+          {chronicle.slice(-3).reverse().map((c, i) => (
             <li key={i}>
               <span className="mono">{ago(minutes, c.minutes)}</span> {c.text}
             </li>
