@@ -53,7 +53,7 @@ export function buildPrompt(ctx: DecisionContext) {
     ...SCALES.map((k) => `- ${SCALE_LABEL[k].name} (${SCALE_LABEL[k].hint}): ${r.personality.scales[k].toFixed(2)}, ${levelOf(r.personality.scales[k])}`),
     ``,
     `## Relaciones`,
-    ...ctx.relationships.map((rel) => `- ${rel.name} (id: ${rel.id}): ${rel.label}`),
+    ...(ctx.relationships.length ? ctx.relationships.map((rel) => `- ${rel.name} (id: ${rel.id}): ${rel.label}`) : ['- Nadie: acabas de llegar y aún no conoces a nadie en el pueblo.']),
     ``,
     `## Situación`,
     `Es ${ctx.situation.time}. En este momento: ${ctx.situation.activity}.`,

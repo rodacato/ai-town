@@ -12,6 +12,7 @@ import type { PropSprite } from './art'
 import { PlaceMarker } from './placeMarker'
 import { OriginBeacon, WaveFx } from './reactionFx'
 import { ResidentSprite, type ReactionVisual } from './residentSprite'
+import { SentrySprite } from './sentrySprite'
 import { drawTerrain, islandMask } from './terrain'
 
 export interface RendererEvents {
@@ -30,6 +31,7 @@ export class TownRenderer {
   private objects = new Container()
   private overlay = new Container()
   private sprites = new Map<string, ResidentSprite>()
+  private sentries: SentrySprite[] = []
   private swaying: NonNullable<PropSprite['sway']>[] = []
   private animated: ((time: number, dt: number, ambience: Ambience) => void)[] = []
   private sky = new ColorMatrixFilter()
@@ -137,6 +139,12 @@ export class TownRenderer {
         if (!this.camera.wasDrag) this.select(id)
       })
       this.sprites.set(id, sprite)
+      this.objects.addChild(sprite.view)
+    }
+
+    for (const s of W.sentries) {
+      const sprite = new SentrySprite(s)
+      this.sentries.push(sprite)
       this.objects.addChild(sprite.view)
     }
 
@@ -323,6 +331,7 @@ export class TownRenderer {
     }
     const zoom = this.camera.scale
     for (const [id, s] of this.sprites) s.update(t, dt, this.reactionVisual(id), zoom)
+    if (!this.calm) for (const s of this.sentries) s.update(t)
     this.spreadBubbles()
     this.updateSky()
     if (!this.calm) {

@@ -1,5 +1,5 @@
 import type { WorldContent } from '../../core/world/content'
-import { CRYPT, OAK, PLAZA, inForest, layout, riverX } from './layout'
+import { CEMETERY, CRYPT, GATE, OAK, PLAZA, inForest, layout, riverX } from './layout'
 import { RESIDENTS } from './residents'
 
 const BARONESS = 'Baronesa Isolda'
@@ -41,6 +41,18 @@ export const chismeroble: WorldContent = {
       name: 'la Cripta de los Susurros',
       keywords: ['cripta', 'ruinas', 'catacumba'],
       spots: (q) => q.where((p) => Math.abs(p.x - (CRYPT.x + 1)) <= 3 && Math.abs(p.y - (CRYPT.y + 1)) <= 3),
+    },
+    {
+      id: 'cemetery',
+      name: 'el cementerio',
+      keywords: ['cementerio', 'camposanto', 'tumba', 'sepultur'],
+      spots: (q) => q.inRect({ x0: CEMETERY.x0 + 1, y0: CEMETERY.y0 + 1, x1: CEMETERY.x1 - 1, y1: CEMETERY.y1 - 1 }),
+    },
+    {
+      id: 'gate',
+      name: 'la puerta sur',
+      keywords: ['puerta sur', 'empalizada', 'puesto de guardia', 'murall'],
+      spots: (q) => q.where((p, t) => t.kind === 'path' && Math.abs(p.x - GATE.x) <= 2 && p.y >= GATE.y - 3 && p.y < GATE.y),
     },
     { id: 'forest', name: 'el Bosque Susurrante', keywords: ['bosque'], spots: (q) => q.where((p, t) => t.kind === 'grass' && inForest(p.x, p.y)) },
     { id: 'field', name: 'el huerto de calabazas', keywords: ['huerto', 'calabaza', 'granja', 'cosecha'], spots: (q) => q.where((_, t) => t.kind === 'field') },
@@ -99,7 +111,7 @@ export const chismeroble: WorldContent = {
     ],
   },
   promptSetting:
-    'Chismeroble es una aldea de fantasía al estilo de Dragones y Mazmorras, gobernada por la Baronesa Isolda desde su torreón. En ella conviven humanos, elfos, enanos, medianos, gnomos, semiorcos y tiflins. La magia es real, los dragones y los trolls existen, y en el Bosque Susurrante hay una cripta antigua. Todos se conocen, el Roble Chismoso de la plaza es el centro de todos los rumores, y los chismes corren más rápido que los caballos.',
+    'Chismeroble es una aldea de fantasía al estilo de Dragones y Mazmorras, gobernada por la Baronesa Isolda desde su torreón. En ella conviven humanos, elfos, enanos, medianos, gnomos, semiorcos y tiflins. La magia es real, los dragones y los trolls existen, en el Bosque Susurrante hay una cripta antigua, al sur está el cementerio y una empalizada con un puesto de guardia vigila la entrada del camino. Todos se conocen, el Roble Chismoso de la plaza es el centro de todos los rumores, y los chismes corren más rápido que los caballos.',
   copy: {
     composerTitle: 'Nuevo pregón',
     composerSubtitle: 'Lo que pregones se oirá en toda la aldea.',

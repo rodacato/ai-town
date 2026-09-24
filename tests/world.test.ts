@@ -28,6 +28,21 @@ describe('world generation', () => {
     for (const r of content.residents) expect(world.buildings.some((b) => b.id === r.home), r.id).toBe(true)
   })
 
+  it('keeps sentries on grass, off paths and buildings, and blocking their own tile', () => {
+    expect(world.sentries.length).toBeGreaterThan(0)
+    for (const s of world.sentries) {
+      const t = world.tiles[s.y][s.x]
+      expect(t.blocked, `${s.x},${s.y}`).toBe(true)
+      expect(t.kind, `${s.x},${s.y}`).toBe('grass')
+      expect(t.buildingId).toBeUndefined()
+    }
+  })
+
+  it('only relates residents to residents who exist', () => {
+    const ids = new Set(content.residents.map((r) => r.id))
+    for (const r of content.residents) for (const rel of r.relationships) expect(ids.has(rel.id), `${r.id} → ${rel.id}`).toBe(true)
+  })
+
   it('only routes residents to places that exist', () => {
     const ids = new Set([...world.places.map((p) => p.id), 'home', 'visit'])
     for (const r of content.residents) for (const key of Object.keys(r.routine)) expect(ids.has(key), `${r.id} → ${key}`).toBe(true)

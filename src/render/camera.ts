@@ -14,7 +14,7 @@ interface Flight {
   duration: number
 }
 
-const MIN_ZOOM = 0.45
+const MIN_ZOOM = 0.3
 const MAX_ZOOM = 2.8
 const MAX_FLING = 1200
 const easeInOut = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)

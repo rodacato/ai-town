@@ -85,6 +85,15 @@ export interface LayoutTools {
   inRect: (x: number, y: number, r: Rect) => boolean
 }
 
+/** Someone who stands guard and never takes part: not a resident, never asked to decide. */
+export interface Sentry {
+  x: number
+  y: number
+  /** 1 faces screen-right, -1 screen-left. */
+  facing: 1 | -1
+  look: Look
+}
+
 export interface WorldLayout {
   size: number
   seed: number
@@ -95,6 +104,7 @@ export interface WorldLayout {
   landmarks: { id: string; kind: string; x: number; y: number; size: number }[]
   buildings: Omit<Building, 'door'>[]
   props: { kind: string; x: number; y: number }[]
+  sentries?: Sentry[]
   blockingProps: string[]
   decorate?: (tools: LayoutTools) => void
 }
