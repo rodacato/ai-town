@@ -1,5 +1,6 @@
 import { useTown } from '../../store'
 import { town } from '../../town'
+import { GOALS, guildWord } from '../../../core/realm/standing'
 import './realm.css'
 
 const pct = (x: number) => `${Math.round(x * 100)}%`
@@ -7,6 +8,7 @@ const pct = (x: number) => `${Math.round(x * 100)}%`
 /** The realm at a glance: how much the Baroness is trusted, the treasury, the granary and the town's spirits. */
 export function RealmHud() {
   const realm = useTown((s) => s.realm)
+  const standing = useTown((s) => s.standing)
   useTown((s) => s.memoryEntries)
   if (!realm) return null
   const trust = town.memory.reputation({ kind: 'authority' }).trust
@@ -42,7 +44,23 @@ export function RealmHud() {
           <b className="mono">{realm.dead.length + realm.gone.length}</b>
         </div>
       )}
-      <span className="realm-day mono">Día {realm.day + 1}</span>
+      {guildWord(standing) !== 'nada' && (
+        <div className="realm-stat is-alert" title={guildWord(standing) === 'inminente' ? 'El gremio de ladrones prepara un golpe' : 'Rumores del gremio de ladrones'}>
+          <span aria-hidden>🗡️</span>
+          <b>{guildWord(standing) === 'inminente' ? '¡Ladrones!' : 'Rumores'}</b>
+        </div>
+      )}
+      {standing.unrest > 0 && !standing.end && (
+        <div className="realm-stat is-alert" title={`Revuelta tras ${GOALS.unrestDays} amaneceres de descontento`}>
+          <span aria-hidden>✊</span>
+          <b className="mono">
+            {standing.unrest}/{GOALS.unrestDays}
+          </b>
+        </div>
+      )}
+      <span className="realm-day mono" title="Un año de gobierno son 40 días">
+        {standing.end ? standing.end.title : `Día ${realm.day + 1}/${GOALS.yearDays}`}
+      </span>
     </section>
   )
 }

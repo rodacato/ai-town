@@ -10,6 +10,7 @@ import { enact, type Decree, type DecreeResult } from '../core/realm/decrees'
 import { buildReport, reportText } from '../core/realm/report'
 import type { RulerAction } from '../core/realm/ruler'
 import { createModelRuler, createRulesRuler } from '../providers/ruler'
+import { dawnStanding } from '../core/realm/standing'
 import { FRESH_REIGN, type ReignState, type RulerLog, type RulerMode } from './store/reign'
 import type { Season } from '../core/sim/season'
 import type { Weather } from '../core/sim/weather'
@@ -56,7 +57,7 @@ class TownController {
     const restored = restoreTown(this.content.id, this.sim)
     if (restored) {
       this.chronicle.entries = restored.chronicle
-      useTown.setState({ chronicle: restored.chronicle.slice(-80), ...(restored.reign ? { ...FRESH_REIGN, ...restored.reign } : {}) })
+      useTown.setState({ chronicle: restored.chronicle.slice(-80), ...(restored.reign ? { ...FRESH_REIGN, ...restored.reign, standing: { ...FRESH_REIGN.standing, ...restored.reign.standing } } : {}) })
       useTown.setState({ weather: this.sim.weather, season: this.sim.season })
     }
     this.sim.onLedger((l) => this.onLedger(l))
@@ -246,8 +247,26 @@ class TownController {
       this.log('leave', line)
       window.setTimeout(() => toast(line), 1500)
     }
+    this.settleStanding(l.day)
     this.syncRealm()
-    void this.reign()
+    if (!useTown.getState().standing.end || useTown.getState().endSeen) void this.reign()
+  }
+
+  stirGuild() {
+    useTown.setState((s) => ({ standing: { ...s.standing, plot: 1.15 } }))
+    useTown.getState().toast('El gremio de ladrones afila los cuchillos: golpeará al amanecer.')
+  }
+
+  /** The guild and the mob take their turn at dawn; the reign may end here. */
+  private settleStanding(day: number) {
+    const e = this.sim.economy!
+    const standing = structuredClone(useTown.getState().standing)
+    const lines = dawnStanding(standing, e, this.memory.reputation({ kind: 'authority' }).trust, day)
+    useTown.setState({ standing })
+    for (const line of lines) {
+      this.log(standing.end && line === standing.end.text ? 'end' : 'plot', line)
+      window.setTimeout(() => useTown.getState().toast(line), 3000)
+    }
   }
 
   log(kind: ChronicleKind, text: string) {
@@ -275,8 +294,8 @@ class TownController {
   }
 
   private reignState(): ReignState {
-    const { rulerMode, rulerCap, rulerCalls, rulerCost, lastTurn, mailbox, honesty } = useTown.getState()
-    return { rulerMode, rulerCap, rulerCalls, rulerCost, lastTurn, mailbox, honesty }
+    const { rulerMode, rulerCap, rulerCalls, rulerCost, lastTurn, mailbox, honesty, standing, endSeen } = useTown.getState()
+    return { rulerMode, rulerCap, rulerCalls, rulerCost, lastTurn, mailbox, honesty, standing, endSeen }
   }
 
   setRulerMode(rulerMode: RulerMode) {
@@ -295,7 +314,7 @@ class TownController {
     if (useModel && !modelOk) state.toast(`La Baronesa llegó al tope de ${state.rulerCap} consultas al modelo en esta partida; gobierna con reglas.`)
     const active = state.llm.active
     const ruler = modelOk && active !== 'mock' ? createModelRuler(state.llm.connections[active]) : createRulesRuler()
-    const report = buildReport({ content: this.content, economy: e, memory: this.memory, chronicle: this.chronicle.entries, minutes: this.sim.minutes, season: this.sim.season, weather: this.sim.weather, day: e.day, seed: this.content.layout.seed })
+    const report = buildReport({ content: this.content, economy: e, memory: this.memory, chronicle: this.chronicle.entries, minutes: this.sim.minutes, season: this.sim.season, weather: this.sim.weather, day: e.day, seed: this.content.layout.seed, standing: state.standing })
     useTown.setState({ rulerBusy: true })
     try {
       const reply = await ruler(report, AbortSignal.timeout(120_000))

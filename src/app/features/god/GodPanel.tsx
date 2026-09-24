@@ -183,8 +183,11 @@ function TownActions() {
         <button className="btn-secondary compact" onClick={() => town.surprise()}>
           Pregón sorpresa
         </button>
+        <button className="btn-secondary compact" onClick={() => town.stirGuild()}>
+          🗡️ Azuzar al gremio de ladrones
+        </button>
       </div>
-      <p className="field-hint">El pregón sorpresa usa un ejemplo al azar y deja al azar si es verdad.</p>
+      <p className="field-hint">El pregón sorpresa usa un ejemplo al azar y deja al azar si es verdad. El gremio azuzado asalta el castillo al próximo amanecer; la leva de guardias reduce el botín.</p>
     </>
   )
 }

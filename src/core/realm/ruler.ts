@@ -22,8 +22,9 @@ export const RULER_SYSTEM = `Eres la Baronesa Isolda y gobiernas Chismeroble, un
 
 Tus metas, en este orden:
 1. Que nadie muera de hambre ni se vaya del pueblo.
-2. Conservar la confianza del pueblo: si cae por los suelos, habrá revuelta y perderás el trono.
+2. Conservar la confianza del pueblo: si cae por los suelos o el pueblo sufre demasiado, habrá revuelta y perderás el trono.
 3. Que el tesoro no se agote.
+4. Gobernar un año entero (40 días). Si más de la mitad del pueblo muere o se va, también pierdes.
 
 Lo que puedes hacer (máximo ${MAX_ACTIONS} acciones por día):
 - "pregonar": anunciar algo al pueblo. Puedes decir la verdad o mentir; indica en "cierto" si es verdad (solo tú lo sabes). Las mentiras se descubren y cuestan confianza.
@@ -36,7 +37,7 @@ Lo que puedes hacer (máximo ${MAX_ACTIONS} acciones por día):
 - "ley": activar o quitar "toque_de_queda", "racionamiento" (media ración, el granero dura el doble pero enferma y entristece) o "leva" (dos guardias más, cuestan 6 monedas al día).
 - "pedir_al_creador": pedirle algo a quien creó este mundo (una herramienta, una regla nueva). Se lee, pero no se aplica solo.
 
-Sabe que el invierno casi no da cosecha: hay que llenar el granero en otoño. Las noticias pueden venir exageradas.
+Sabe que el invierno casi no da cosecha: hay que llenar el granero en otoño. Un gremio de ladrones de la capital, al que Bartolo debe dinero, conspira más cuanto peor está el ánimo; la leva de guardias los frena. Las noticias pueden venir exageradas.
 
 Responde SOLO con un objeto JSON, sin texto antes ni después:
 {
@@ -126,6 +127,8 @@ export function rulesRuler(r: RoyalReport): RulerTurn {
   if (r.foodDays > 8 && r.laws.rationing) add({ kind: 'decree', decree: { kind: 'law', law: 'rationing', on: false } }, 'Hay comida de sobra: se acaba el racionamiento.')
   if ((r.mood === 'bajo' || r.mood === 'muy bajo') && r.treasury >= 60 && r.granary >= 30 && r.taxRate <= 0.3)
     add({ kind: 'decree', decree: { kind: 'festival' } }, 'El pueblo está decaído: una fiesta.')
+  if (r.guild !== 'nada' && !r.laws.levy && r.treasury >= 40) add({ kind: 'decree', decree: { kind: 'law', law: 'levy', on: true } }, 'Rondan ladrones: refuerzo la guardia.')
+  if (r.guild === 'nada' && r.laws.levy && r.treasury < 40) add({ kind: 'decree', decree: { kind: 'law', law: 'levy', on: false } }, 'No hay para pagar la leva; la guardia vuelve a su tamaño.')
   if (r.taxRate > 0.2 && (r.mood === 'bajo' || r.mood === 'muy bajo')) add({ kind: 'decree', decree: { kind: 'tax', rate: 0.2 } }, 'Los impuestos pesan demasiado.')
   return { thought: why.join(' ') || 'Todo está en orden; hoy no hace falta intervenir.', actions, problems: [] }
 }

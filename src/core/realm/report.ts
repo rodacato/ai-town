@@ -5,6 +5,7 @@ import type { WorldContent } from '../world/content'
 import { SEASON_TEXT, type Season } from '../sim/season'
 import { WEATHER_TEXT, type Weather } from '../sim/weather'
 import type { ChronicleEntry } from './chronicle'
+import { GOALS, guildWord, type GuildWord, type Standing } from './standing'
 
 export interface Petition {
   from: string
@@ -30,6 +31,11 @@ export interface RoyalReport {
   trust: 'por los suelos' | 'baja' | 'dudosa' | 'buena' | 'muy alta'
   news: string[]
   petitions: Petition[]
+  /** What the court hears of the thieves' guild. */
+  guild: GuildWord
+  unrest: boolean
+  /** Dawns left to complete the year. */
+  daysLeft: number
 }
 
 const moodWord = (m: number): RoyalReport['mood'] => (m < 0.25 ? 'muy bajo' : m < 0.45 ? 'bajo' : m < 0.6 ? 'regular' : m < 0.8 ? 'bueno' : 'excelente')
@@ -52,6 +58,7 @@ export function buildReport(input: {
   weather: Weather
   day: number
   seed: number
+  standing?: Standing
 }): RoyalReport {
   const { economy: e, content } = input
   const rng = createRng(input.seed * 1000 + input.day)
@@ -93,6 +100,9 @@ export function buildReport(input: {
     trust: trustWord(input.memory.reputation({ kind: 'authority' }).trust),
     news,
     petitions,
+    guild: input.standing ? guildWord(input.standing) : 'nada',
+    unrest: (input.standing?.unrest ?? 0) > 0,
+    daysLeft: Math.max(0, GOALS.yearDays - input.day),
   }
 }
 
@@ -114,6 +124,11 @@ export function reportText(r: RoyalReport) {
     `- Viven en el pueblo ${r.population} vecinos${r.lost ? ` (${r.lost} se fueron o murieron)` : ''}.`,
     `- Ayer pasaron hambre ${r.hungry}.`,
     `- El ánimo parece ${r.mood}. La confianza en ti es ${r.trust}.`,
+    '',
+    '## Amenazas',
+    `- Del gremio de ladrones de la capital: ${r.guild === 'inminente' ? 'se dice que preparan un golpe contra el tesoro' : r.guild === 'rumores' ? 'corren rumores de forasteros sospechosos' : 'nada se sabe'}.`,
+    `- ${r.unrest ? 'Hay murmullos de revuelta en la plaza.' : 'No hay señales de revuelta.'}`,
+    `- Faltan ${r.daysLeft} días para cumplir un año de gobierno.`,
     '',
     '## Noticias (pueden venir exageradas)',
     ...(r.news.length ? r.news.map((n) => `- ${n}`) : ['- Nada digno de mención.']),

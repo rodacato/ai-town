@@ -14,6 +14,7 @@ import { TopBar } from '../features/topbar/TopBar'
 import { TownCanvas } from '../features/map/TownCanvas'
 import { GodPanel } from '../features/god/GodPanel'
 import { RealmHud } from '../features/realm/RealmHud'
+import { EndScreen } from '../features/realm/EndScreen'
 import { ThronePanel } from '../features/throne/ThronePanel'
 import './shell.css'
 
@@ -63,6 +64,7 @@ export function App() {
       <RightPanel />
       <GodPanel />
       <ThronePanel />
+      <EndScreen />
       <Toasts />
       <ResetVeil />
       <LazySettings />

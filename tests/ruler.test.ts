@@ -91,12 +91,13 @@ describe('ruling by rules', () => {
   })
 
   it('carries the town through a year that ruins an absent ruler', async () => {
-    const base = { content, days: 40, seed: 12, seasonLength: 10, fate: fateCalendar(12, 40), revoltAt: 0.15 }
+    const base = { content, days: 40, seed: 12, seasonLength: 10, fate: fateCalendar(12, 40) }
     const absent = await runReign({ ...base, rule: async () => ({ thought: '', actions: [], problems: [] }) })
     const ruled = await runReign({ ...base, rule: async (r) => rulesRuler(r) })
     expect(absent.deaths + absent.departures).toBeGreaterThan(0)
     expect(ruled.deaths + ruled.departures).toBeLessThan(absent.deaths + absent.departures)
     expect(ruled.survivedDays).toBe(40)
+    expect(ruled.ending?.won).toBe(true)
   })
 
   it('topples a ruler who keeps lying', async () => {
@@ -106,7 +107,6 @@ describe('ruling by rules', () => {
       seed: 3,
       seasonLength: 7,
       fate: [],
-      revoltAt: 0.25,
       rule: async () => ({ thought: '', actions: [{ kind: 'proclaim', text: 'Todo va de maravilla', honest: false }], problems: [] }),
     })
     expect(liar.revolt).toBe(true)

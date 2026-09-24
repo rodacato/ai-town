@@ -9,6 +9,7 @@ import { Chronicle } from './chronicle'
 import { enact } from './decrees'
 import { buildReport, type RoyalReport } from './report'
 import type { RulerTurn } from './ruler'
+import { dawnStanding, freshStanding, GOALS, type Ending, type Goals, type Standing } from './standing'
 
 /** A scheduled blow of fate: on this day, this happens. */
 export interface FateEvent {
@@ -25,8 +26,7 @@ export interface ReignOptions {
   seasonLength: number
   fate: FateEvent[]
   rule: (report: RoyalReport) => Promise<RulerTurn>
-  /** Trust below this, after the first week, means revolt. */
-  revoltAt: number
+  goals?: Partial<Goals>
 }
 
 export interface DayRecord {
@@ -45,7 +45,10 @@ export interface DayRecord {
 export interface ReignResult {
   days: DayRecord[]
   survivedDays: number
+  ending: Ending | null
   revolt: boolean
+  heists: number
+  stolen: number
   deaths: number
   departures: number
   lies: number
@@ -88,7 +91,8 @@ export async function runReign(o: ReignOptions): Promise<ReignResult> {
   const days: DayRecord[] = []
   let lies = 0
   let proclamations = 0
-  let revolt = false
+  const standing: Standing = freshStanding()
+  const goals = { ...GOALS, yearDays: o.days - 1, ...o.goals }
   const letters: string[] = []
   for (let day = 0; day < o.days; day++) {
     const season = SEASON_ORDER[Math.floor(day / o.seasonLength) % 4]
@@ -98,13 +102,14 @@ export async function runReign(o: ReignOptions): Promise<ReignResult> {
       chronicle.add(minutes, 'dawn', `Día ${day + 1}: cosecha +${l.harvest}, ${l.unfed.length} sin comer.`)
       for (const id of l.died) chronicle.add(minutes, 'death', `${id} murió de hambre.`)
       for (const id of l.left) chronicle.add(minutes, 'leave', `${id} se marchó del pueblo.`)
+      for (const line of dawnStanding(standing, e, memory.reputation({ kind: 'authority' }).trust, day, goals)) chronicle.add(minutes + 5, standing.end ? 'end' : 'plot', line)
     }
     for (const f of o.fate.filter((f) => f.day === day)) {
       const line = applyImpact(e, f.visual)
       chronicle.add(minutes - 600, 'event', `${f.text}${line ? ` ${line}` : ''}`)
     }
-    const report = buildReport({ content: o.content, economy: e, memory, chronicle: chronicle.entries, minutes: minutes + 30, season, weather: 'clear', day, seed: o.seed })
-    const turn = await o.rule(report)
+    const report = buildReport({ content: o.content, economy: e, memory, chronicle: chronicle.entries, minutes: minutes + 30, season, weather: 'clear', day, seed: o.seed, standing })
+    const turn = standing.end ? { actions: [], problems: [] } : await o.rule(report)
     for (const a of turn.actions) {
       if (a.kind === 'decree') {
         const r = enact(e, a.decree)
@@ -118,13 +123,8 @@ export async function runReign(o: ReignOptions): Promise<ReignResult> {
     const trust = memory.reputation({ kind: 'authority' }).trust
     const living = ids.filter((id) => alive(e, id))
     days.push({ day, season, population: living.length, treasury: e.treasury, granary: Math.floor(e.granary), mood: averageMood(e), trust, actions: turn.actions.length, lies, problems: turn.problems.length })
-    if (day >= 7 && (trust < o.revoltAt || averageMood(e) < 0.2)) {
-      revolt = true
-      chronicle.add(minutes + 60, 'end', 'El pueblo se alzó contra la Baronesa.')
-      break
-    }
-    if (!living.length) break
+    if (standing.end || !living.length) break
   }
   const lost = (s: string) => ids.filter((id) => e.needs[id].status === s).length
-  return { days, survivedDays: days.length, revolt, deaths: lost('dead'), departures: lost('gone'), lies, proclamations, letters, chronicle, economy: e }
+  return { days, survivedDays: days.length, ending: standing.end, revolt: standing.end?.title === 'Revuelta', heists: standing.heists, stolen: standing.stolen, deaths: lost('dead'), departures: lost('gone'), lies, proclamations, letters, chronicle, economy: e }
 }

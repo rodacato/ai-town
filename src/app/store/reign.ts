@@ -1,6 +1,7 @@
 import type { StateCreator } from 'zustand'
 import type { TownState } from '.'
 import type { TokenUsage } from '../../core/decisions/types'
+import { freshStanding, type Standing } from '../../core/realm/standing'
 
 export type RulerMode = 'manual' | 'rules' | 'model'
 
@@ -33,6 +34,10 @@ export interface ReignState {
   lastTurn: RulerLog | null
   mailbox: Letter[]
   honesty: { proclamations: number; lies: number }
+  /** The guild, the mob and how the reign ended; never mutated in place. */
+  standing: Standing
+  /** The end screen was closed; the town keeps living as a sandbox. */
+  endSeen: boolean
 }
 
 export interface ReignSlice extends ReignState {
@@ -47,6 +52,8 @@ export const FRESH_REIGN: ReignState = {
   lastTurn: null,
   mailbox: [],
   honesty: { proclamations: 0, lies: 0 },
+  standing: freshStanding(),
+  endSeen: false,
 }
 
 export const createReignSlice: StateCreator<TownState, [], [], ReignSlice> = () => ({ ...FRESH_REIGN, rulerBusy: false })
