@@ -13,7 +13,9 @@ import { createRulesProvider, mockDecision } from '../src/providers/mock'
 import { activeWorld } from '../src/worlds'
 import { seconds, tokens, usd } from '../src/core/format'
 import { bold, connectionForSpec, PRICE_RE, dim, ENV, fail, nodeStream, red, tty } from './cli'
-import { firstName } from '../src/core/lang'
+import { runJudge, summarizeJudgments } from '../src/core/bench/judge'
+import { createModelJudge } from '../src/providers/judge'
+import { nameOf } from '../src/core/lang'
 import { ACTION_META } from '../src/theme/actions'
 
 const HELP = `Banco de pruebas de AI Town desde la terminal.
@@ -31,6 +33,8 @@ Uso: npm run bench -- [opciones]
       --timeout <s>                      Tiempo máximo por decisión (por defecto 120).
       --price <entrada/salida>           USD por millón de tokens para los modelos sin precio propio, ej. 3/15.
                                          Precio de un solo modelo: -m proveedor:modelo=3/15
+      --juez <proveedor:modelo>          Al terminar, un modelo juzga de 1 a 5 si las decisiones suenan a cada vecino.
+      --muestras <n>                     Decisiones que juzga por contendiente (por defecto 12).
   -o, --out <archivo.json>               Dónde guardar la corrida (por defecto bench-results/).
       --dry-run                          Muestra el plan sin hacer peticiones.
       --compare <antes.json> <después.json>
@@ -54,6 +58,8 @@ const { values: args, positionals } = parseArgs({
     timeout: { type: 'string', default: '120' },
     price: { type: 'string' },
     out: { type: 'string', short: 'o' },
+    juez: { type: 'string' },
+    muestras: { type: 'string', default: '12' },
     'dry-run': { type: 'boolean', default: false },
     compare: { type: 'boolean', default: false },
     help: { type: 'boolean', short: 'h', default: false },
@@ -150,6 +156,7 @@ const run = await executeRun(
 )
 process.stdout.write('\n\n')
 printReport(run)
+if (args.juez && run.trials.length && !run.cancelled) await judge(run)
 
 const out = args.out ?? `bench-results/${content.id}-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.json`
 if (run.trials.length) {
@@ -160,6 +167,30 @@ if (run.trials.length) {
 const dead = run.report.contenders.filter((r) => r.trials && r.errors === r.trials)
 if (dead.length) console.error(red(`\n✗ Todas las peticiones fallaron en: ${dead.map((r) => r.contender).join(', ')}.`))
 process.exit(run.cancelled ? 130 : dead.length ? 1 : 0)
+
+/** A second model reads a sample of decisions and says how in character they were; the verdict is saved inside the run. */
+async function judge(run: BenchRun) {
+  const connection = connectionForSpec(args.juez!, { price })
+  const perContender = int('muestras', args.muestras!, 1, 200)
+  process.stdout.write(dim(`\nEl juez (${connection.model}) lee ${perContender} decisiones por contendiente…`))
+  const verdict = await runJudge({
+    run,
+    content,
+    judge: `${PRESETS[connection.kind].label} · ${connection.model}`,
+    perContender,
+    ask: createModelJudge(connection, nodeStream),
+    concurrency: 3,
+    onProgress: (done, total) => tty && process.stdout.write(`\r\x1b[2K${dim(`El juez va en ${done}/${total}`)}`),
+  })
+  run.judge = verdict
+  console.log(bold('\n\nPersonaje según el juez'))
+  for (const s of summarizeJudgments(verdict, run.contenders.filter((c) => c.kind !== 'rules').map((c) => c.id))) {
+    const label = run.contenders.find((c) => c.id === s.contender)?.label ?? s.contender
+    console.log(`  ${label.padEnd(30)} ${s.mean === null ? '—' : `${s.mean.toFixed(1)} / 5`}${s.failed ? red(`  ${s.failed} sin respuesta`) : ''}`)
+    for (const w of s.worst.slice(0, 2)) console.log(dim(`    ${w.score}/5 ${nameOf(content, w.resident)}: ${w.reason}`))
+  }
+  console.log(dim(`  Costo del juez: ${usd(verdict.costUsd, verdict.costEstimated)}`))
+}
 
 function printReport(run: BenchRun) {
   const pct = (n: number | null) => (n === null ? '—' : `${Math.round(n * 100)}%`)
@@ -206,7 +237,7 @@ function printReport(run: BenchRun) {
 
   const offCharacter = run.report.contenders.filter((r) => r.personaBroken && Object.keys(r.personaBroken).length)
   if (offCharacter.length) {
-    const name = (id: string) => firstName(content.residents.find((p) => p.id === id)?.name ?? id)
+    const name = (id: string) => nameOf(content, id)
     console.log(bold('\nFuera de personaje'))
     for (const r of offCharacter) {
       console.log(`  ${label(r.contender)}`)
@@ -258,7 +289,7 @@ function compareFiles(files: string[]) {
     : models(before).length === 1 && models(after).length === 1
       ? [[models(before)[0], models(after)[0]]]
       : fail('Las corridas no tienen contendientes en común; no sé qué comparar.')
-  const name = (id: string) => firstName(content.residents.find((p) => p.id === id)?.name ?? id)
+  const name = (id: string) => nameOf(content, id)
   const fmt = (v: number | null, unit: string) =>
     v === null ? '—' : unit === 'pct' ? `${Math.round(v * 100)}%` : unit === 'ms' ? seconds(v) : unit === 'usd' ? usd(v) : v.toFixed(1)
   for (const [a, b] of pairs) {

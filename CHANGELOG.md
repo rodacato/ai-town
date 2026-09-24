@@ -11,6 +11,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 - Duelo de Baronesas en el navegador, dentro del banco de pruebas: el trono vacío, las reglas y los modelos que elijas gobiernan el mismo año; tabla de resultados, gráficas de vecinos, confianza, ánimo y tesoro con el cursor sincronizado, cartas al creador, costo estimado y exportación en JSON. La terminal y el navegador corren el mismo código (`runDuel`).
 
+- Juez de personaje en el banco de pruebas y en la terminal (`--juez`, `--muestras`): otro modelo puntúa de 1 a 5 si las decisiones de una muestra fija suenan a cada vecino, con su razón; se guarda en la corrida y entra en la comparación.
+- Las corridas guardan el razonamiento de cada decisión (recortado).
+- El LLM falso responde también como Baronesa y como juez.
+
 ### Cambiado
 - Lo que hace la guardia pesa la mitad que lo que dice la Baronesa en la confianza del pueblo, para que en años de muchos golpes la confianza no se infle sola.
 

@@ -21,6 +21,8 @@ export interface Trial {
   believes: boolean | null
   confidence: number | null
   speech: string | null
+  /** Why they decided, for a judge to read; optional for runs saved before it existed. */
+  reasoning?: string
   error: string | null
   /** Null when the provider does not answer in text (the rule-based mode). */
   format: FormatCheck | null
@@ -131,6 +133,7 @@ function track(scheduler: DecisionScheduler, contender: string, s: Scenario, ctx
         believes: d.believes,
         confidence: d.confidence,
         speech: d.speech,
+        reasoning: d.reasoning.slice(0, 800),
         error: null,
         format: text === null ? null : checkFormat(text),
         persona: checkCoherence(ctx, s.tone, d),

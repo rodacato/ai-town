@@ -32,7 +32,9 @@ createServer(async (req, res) => {
   active++
   peak = Math.max(peak, active)
   console.log(`active ${active} · peak ${peak}`)
-  const prompt: string = JSON.parse(body).messages.at(-1).content
+  const messages: { role: string; content: string }[] = JSON.parse(body).messages
+  const prompt = messages.at(-1)!.content
+  const system = messages.find((m) => m.role === 'system')?.content ?? ''
   const name = /^(.+?), \d+ años/m.exec(prompt)?.[1] ?? 'Alguien'
   const action = ACTIONS[Math.floor(Math.random() * ACTIONS.length)]
   const decision = {
@@ -44,7 +46,12 @@ createServer(async (req, res) => {
     emoji: action === 'go' ? '🏃' : action === 'stay_home' ? '🏠' : action === 'investigate' ? '🔍' : '🤷',
     confidence: Math.round(Math.random() * 100) / 100,
   }
-  const text = JSON.stringify(decision)
+  // It answers in the shape each caller asks for: a resident, the Baroness or the judge of character.
+  const text = system.startsWith('Evalúas personajes')
+    ? JSON.stringify({ puntaje: 1 + Math.floor(Math.random() * 5), razon: 'Suena más o menos como el personaje.' })
+    : system.startsWith('Eres la Baronesa')
+      ? JSON.stringify({ pensamiento: 'Hoy compro un poco de grano, por si acaso.', acciones: [{ tipo: 'comprar_comida', raciones: 10 }] })
+      : JSON.stringify(decision)
   await sleep(400 + Math.random() * 1200)
   res.writeHead(200, { 'content-type': 'text/event-stream' })
   for (let i = 0; i < text.length; i += 6) {

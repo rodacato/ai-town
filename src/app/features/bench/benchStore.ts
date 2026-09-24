@@ -7,6 +7,8 @@ import { createRulesProvider, mockDecision } from '../../../providers/mock'
 import { useTown } from '../../store'
 import { town } from '../../town'
 import { history, type BenchRun } from './history'
+import { runJudge } from '../../../core/bench/judge'
+import { createModelJudge } from '../../../providers/judge'
 
 export type ContenderKind = 'rules' | Connection['kind']
 
@@ -37,6 +39,10 @@ interface BenchState extends Prefs {
   show: (run: BenchRun) => void
   remove: (id: string) => Promise<void>
   importRun: (file: File) => Promise<void>
+  /** A judge model reading the current run's decisions; its verdict is saved into the run. */
+  judging: { done: number; total: number; controller: AbortController } | null
+  judge: (spec: { kind: Connection['kind']; model: string }, perContender: number) => Promise<void>
+  cancelJudge: () => void
 }
 
 const PREFS_KEY = 'ai-town:bench-prefs'
@@ -160,6 +166,34 @@ export const useBench = create<BenchState>((set, get) => ({
       toast('Ese archivo no es una prueba de AI Town (JSON de «npm run bench» o exportado de aquí).')
     }
   },
+  judging: null,
+  judge: async (spec, perContender) => {
+    const run = get().current
+    if (!run) return
+    const connection = { ...useTown.getState().llm.connections[spec.kind], model: spec.model.trim() }
+    const controller = new AbortController()
+    set({ judging: { done: 0, total: 0, controller } })
+    try {
+      const verdict = await runJudge({
+        run,
+        content: town.content,
+        judge: `${PRESETS[spec.kind].label} · ${connection.model}`,
+        perContender,
+        ask: createModelJudge(connection),
+        concurrency: Math.min(3, connection.concurrency),
+        signal: controller.signal,
+        onProgress: (done, total) => set({ judging: { done, total, controller } }),
+      })
+      const judged = { ...run, judge: verdict }
+      await history.save(judged).catch(() => useTown.getState().toast('No se pudo guardar el juicio en este navegador; exporta la prueba para no perderlo.'))
+      set({ current: judged, runs: get().runs.map((r) => (r.id === judged.id ? judged : r)) })
+    } catch (err) {
+      if (!controller.signal.aborted) useTown.getState().toast(`El juez no pudo terminar: ${err instanceof Error ? err.message : 'error'}`)
+    } finally {
+      set({ judging: null })
+    }
+  },
+  cancelJudge: () => get().judging?.controller.abort(),
   remove: async (id) => {
     await history.remove(id)
     if (get().current?.id === id) set({ current: null, view: 'history' })

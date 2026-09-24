@@ -2,6 +2,7 @@ import type { Decision, DecisionContext } from '../decisions/types'
 import type { Example, WorldContent } from '../world/content'
 import { analyze, cellKey, type BenchReport } from './analysis'
 import { runBench, type BenchProgress, type Contender, type Trial } from './runner'
+import type { RunJudgment } from './judge'
 import { buildScenario } from './scenarios'
 
 export const RUN_FORMAT = 'ai-town-bench/1'
@@ -32,6 +33,8 @@ export interface BenchRun {
   cancelled: boolean
   trials: Trial[]
   report: BenchReport
+  /** A judge model's reading of how in character the decisions were; added after the run, if asked. */
+  judge?: RunJudgment
 }
 
 export interface RunSetup {
