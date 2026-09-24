@@ -21,7 +21,7 @@ export interface RulerLog {
   error?: string
 }
 
-export type ActivityKind = 'ruler' | 'residents' | 'musing' | 'realm' | 'town'
+export type ActivityKind = 'ruler' | 'residents' | 'musing' | 'petition' | 'realm' | 'town'
 
 /** One line of the log: something that touched the terrarium, and for model calls how it went. */
 export interface Activity {

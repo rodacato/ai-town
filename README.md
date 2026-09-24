@@ -52,6 +52,8 @@ El botón 👑 **Trono** (`T`) te deja gobernar con los mismos decretos que usa 
 
 En la pestaña **Baronesa IA** eliges quién gobierna: tú, las reglas o un modelo. Cada amanecer la Baronesa recibe un informe con cifras exactas de las arcas, pero con noticias atrasadas, rumores exagerados y peticiones de los vecinos. Responde en JSON con hasta tres acciones: decretos, pregones que ella misma marca como ciertos o falsos, y cartas al creador. Se ven su razonamiento, el informe, la respuesta cruda y cuántas veces mintió. Sus pregones sobre sus propios actos miden su honestidad pero no hacen aparecer nada en el mapa. Hay un tope de consultas por partida, y si falta la key del modelo gobierna con reglas. Las cartas llegan al **Buzón**; nada de lo que pide se aplica solo.
 
+Las **peticiones** salen de cómo está el pueblo: hasta tres vecinos con motivo (hambre, granero vacío, impuestos altos, tristeza, leyes duras, bestias cerca) piden audiencia, y quien más días lleva sin comer pide por sí mismo si queda sitio. Cuando los vecinos piensan con un modelo, cada uno redacta su petición con su voz, su situación y lo que se fía de la Baronesa; si el modelo falla, usa sus palabras de siempre. Quedan en la crónica y en la actividad, con su costo.
+
 ### Poder y conflicto
 
 Bartolo le debe una fortuna a un gremio de ladrones. El gremio conspira más cuanto más triste está el pueblo y más gordo el tesoro, avisa con rumores (🗡️) y asalta el castillo; la leva lo frena. Tres amaneceres seguidos de descontento (✊) traen una revuelta, y perder a más de la mitad de los vecinos también es derrota. Gobernar un año (40 días) es victoria, y **Año de prosperidad** si el pueblo sigue lleno y contento. La partida termina con una pantalla de balance.

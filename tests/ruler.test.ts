@@ -9,6 +9,9 @@ import { createModelRuler } from '../src/providers/ruler'
 import type { ChatStream } from '../src/providers/llm/client'
 import { DEFAULT_SETTINGS } from '../src/providers/llm/config'
 import { content } from './helpers'
+import { grievances, parsePetition, petitionPrompt } from '../src/core/realm/petitions'
+import { musingInputFor } from '../src/core/realm/musing'
+import { modelPetition } from '../src/providers/petition'
 
 const ids = content.residents.map((r) => r.id)
 const report = (tweak: (e: ReturnType<typeof startEconomy>) => void = () => {}, chronicle = new Chronicle()) => {
@@ -111,5 +114,53 @@ describe('ruling by rules', () => {
     })
     expect(liar.revolt).toBe(true)
     expect(liar.lies).toBeGreaterThan(3)
+  })
+})
+
+describe('petitions to the Baroness', () => {
+  const grim = () => {
+    const e = startEconomy(content.economy!, ids, 6 * 60)
+    e.granary = 10
+    for (const id of ids.slice(0, 5)) e.needs[id].daysHungry = 2
+    e.needs[ids[6]].daysHungry = 4
+    return e
+  }
+
+  it('puts the town first and lets the hungriest speak for themselves when there is room', () => {
+    const e = grim()
+    const list = grievances({ content, economy: e, chronicle: [], minutes: 6 * 60 + 1440 })
+    expect(list.map((g) => [g.id, g.topic])).toEqual([
+      ['clemencia', 'hunger'],
+      ['godric', 'granary'],
+      [ids[6], 'starving'],
+    ])
+    expect(list[2].fallback).toContain('4 días sin comer')
+  })
+
+  it('gives the rules ruler a topic, so a petition worded by a model still counts', () => {
+    const c = new Chronicle()
+    c.add(6 * 60 + 1400, 'event', 'Una manada de lobos rondó el bosque.')
+    const r = report(() => {}, c)
+    expect(r.petitions).toEqual([{ from: 'Sir Aldric', text: expect.any(String), topic: 'guard' }])
+  })
+
+  it('asks the model in the resident\'s voice and falls back to their usual words', async () => {
+    const e = grim()
+    const g = grievances({ content, economy: e, chronicle: [], minutes: 6 * 60 + 1440 })[0]
+    const clemencia = content.residents.find((r) => r.id === g.id)!
+    const input = musingInputFor(e, clemencia, { trust: 0.4, news: [], minutes: 7 * 60 })
+    expect(petitionPrompt(input, g)).toContain(g.wish)
+    expect(petitionPrompt(input, g)).toContain(clemencia.personality.voice)
+    const answer = (text: string): ChatStream =>
+      async function* () {
+        yield { type: 'delta', text }
+        yield { type: 'done', usage: { inputTokens: 300, outputTokens: 40 } }
+      }
+    const conn = { ...DEFAULT_SETTINGS.connections.shellm, model: 'claude' }
+    const worded = await modelPetition(conn, input, g, new AbortController().signal, answer('{"peticion": "Por caridad, abrid el granero."}'))
+    expect(worded).toMatchObject({ text: 'Por caridad, abrid el granero.', fellBack: false })
+    const garbled = await modelPetition(conn, input, g, new AbortController().signal, answer('no sé'))
+    expect(garbled).toMatchObject({ text: g.fallback, fellBack: true })
+    expect(parsePetition('{"peticion": ""}')).toBeNull()
   })
 })

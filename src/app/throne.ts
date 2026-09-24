@@ -1,6 +1,11 @@
 import { dawnStanding } from '../core/realm/standing'
 import { enact, type Decree, type DecreeResult } from '../core/realm/decrees'
-import { buildReport, reportText } from '../core/realm/report'
+import { buildReport, reportText, type Petition } from '../core/realm/report'
+import { grievances } from '../core/realm/petitions'
+import { musingInputFor } from '../core/realm/musing'
+import type { Economy } from '../core/economy/economy'
+import { nameOf } from '../core/lang'
+import { modelPetition } from '../providers/petition'
 import type { RulerAction } from '../core/realm/ruler'
 import type { ChronicleKind, Chronicle } from '../core/realm/chronicle'
 import type { TownMemory } from '../core/memory/memory'
@@ -27,6 +32,8 @@ export interface ThroneHost {
   track(kind: ActivityKind, title: string, extra?: Partial<Activity>): number
   settle(id: number, patch: Partial<Activity>): void
   syncRealm(): void
+  /** How the residents think right now: «reglas» or the model's label. */
+  residentsVia(): string
 }
 
 /** The Baroness: her decrees, her daily turn with rules or a model, her proclamations and letters, and the guild and mob at dawn. */
@@ -91,12 +98,14 @@ export class Throne {
     if (useModel && !modelOk) state.toast(`La Baronesa llegó al tope de ${state.rulerCap} consultas al modelo en esta partida; gobierna con reglas.`)
     const active = state.llm.active
     const ruler = modelOk && active !== 'mock' ? createModelRuler(state.llm.connections[active]) : createRulesRuler()
-    const report = buildReport({ content: this.host.sim.content, economy: e, memory: this.host.memory, chronicle: this.host.chronicle.entries, minutes: this.host.sim.minutes, season: this.host.sim.season, weather: this.host.sim.weather, day: e.day, seed: this.host.sim.content.layout.seed, standing: state.standing })
     useTown.setState({ rulerBusy: true })
+    const gen = this.host.generation
+    const petitions = await this.hearPetitions(e)
+    if (gen !== this.host.generation) return useTown.setState({ rulerBusy: false })
+    const report = buildReport({ content: this.host.sim.content, economy: e, memory: this.host.memory, chronicle: this.host.chronicle.entries, minutes: this.host.sim.minutes, season: this.host.sim.season, weather: this.host.sim.weather, day: e.day, seed: this.host.sim.content.layout.seed, standing: state.standing, petitions })
     const via = modelOk && active !== 'mock' ? `${state.llm.connections[active].model} (${active})` : 'reglas'
     const entry = this.host.track('ruler', `Día ${e.day + 1}: la Baronesa ${modelOk ? `consulta a ${via}` : 'decide con reglas'}`, { status: modelOk ? 'pending' : 'info', via })
     try {
-      const gen = this.host.generation
       const reply = await ruler(report, AbortSignal.timeout(120_000))
       if (gen !== this.host.generation) return
       // A rules ruler cannot word a proclamation of her own, so she announces her first decree.
@@ -131,6 +140,44 @@ export class Throne {
     } finally {
       useTown.setState({ rulerBusy: false })
     }
+  }
+
+  /** Those with a grievance ask for an audience: in their own words with the residents' model, or in their usual ones by rules. */
+  private async hearPetitions(e: Economy): Promise<Petition[]> {
+    const { content } = this.host.sim
+    const minutes = this.host.sim.minutes
+    const list = grievances({ content, economy: e, chronicle: this.host.chronicle.entries, minutes })
+    const { llm } = useTown.getState()
+    const via = this.host.residentsVia()
+    const active = llm.active
+    const trust = this.host.memory.reputation({ kind: 'authority' }).trust
+    const petitions = await Promise.all(
+      list.map(async (g): Promise<Petition> => {
+        const resident = content.residents.find((r) => r.id === g.id)!
+        const from = nameOf(content, g.id)
+        if (via === 'reglas' || active === 'mock') return { from, text: g.fallback, topic: g.topic }
+        const entry = this.host.track('petition', `${from} prepara su petición…`, { status: 'pending', via })
+        try {
+          const reply = await modelPetition(llm.connections[active], musingInputFor(e, resident, { trust, news: [], minutes }), g, AbortSignal.timeout(45_000))
+          this.host.settle(entry, {
+            status: reply.fellBack ? 'error' : 'ok',
+            title: `${from} pide audiencia`,
+            detail: `«${reply.text}»${reply.fellBack ? ' · el modelo no respondió en el formato esperado; usó sus palabras de siempre' : ''}`,
+            ms: Math.round(reply.ms),
+            costUsd: reply.usage?.costUsd || undefined,
+            costEstimated: reply.usage?.costSource === 'table',
+            tokensIn: reply.usage?.inputTokens,
+            tokensOut: reply.usage?.outputTokens,
+          })
+          return { from, text: reply.text, topic: g.topic }
+        } catch (err) {
+          this.host.settle(entry, { status: 'error', detail: `${err instanceof Error ? err.message : 'No respondió.'} · usó sus palabras de siempre` })
+          return { from, text: g.fallback, topic: g.topic }
+        }
+      }),
+    )
+    for (const p of petitions) this.host.log('petition', `${p.from} pide a la Baronesa: «${clip(p.text, 140)}»`)
+    return petitions
   }
 
   private carryOut(a: RulerAction, day: number, announce = false): { text: string; ok: boolean } {

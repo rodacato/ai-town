@@ -8,10 +8,12 @@ import type { ChronicleEntry } from './chronicle'
 import { nameOf } from '../lang'
 import { rationCost } from './decrees'
 import { GOALS, guildWord, type GuildWord, type Standing } from './standing'
+import { grievances, type PetitionTopic } from './petitions'
 
 export interface Petition {
   from: string
   text: string
+  topic: PetitionTopic
 }
 
 /** What reaches the castle each dawn: exact coffers, rough spirits, late and sometimes exaggerated news, and petitions. */
@@ -63,6 +65,8 @@ export function buildReport(input: {
   day: number
   seed: number
   standing?: Standing
+  /** Petitions already worded, by a model; without them the residents with a grievance use their usual words. */
+  petitions?: Petition[]
 }): RoyalReport {
   const { economy: e, content } = input
   const rng = createRng(input.seed * 1000 + input.day)
@@ -70,23 +74,12 @@ export function buildReport(input: {
   const living = ids.filter((id) => alive(e, id))
   // News of the last day reaches the castle; what happened this morning has not arrived yet.
   const news = input.chronicle
-    .filter((c) => c.minutes >= input.minutes - 1440 - 60 && c.minutes < input.minutes - 30 && c.kind !== 'ruler' && c.kind !== 'decree')
+    .filter((c) => c.minutes >= input.minutes - 1440 - 60 && c.minutes < input.minutes - 30 && c.kind !== 'ruler' && c.kind !== 'decree' && c.kind !== 'petition')
     .slice(-8)
     .map((c) => (c.kind === 'event' || c.kind === 'death' || c.kind === 'leave' ? rumour(c.text, rng.next) : c.text))
   const hungry = living.filter((id) => e.needs[id].daysHungry > 0).length
   const name = (id: string) => nameOf(content, id)
-  const petitions: Petition[] = []
-  const ask = (id: string, text: string) => {
-    if (living.includes(id) && petitions.length < 3) petitions.push({ from: name(id), text })
-  }
-  if (hungry >= 3) ask('clemencia', `Hay ${hungry} vecinos pasando hambre. Os ruego que abráis el granero a los pobres.`)
-  if (foodDays(e) < 3) ask('godric', 'El granero apenas da para unos días. Hay que comprar grano antes de que sea tarde.')
-  if (e.taxRate >= 0.3) ask('bartolo', `Con un impuesto del ${Math.round(e.taxRate * 100)}% nadie hace negocio. Bajadlo, mi señora.`)
-  if (averageMood(e) < 0.45 && !e.laws.rationing) ask('rowan', 'El pueblo anda triste. Una fiesta levantaría los ánimos.')
-  if (e.laws.rationing) ask('agnes', 'Las medias raciones enferman a los viejos y a los niños.')
-  if (e.laws.curfew) ask('finn', 'Con el toque de queda la taberna está vacía de noche.')
-  if (input.chronicle.some((c) => c.minutes >= input.minutes - 1440 && /esqueleto|lobo|bestia|fantasma|ladr/i.test(c.text)))
-    ask('aldric', 'Necesito más hombres en la guardia para proteger al pueblo.')
+  const petitions = input.petitions ?? grievances({ content, economy: e, chronicle: input.chronicle, minutes: input.minutes }).map((g) => ({ from: name(g.id), text: g.fallback, topic: g.topic }))
   return {
     day: input.day,
     season: input.season,
