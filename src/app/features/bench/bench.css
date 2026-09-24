@@ -739,3 +739,63 @@
     grid-template-columns: 1fr;
   }
 }
+
+.judge {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.judge-row {
+  display: grid;
+  grid-template-columns: 150px 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.judge-progress {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+  font-size: 13px;
+}
+
+.judge-score {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.judge-bar {
+  display: inline-block;
+  width: 70px;
+  height: 6px;
+  border-radius: 6px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.judge-bar span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+
+.judge-worst {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+.judge-worst li {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 6px;
+}

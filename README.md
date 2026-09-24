@@ -98,6 +98,7 @@ El botón **Pruebas** compara modelos con los mismos pregones y residentes. Una 
 - **Acierto**: si cree lo que de verdad pasó (cada pregón de ejemplo tiene su verdad), cuántas mentiras se tragó y de cuántas verdades dudó.
 - **Personaje**: decisiones que no contradicen la personalidad; el informe dice quién rompió qué regla (`src/core/bench/coherence.ts`).
 - **Como las reglas**: coincidencia con el modo simulado, como referencia.
+- **Personaje según el juez** (opcional, al terminar): otro modelo lee una muestra fija de decisiones, con la ficha del vecino, y dice de 1 a 5 si su razonamiento y sus palabras suenan a él, con una frase de por qué. Se guarda dentro de la corrida, entra en la comparación y muestra lo menos creíble de cada contendiente. Cuesta unas pocas consultas cortas por contendiente.
 - **Rendimiento y costo**: primera palabra, respuesta (mediana y p95), peticiones y tokens por segundo, tokens totales y por decisión, costo total y por 1.000 decisiones. El mejor modelo de cada columna va resaltado.
 
 La pestaña **Duelo de Baronesas** pone a gobernar el mismo año, con la misma semilla, dificultad y golpes del destino, al trono vacío, a las reglas y a los modelos que añadas. Estima el costo antes de empezar, muestra la tabla de resultados y cuatro gráficas (vecinos, confianza, ánimo y tesoro) con el cursor sincronizado, junto con las cartas que cada una escribió. El duelo sigue corriendo aunque cambies de pestaña, y se exporta en JSON (el mismo formato que `npm run reign`).
@@ -111,6 +112,7 @@ Las keys y hosts salen de `.env` / `.env.local` (`ANTHROPIC_API_KEY`, `OPENAI_AP
 ```bash
 npm run bench -- -m shellm:claude -m shellm:codex -r 3 -c 16
 npm run bench -- -m anthropic:claude-opus-5 -m custom:llama3.2@http://localhost:11434 -s banquet,troll
+npm run bench -- -m shellm:claude -m shellm:codex --juez anthropic:claude-opus-5 --muestras 12
 npm run bench -- --compare bench-results/antes.json bench-results/despues.json
 npm run reign -- -m anthropic:claude-sonnet-5 -m custom:qwen3@http://mi-servidor:8000=0.2/0.6 --seed 12
 npm run reign -- --dificultad cruel --seed 12
@@ -162,6 +164,6 @@ docs/          diseño del terrario y revisión de la 1.0
 - `npm run map`: imprime el mapa generado en ASCII.
 - `npm run sim:smoke`: corre 3 minutos de simulación sin interfaz.
 - `npx tsx scripts/reaction-smoke.ts [banquet|troll|crypt|dragon]`: pasa los pregones de ejemplo por el motor en modo simulado.
-- `npm run fake-llm`: un LLM falso compatible con OpenAI en `http://127.0.0.1:6199` para probar el flujo de un modelo sin gastar. Con `FAKE_KEY=…` exige esa key, para ensayar errores de autenticación.
+- `npm run fake-llm`: un LLM falso compatible con OpenAI en `http://127.0.0.1:6199` para probar el flujo de un modelo sin gastar; responde como vecino, como Baronesa o como juez según el prompt. Con `FAKE_KEY=…` exige esa key, para ensayar errores de autenticación.
 
 Cada PR corre en GitHub Actions el typecheck, los tests con cobertura y el build. Cada push a `main` publica en GitHub Pages (`.github/workflows/deploy.yml`; en el repo, **Settings → Pages → Source: GitHub Actions**). Cómo proponer cambios y publicar una versión está en [CONTRIBUTING.md](CONTRIBUTING.md).

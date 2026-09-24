@@ -2,6 +2,7 @@ import type { Action } from '../decisions/types'
 import type { ContenderReport } from './analysis'
 import { modalActions } from './analysis'
 import type { BenchRun } from './run'
+import { summarizeJudgments } from './judge'
 
 /** One contender inside one run: the unit compared, so it covers "same model on two days" and "two models in one run". */
 export interface Side {
@@ -50,6 +51,7 @@ const METRICS: MetricDef[] = [
   { id: 'consistency', label: 'Consistencia', unit: 'pct', higherIsBetter: true, noise: 0.03, read: (r) => r.consistency },
   { id: 'truth', label: 'Acierto', unit: 'pct', higherIsBetter: true, noise: 0.03, read: (r) => r.truth ?? null },
   { id: 'persona', label: 'Personaje', unit: 'pct', higherIsBetter: true, noise: 0.03, read: (r) => r.persona ?? null },
+  { id: 'judge', label: 'Personaje según el juez', unit: 'pct', higherIsBetter: true, noise: 0.05, read: (r, run) => judgeScore(r.contender, run) },
   { id: 'reference', label: 'Como las reglas', unit: 'pct', higherIsBetter: true, noise: 0.03, read: (r) => (r.contender === 'rules' ? null : r.referenceAgreement) },
   { id: 'errors', label: 'Errores', unit: 'pct', higherIsBetter: false, noise: 0.01, read: (r) => (r.trials ? r.errors / r.trials : null) },
   { id: 'p50', label: 'Respuesta p50', unit: 'ms', higherIsBetter: false, noise: 0.1, read: (r) => r.metrics.total?.p50 ?? null },
@@ -69,6 +71,13 @@ const METRICS: MetricDef[] = [
   { id: 'tps', label: 'Tokens/s', unit: 'rate', higherIsBetter: true, noise: 0.1, read: (r) => r.metrics.tokensPerSecond },
   { id: 'cost', label: 'Costo por decisión', unit: 'usd', higherIsBetter: false, noise: 0.05, read: (r) => (r.metrics.costUsd !== null && r.trials > r.errors ? r.metrics.costUsd / (r.trials - r.errors) : null) },
 ]
+
+/** The judge's average for a contender, from 1–5 onto 0–1 so it reads like the other percentages. */
+function judgeScore(contender: string, run: BenchRun) {
+  if (!run.judge) return null
+  const mean = summarizeJudgments(run.judge, [contender])[0].mean
+  return mean === null ? null : (mean - 1) / 4
+}
 
 function verdict(def: MetricDef, base: number | null, next: number | null): MetricDelta['verdict'] {
   if (base === null || next === null) return 'n/a'

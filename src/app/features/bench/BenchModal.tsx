@@ -21,6 +21,7 @@ import { estimateRunCost, promptTokens } from './estimate'
 import { TYPICAL_REPLY_TOKENS } from '../../../providers/llm/pricing'
 import { Duel } from './Duel'
 import { useDuel } from './duelStore'
+import { JudgePanel } from './JudgePanel'
 import { nameOf } from '../../../core/lang'
 
 const KINDS: ContenderKind[] = ['rules', 'anthropic', 'openai', 'shellm', 'custom']
@@ -294,6 +295,7 @@ function Result({ run }: { run: BenchRun }) {
         </table>
       </div>
 
+      <JudgePanel run={run} label={label} />
       <Errors run={run} label={label} />
       <OutOfCharacter reports={reports} label={label} />
 
