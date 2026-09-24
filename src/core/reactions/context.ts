@@ -5,8 +5,10 @@ import { statusOf } from '../sim/status'
 import { SEASON_TEXT } from '../sim/season'
 import { WEATHER_TEXT } from '../sim/weather'
 import { placeLabel, speakerName, type Announcement } from './announcement'
+import type { TownMemory } from '../memory/memory'
+import { recallFor } from '../memory/recall'
 
-export function buildContext(sim: Simulation, a: Announcement, r: Resident, rumors: Rumor[], previous: Decision | null): DecisionContext {
+export function buildContext(sim: Simulation, a: Announcement, r: Resident, rumors: Rumor[], previous: Decision | null, memory?: TownMemory): DecisionContext {
   const { content } = sim
   const p = r.profile
   const nameOf = (id: string) => content.residents.find((x) => x.id === id)?.name ?? id
@@ -28,5 +30,6 @@ export function buildContext(sim: Simulation, a: Announcement, r: Resident, rumo
     rumors,
     previous,
     townsfolk: content.residents.filter((x) => x.id !== p.id).map((x) => ({ id: x.id, name: x.name })),
+    ...(memory ? { memory: recallFor(memory, a, p.id, speakerName(content, a.speaker)) } : {}),
   }
 }
