@@ -384,3 +384,12 @@
   transform: translate(0, -50%);
   transition-delay: 350ms;
 }
+
+/* Any number of options: set --cols on the element. */
+.segmented[style*='--cols'] {
+  grid-template-columns: repeat(var(--cols), 1fr);
+}
+
+.segmented[style*='--cols'] .segmented-thumb {
+  width: calc((100% - 8px) / var(--cols));
+}
