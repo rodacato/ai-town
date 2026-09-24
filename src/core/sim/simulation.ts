@@ -3,6 +3,7 @@ import { findPath } from '../world/pathfinding'
 import { createRng, type Rng } from '../world/rng'
 import type { Point } from '../world/types'
 import { createWorld, isWalkable, type World } from '../world/world'
+import type { Weather } from './weather'
 
 export type ResidentMode = 'walking' | 'idle' | 'inside'
 
@@ -51,6 +52,7 @@ export class Simulation {
   readonly world: World
   readonly residents: Resident[] = []
   minutes = START_MINUTES
+  weather: Weather = 'clear'
   private rng: Rng
   private chatCheck = 0
   private tickers = new Set<(dt: number) => void>()
@@ -68,8 +70,14 @@ export class Simulation {
   reset(seed = Date.now()) {
     this.rng = createRng(seed)
     this.minutes = START_MINUTES
+    this.weather = 'clear'
     const fresh = this.residents.map((r) => this.spawn(r.profile))
     fresh.forEach((f, i) => Object.assign(this.residents[i], f))
+  }
+
+  /** Jumps to an hour of the current day; the day does not change. */
+  setHour(hour: number) {
+    this.minutes = Math.floor(this.minutes / 1440) * 1440 + hour * 60
   }
 
   get(id: string) {

@@ -47,7 +47,7 @@ export interface DecisionContext {
     place: string | null
     placeLabel: string | null
   }
-  situation: { activity: string; time: string }
+  situation: { activity: string; time: string; weather: string }
   rumors: Rumor[]
   previous: Decision | null
   townsfolk: { id: string; name: string }[]

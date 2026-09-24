@@ -4,6 +4,7 @@ import { firstName as first, listNames, toPlace } from '../core/lang'
 import type { WorldContent } from '../core/world/content'
 import { createRng, type Rng } from '../core/world/rng'
 import { buildPrompt } from './llm/prompt'
+import { WEATHER_TEXT } from '../core/sim/weather'
 
 export type Vocabulary = WorldContent['vocabulary']
 
@@ -67,6 +68,7 @@ export function mockDecision(ctx: DecisionContext, vocab: Vocabulary): Decision 
   const timid = sc.bravery <= 0.3
   const guard = sc.authority >= 0.85 && sc.bravery >= 0.8
   const busy = has('trabajador')
+  const foul = (['rain', 'storm', 'snow'] as const).some((w) => ctx.situation.weather === WEATHER_TEXT[w].sentence)
   const frail = ctx.resident.age / (LIFESPAN[ctx.resident.ancestry ?? 'human'] ?? LIFESPAN.human) >= 0.8
   const believes = trust >= 0.5
   let excuse: string | null = null
@@ -80,6 +82,7 @@ export function mockDecision(ctx: DecisionContext, vocab: Vocabulary): Decision 
     if (believes) {
       action = 'go'
       if (busy && rng.chance(0.7)) excuse = 'Ahora mismo no puedo dejar el trabajo.'
+      else if (foul && !greedy && sc.bravery < 0.7) excuse = 'Con este tiempo, mejor me quedo bajo techo.'
       else if (frail && !greedy && trust < 0.85) excuse = 'A mi edad ya no estoy para multitudes.'
       else if (solitary && !greedy && trust < 0.85) excuse = 'Prefiero no mezclarme con la multitud.'
       else if (skeptic && trust < 0.62) action = 'investigate'
