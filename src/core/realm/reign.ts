@@ -1,0 +1,130 @@
+import { alive, averageMood, runDay, startEconomy, type Economy } from '../economy/economy'
+import { applyImpact } from '../economy/impact'
+import { TownMemory } from '../memory/memory'
+import type { OutcomeVisual } from '../reactions/outcome'
+import type { Season } from '../sim/season'
+import type { WorldContent } from '../world/content'
+import { createRng } from '../world/rng'
+import { Chronicle } from './chronicle'
+import { enact } from './decrees'
+import { buildReport, type RoyalReport } from './report'
+import type { RulerTurn } from './ruler'
+
+/** A scheduled blow of fate: on this day, this happens. */
+export interface FateEvent {
+  day: number
+  visual: OutcomeVisual
+  text: string
+}
+
+export interface ReignOptions {
+  content: WorldContent
+  days: number
+  seed: number
+  /** Days per season, starting in spring. */
+  seasonLength: number
+  fate: FateEvent[]
+  rule: (report: RoyalReport) => Promise<RulerTurn>
+  /** Trust below this, after the first week, means revolt. */
+  revoltAt: number
+}
+
+export interface DayRecord {
+  day: number
+  season: Season
+  population: number
+  treasury: number
+  granary: number
+  mood: number
+  trust: number
+  actions: number
+  lies: number
+  problems: number
+}
+
+export interface ReignResult {
+  days: DayRecord[]
+  survivedDays: number
+  revolt: boolean
+  deaths: number
+  departures: number
+  lies: number
+  proclamations: number
+  letters: string[]
+  chronicle: Chronicle
+  economy: Economy
+}
+
+const SEASON_ORDER: Season[] = ['spring', 'summer', 'autumn', 'winter']
+
+/** A seeded calendar of blows of fate: a fair, repeatable string of trouble and luck for any ruler. */
+export function fateCalendar(seed: number, days: number): FateEvent[] {
+  const rng = createRng(seed)
+  const pool: [OutcomeVisual, string][] = [
+    ['thief', 'Un ladrón asaltó el tesoro.'],
+    ['flood', 'El río se desbordó sobre la orilla.'],
+    ['blaze', 'Ardió la taberna.'],
+    ['caravan', 'Llegó una caravana de mercaderes.'],
+    ['wolves', 'Una manada de lobos rondó el bosque.'],
+    ['undead', 'Salieron esqueletos del cementerio.'],
+    ['treasure', 'Encontraron un cofre de oro en la cripta.'],
+    ['meteor', 'Cayó un meteorito en el huerto.'],
+  ]
+  const out: FateEvent[] = []
+  for (let d = 2; d < days; d += 2 + Math.floor(rng.next() * 3)) {
+    const [visual, text] = pool[Math.floor(rng.next() * pool.length)]
+    out.push({ day: d, visual, text })
+  }
+  return out
+}
+
+/** Runs a whole reign without the map: dawns, fate, reports and the ruler's actions. The same for every ruler given the same seed. */
+export async function runReign(o: ReignOptions): Promise<ReignResult> {
+  const rules = o.content.economy!
+  const ids = o.content.residents.map((r) => r.id)
+  const e = startEconomy(rules, ids, 6 * 60)
+  const memory = new TownMemory()
+  const chronicle = new Chronicle()
+  const days: DayRecord[] = []
+  let lies = 0
+  let proclamations = 0
+  let revolt = false
+  const letters: string[] = []
+  for (let day = 0; day < o.days; day++) {
+    const season = SEASON_ORDER[Math.floor(day / o.seasonLength) % 4]
+    const minutes = 6 * 60 + day * 1440
+    if (day > 0) {
+      const l = runDay(e, rules, season, day)
+      chronicle.add(minutes, 'dawn', `Día ${day + 1}: cosecha +${l.harvest}, ${l.unfed.length} sin comer.`)
+      for (const id of l.died) chronicle.add(minutes, 'death', `${id} murió de hambre.`)
+      for (const id of l.left) chronicle.add(minutes, 'leave', `${id} se marchó del pueblo.`)
+    }
+    for (const f of o.fate.filter((f) => f.day === day)) {
+      const line = applyImpact(e, f.visual)
+      chronicle.add(minutes - 600, 'event', `${f.text}${line ? ` ${line}` : ''}`)
+    }
+    const report = buildReport({ content: o.content, economy: e, memory, chronicle: chronicle.entries, minutes: minutes + 30, season, weather: 'clear', day, seed: o.seed })
+    const turn = await o.rule(report)
+    for (const a of turn.actions) {
+      if (a.kind === 'decree') {
+        const r = enact(e, a.decree)
+        chronicle.add(minutes + 30, 'decree', r.summary)
+      } else if (a.kind === 'proclaim') {
+        proclamations++
+        if (!a.honest) lies++
+        memory.record({ id: `${day}-${proclamations}`, minutes, text: a.text, speaker: { kind: 'authority' }, truth: a.honest, summary: a.text, believers: [], doubters: [] })
+      } else letters.push(a.text)
+    }
+    const trust = memory.reputation({ kind: 'authority' }).trust
+    const living = ids.filter((id) => alive(e, id))
+    days.push({ day, season, population: living.length, treasury: e.treasury, granary: Math.floor(e.granary), mood: averageMood(e), trust, actions: turn.actions.length, lies, problems: turn.problems.length })
+    if (day >= 7 && (trust < o.revoltAt || averageMood(e) < 0.2)) {
+      revolt = true
+      chronicle.add(minutes + 60, 'end', 'El pueblo se alzó contra la Baronesa.')
+      break
+    }
+    if (!living.length) break
+  }
+  const lost = (s: string) => ids.filter((id) => e.needs[id].status === s).length
+  return { days, survivedDays: days.length, revolt, deaths: lost('dead'), departures: lost('gone'), lies, proclamations, letters, chronicle, economy: e }
+}

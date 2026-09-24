@@ -16,6 +16,7 @@ export function TopBar() {
   const godOpen = useTown((s) => s.godOpen)
   const setGodOpen = useTown((s) => s.setGodOpen)
   const throneOpen = useTown((s) => s.throneOpen)
+  const letters = useTown((s) => s.mailbox.filter((l) => !l.seen).length)
   const setThroneOpen = useTown((s) => s.setThroneOpen)
   const { day, time } = formatClock(minutes)
 
@@ -51,6 +52,7 @@ export function TopBar() {
             👑
           </span>
           <span className="pill-label">Trono</span>
+          {letters > 0 && <span className="pill-badge mono" aria-label={`${letters} cartas nuevas`}>{letters}</span>}
         </button>
         <button className={`pill panel btn-pill tool ${godOpen ? 'is-active' : ''}`} onClick={() => setGodOpen(!godOpen)} aria-pressed={godOpen} title="Modo dios: tiempo, clima y eventos (G)" aria-label="Modo dios">
           <Bolt className="pill-icon" />

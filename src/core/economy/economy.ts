@@ -65,7 +65,7 @@ export interface Ledger {
   left: string[]
 }
 
-const HARVEST: Record<Season, number> = { spring: 0.8, summer: 1, autumn: 1.4, winter: 0.25 }
+const HARVEST: Record<Season, number> = { spring: 0.8, summer: 1, autumn: 1.2, winter: 0.2 }
 const DAWN = 6 * 60
 export const dayOf = (minutes: number) => Math.floor((minutes - DAWN) / 1440)
 

@@ -1,5 +1,6 @@
 import type { Economy } from '../core/economy/economy'
 import type { ChronicleEntry } from '../core/realm/chronicle'
+import type { ReignState } from './store/reign'
 import type { Season } from '../core/sim/season'
 import type { ResidentMode, Simulation } from '../core/sim/simulation'
 import type { Weather } from '../core/sim/weather'
@@ -14,12 +15,13 @@ interface Saved {
   graves: Point[]
   residents: { id: string; x: number; y: number; mode: ResidentMode; facing: 1 | -1 }[]
   chronicle?: ChronicleEntry[]
+  reign?: ReignState
 }
 
 const key = (world: string) => `ai-town:state:${world}`
 
 /** The living town (clock, sky, purses, graves and where everyone is) survives reloads until Reiniciar. */
-export function saveTown(world: string, sim: Simulation, chronicle: ChronicleEntry[] = []) {
+export function saveTown(world: string, sim: Simulation, chronicle: ChronicleEntry[] = [], reign?: ReignState) {
   const saved: Saved = {
     v: 1,
     minutes: sim.minutes,
@@ -30,6 +32,7 @@ export function saveTown(world: string, sim: Simulation, chronicle: ChronicleEnt
     // Someone mid-walk is saved where they stand; they pick their routine up again on load.
     residents: sim.residents.map((r) => ({ id: r.profile.id, x: r.x, y: r.y, mode: r.mode === 'walking' ? 'idle' : r.mode, facing: r.facing })),
     chronicle,
+    reign,
   }
   try {
     localStorage.setItem(key(world), JSON.stringify(saved))
@@ -38,8 +41,8 @@ export function saveTown(world: string, sim: Simulation, chronicle: ChronicleEnt
   }
 }
 
-/** Returns the saved chronicle when a town was restored, or null when there was nothing to restore. */
-export function restoreTown(world: string, sim: Simulation): ChronicleEntry[] | null {
+/** Returns what the app keeps beside the simulation when a town was restored, or null when there was nothing to restore. */
+export function restoreTown(world: string, sim: Simulation): { chronicle: ChronicleEntry[]; reign?: ReignState } | null {
   let saved: Saved | null = null
   try {
     saved = JSON.parse(localStorage.getItem(key(world)) ?? 'null') as Saved | null
@@ -58,7 +61,7 @@ export function restoreTown(world: string, sim: Simulation): ChronicleEntry[] | 
     Object.assign(r, { x: s.x, y: s.y, mode: s.mode, facing: s.facing, path: [], tasks: [], timer: 1 + Math.random() * 4 })
   }
   sim.restoreGraves(saved.graves ?? [])
-  return saved.chronicle ?? []
+  return { chronicle: saved.chronicle ?? [], reign: saved.reign }
 }
 
 export function forgetTown(world: string) {

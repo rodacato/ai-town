@@ -7,6 +7,10 @@ import { averageMood, foodDays, type Ledger } from '../core/economy/economy'
 import { applyImpact } from '../core/economy/impact'
 import { Chronicle, type ChronicleKind } from '../core/realm/chronicle'
 import { enact, type Decree, type DecreeResult } from '../core/realm/decrees'
+import { buildReport, reportText } from '../core/realm/report'
+import type { RulerAction } from '../core/realm/ruler'
+import { createModelRuler, createRulesRuler } from '../providers/ruler'
+import { FRESH_REIGN, type ReignState, type RulerLog, type RulerMode } from './store/reign'
 import type { Season } from '../core/sim/season'
 import type { Weather } from '../core/sim/weather'
 import { Simulation } from '../core/sim/simulation'
@@ -39,6 +43,7 @@ class TownController {
   readonly memory = loadMemory(activeWorld.content.id)
   readonly chronicle = new Chronicle()
   private remembered = new Set<string>()
+  private pendingProclamations: { text: string; honest: boolean }[] = []
   private renderer: TownRenderer | null = null
   private toastedFor = new Set<string>()
   private snapshotFrame = 0
@@ -50,8 +55,8 @@ class TownController {
     this.engine = new ReactionEngine(this.sim, new DecisionScheduler(provider, concurrency, timeoutMs))
     const restored = restoreTown(this.content.id, this.sim)
     if (restored) {
-      this.chronicle.entries = restored
-      useTown.setState({ chronicle: restored.slice(-80) })
+      this.chronicle.entries = restored.chronicle
+      useTown.setState({ chronicle: restored.chronicle.slice(-80), ...(restored.reign ? { ...FRESH_REIGN, ...restored.reign } : {}) })
       useTown.setState({ weather: this.sim.weather, season: this.sim.season })
     }
     this.sim.onLedger((l) => this.onLedger(l))
@@ -68,6 +73,7 @@ class TownController {
         if (e.outcome.truth) this.impact(e.outcome.visual)
       }
       if (e.type === 'complete' && this.engine.announcement?.speaker.kind === 'sight') this.remember(useTown.getState().godEvent)
+      if (e.type === 'outcome' || (e.type === 'complete' && this.engine.announcement?.truth === undefined)) window.setTimeout(() => this.flushProclamations(), 4000)
       if (e.type === 'complete' && this.engine.announcement && !this.toastedFor.has(this.engine.announcement.id)) {
         this.toastedFor.add(this.engine.announcement.id)
         useTown.getState().toast('Todo el pueblo ha decidido.')
@@ -94,7 +100,7 @@ class TownController {
       useTown.getState().toast('Por seguridad, tus keys ya no se guardan sin cifrar. Siguen activas en esta pestaña.')
     }
     const clock = window.setInterval(() => this.syncClock(), 1000)
-    const save = () => saveTown(this.content.id, this.sim, this.chronicle.entries)
+    const save = () => saveTown(this.content.id, this.sim, this.chronicle.entries, this.reignState())
     const autosave = window.setInterval(save, 5000)
     window.addEventListener('pagehide', save)
     return () => {
@@ -164,6 +170,8 @@ class TownController {
       forgetTown(this.content.id)
       this.forgetMemory()
       this.chronicle.clear()
+      this.pendingProclamations = []
+      useTown.setState({ ...FRESH_REIGN, rulerMode: useTown.getState().rulerMode })
       this.syncRealm()
       this.renderer?.showEvent(null)
       this.renderer?.setSpeed(1)
@@ -239,6 +247,7 @@ class TownController {
       window.setTimeout(() => toast(line), 1500)
     }
     this.syncRealm()
+    void this.reign()
   }
 
   log(kind: ChronicleKind, text: string) {
@@ -263,6 +272,73 @@ class TownController {
     if (proclaim && result.proclamation && !busy)
       this.begin({ id: crypto.randomUUID(), text: result.proclamation, speaker: { kind: 'authority' }, place: this.detectPlace(result.proclamation), minutes: Math.floor(this.sim.minutes), truth: true })
     return result
+  }
+
+  private reignState(): ReignState {
+    const { rulerMode, rulerCap, rulerCalls, rulerCost, lastTurn, mailbox, honesty } = useTown.getState()
+    return { rulerMode, rulerCap, rulerCalls, rulerCost, lastTurn, mailbox, honesty }
+  }
+
+  setRulerMode(rulerMode: RulerMode) {
+    useTown.setState({ rulerMode })
+    if (rulerMode === 'model' && useTown.getState().llm.active === 'mock')
+      useTown.getState().toast('No hay un modelo configurado: la Baronesa gobernará con reglas hasta que elijas uno en Configuración.')
+  }
+
+  /** The Baroness's turn: read the report, decide, act. Runs at dawn, or on demand from the throne room. */
+  async reign(force = false) {
+    const state = useTown.getState()
+    const e = this.sim.economy
+    if (!e || state.rulerBusy || (!force && state.rulerMode === 'manual')) return
+    const useModel = state.rulerMode === 'model' && state.llm.active !== 'mock'
+    const modelOk = useModel && state.rulerCalls < state.rulerCap
+    if (useModel && !modelOk) state.toast(`La Baronesa llegó al tope de ${state.rulerCap} consultas al modelo en esta partida; gobierna con reglas.`)
+    const active = state.llm.active
+    const ruler = modelOk && active !== 'mock' ? createModelRuler(state.llm.connections[active]) : createRulesRuler()
+    const report = buildReport({ content: this.content, economy: e, memory: this.memory, chronicle: this.chronicle.entries, minutes: this.sim.minutes, season: this.sim.season, weather: this.sim.weather, day: e.day, seed: this.content.layout.seed })
+    useTown.setState({ rulerBusy: true })
+    try {
+      const reply = await ruler(report, AbortSignal.timeout(120_000))
+      const actions = reply.actions.map((a) => this.carryOut(a, e.day))
+      const log: RulerLog = { day: e.day, mode: modelOk ? 'model' : 'rules', thought: reply.thought, report: reply.prompt, response: reply.response, actions, problems: reply.problems, ms: reply.ms, usage: reply.usage }
+      useTown.setState((s) => ({ lastTurn: log, rulerCalls: s.rulerCalls + (modelOk ? 1 : 0), rulerCost: s.rulerCost + (reply.usage?.costUsd ?? 0) }))
+      this.log('ruler', `La Baronesa: «${reply.thought.length > 160 ? `${reply.thought.slice(0, 157)}…` : reply.thought}»`)
+    } catch (err) {
+      const error = err instanceof Error ? err.message : 'No respondió.'
+      useTown.setState({ lastTurn: { day: e.day, mode: 'model', thought: '', report: reportText(report), response: '', actions: [], problems: [], ms: 0, error } })
+      state.toast(`La Baronesa no pudo decidir hoy: ${error}`)
+    } finally {
+      useTown.setState({ rulerBusy: false })
+    }
+  }
+
+  private carryOut(a: RulerAction, day: number): { text: string; ok: boolean } {
+    if (a.kind === 'decree') {
+      const r = this.decree(a.decree, false)
+      return { text: r.ok ? r.summary : `No se pudo: ${r.reason}`, ok: r.ok }
+    }
+    if (a.kind === 'ask') {
+      useTown.setState((s) => ({ mailbox: [...s.mailbox, { day, text: a.text, seen: false }].slice(-40) }))
+      useTown.getState().toast('📬 La Baronesa te ha escrito una carta.')
+      this.log('ruler', `La Baronesa escribe al creador: «${a.text.slice(0, 120)}»`)
+      return { text: `Carta al creador: «${a.text}»`, ok: true }
+    }
+    useTown.setState((s) => ({ honesty: { proclamations: s.honesty.proclamations + 1, lies: s.honesty.lies + (a.honest ? 0 : 1) } }))
+    this.pendingProclamations.push({ text: a.text, honest: a.honest })
+    this.flushProclamations()
+    return { text: `Pregón${a.honest ? '' : ' (mentira)'}: «${a.text}»`, ok: true }
+  }
+
+  /** The Baroness's proclamations wait their turn if the town is still reacting to something else. */
+  private flushProclamations() {
+    if (this.engine.active && !this.engine.settled) return
+    const next = this.pendingProclamations.shift()
+    if (!next) return
+    this.begin({ id: crypto.randomUUID(), text: next.text, speaker: { kind: 'authority' }, place: this.detectPlace(next.text), minutes: Math.floor(this.sim.minutes), truth: next.honest })
+  }
+
+  markLettersSeen() {
+    useTown.setState((s) => ({ mailbox: s.mailbox.map((l) => ({ ...l, seen: true })) }))
   }
 
   syncRealm() {

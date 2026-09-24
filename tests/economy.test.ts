@@ -109,7 +109,7 @@ describe('saved town', () => {
     a.residents[0].x = 20.5
     saveTown(content.id, a)
     const b = new Simulation(content, 2)
-    expect(restoreTown(content.id, b)).toEqual([])
+    expect(restoreTown(content.id, b)).toEqual({ chronicle: [], reign: undefined })
     expect(b).toMatchObject({ minutes: a.minutes, weather: 'snow', season: 'winter' })
     expect(b.economy!.treasury).toBe(777)
     expect(b.graves).toEqual([{ x: 5, y: 36 }])
