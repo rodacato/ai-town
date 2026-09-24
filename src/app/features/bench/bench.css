@@ -424,3 +424,70 @@
   margin-right: 4px;
   color: var(--accent-ink);
 }
+
+.bench-compare {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.compare-pickers {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.compare-table td:not(:first-child) {
+  min-width: 90px;
+}
+
+.verdict {
+  margin-left: 6px;
+  font-family: var(--font-ui);
+  font-size: 11.5px;
+}
+
+.verdict-better {
+  color: #446d3c;
+}
+
+.verdict-worse {
+  color: #9a4a42;
+}
+
+.verdict-same,
+.verdict-n\/a {
+  color: var(--ink-3);
+}
+
+.compare-summary {
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.changes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12.5px;
+}
+
+.changes li {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.change-name {
+  margin-right: 4px;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .compare-pickers {
+    grid-template-columns: 1fr;
+  }
+}
