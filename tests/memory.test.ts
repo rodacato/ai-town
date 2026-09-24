@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { buildScenario } from '../src/core/bench/scenarios'
 import { TownMemory, type MemoryEntry } from '../src/core/memory/memory'
 import { bondLines, recallFor } from '../src/core/memory/recall'
+import { isWarm, livingRelations, turnsBetween } from '../src/core/memory/bonds'
 import { buildContext } from '../src/core/reactions/context'
 import { Simulation } from '../src/core/sim/simulation'
 import { buildPrompt } from '../src/providers/llm/prompt'
@@ -140,5 +141,54 @@ describe('personal memory', () => {
       expect(d.tell[0]).toBe(stranger.id)
       expect(d.reasoning).toContain('Le debo a')
     }
+  })
+})
+
+describe('relationships that change', () => {
+  const bond = (misled: number, warned: number) => ({ misled, warned })
+  const base = [
+    { id: 'kael', label: 'mejor amigo' },
+    { id: 'mara', label: 'rival: pócimas contra acero' },
+  ]
+
+  it('break a friendship after repeated lies and mend a rivalry after true warnings', () => {
+    const live = livingRelations(base, new Map([['kael', bond(2, 0)], ['mara', bond(0, 2)]]))
+    expect(live.map((r) => r.turn)).toEqual(['broken', 'mended'])
+    expect(isWarm(live[0].label)).toBe(false)
+    expect(isWarm(live[1].label)).toBe(true)
+    expect(live[0].base).toBe('mejor amigo')
+  })
+
+  it('hold one lie against a friend, but not enough to break it', () => {
+    expect(livingRelations(base, new Map([['kael', bond(1, 0)]]))[0]).toEqual({ ...base[0], base: 'mejor amigo' })
+  })
+
+  it('make new friends and new grudges among neighbours with no tie', () => {
+    const live = livingRelations([], new Map([['finn', bond(0, 2)], ['pip', bond(1, 0)], ['otto', bond(0, 1)]]))
+    expect(live.map((r) => [r.id, r.turn])).toEqual([
+      ['finn', 'befriended'],
+      ['pip', 'resented'],
+    ])
+    expect(isWarm(live[0].label)).toBe(true)
+    expect(isWarm(live[1].label)).toBe(false)
+  })
+
+  it('tells the chronicle only about turns that are new', () => {
+    const before = livingRelations(base, new Map([['kael', bond(1, 0)]]))
+    const after = livingRelations(base, new Map([['kael', bond(2, 0)], ['finn', bond(1, 0)]]))
+    expect(turnsBetween(before, after, 'Pip', (id) => id)).toEqual(['Pip ya no se fía de kael', 'Pip le guarda rencor a finn'])
+    expect(turnsBetween(after, after, 'Pip', (id) => id)).toEqual([])
+  })
+
+  it('reach the prompt and the rules as the resident lives them now', () => {
+    const sim = new Simulation(content)
+    const r = sim.residents.find((x) => x.profile.relationships.some((rel) => isWarm(rel.label)))!
+    const friend = r.profile.relationships.find((rel) => isWarm(rel.label))!
+    const lies = ['a', 'b'].map((id): MemoryEntry => ({ ...lie(id, 0, [r.profile.id]), speaker: { kind: 'sight' }, told: [{ from: friend.id, to: r.profile.id }] }))
+    const a = { ...announce(sim, exampleByTone('confiable')), speaker: { kind: 'neighbor' as const, residentId: friend.id } }
+    const ctx = buildContext(sim, a, r, [], null, new TownMemory(lies))
+    expect(ctx.relationships.find((rel) => rel.id === friend.id)!.label).toMatch(/ya no se fía/)
+    expect(ctx.announcement.relationToSpeaker).toMatch(/ya no se fía/)
+    expect(buildPrompt(ctx)).toContain('ya no se fía: le pasó mentiras 2 veces')
   })
 })

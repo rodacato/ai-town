@@ -1,4 +1,4 @@
-export type ChronicleKind = 'dawn' | 'decree' | 'event' | 'reveal' | 'death' | 'leave' | 'ruler' | 'petition' | 'plot' | 'end'
+export type ChronicleKind = 'dawn' | 'decree' | 'event' | 'reveal' | 'death' | 'leave' | 'ruler' | 'petition' | 'plot' | 'end' | 'bond'
 
 export interface ChronicleEntry {
   minutes: number

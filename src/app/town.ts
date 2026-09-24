@@ -25,6 +25,7 @@ import { loadMemory, saveMemory } from './memoryStorage'
 import { exportGame, forgetTown, importGame, restoreTown, saveTown } from './townState'
 import { speakerName } from '../core/reactions/announcement'
 import { firstName, nameOf } from '../core/lang'
+import { livingRelations, turnsBetween } from '../core/memory/bonds'
 import type { Outcome } from '../core/reactions/outcome'
 import type { MemoryEntry } from '../core/memory/memory'
 import { Terrarium, type TerrariumHost } from './terrarium'
@@ -485,6 +486,9 @@ class TownController implements TerrariumHost, ThroneHost {
     const decided = [...this.engine.reactions.values()].filter((r) => r.decision && !r.isSpeaker)
     const sight = a.speaker.kind === 'sight'
     const before = this.memory.reputation(a.speaker)
+    const hearers = [...new Set([...this.engine.reactions.values()].flatMap((r) => r.told))]
+    const relationsNow = () => new Map(hearers.map((id) => [id, this.relationsOf(id)]))
+    const bondsBefore = relationsNow()
     const said = a.text.length > 70 ? `${a.text.slice(0, 67)}…` : a.text
     this.memory.record({
       id: a.id,
@@ -500,10 +504,18 @@ class TownController implements TerrariumHost, ThroneHost {
     saveMemory(this.content.id, this.memory)
     useTown.setState({ memoryEntries: [...this.memory.entries] })
     this.log(sight ? 'event' : 'reveal', `${this.memory.entries.at(-1)!.summary}.`)
+    for (const [id, after] of relationsNow()) {
+      for (const line of turnsBetween(bondsBefore.get(id)!, after, nameOf(this.content, id), (other) => nameOf(this.content, other))) this.log('bond', `${line}.`)
+    }
     if (sight) return
     const after = this.memory.reputation(a.speaker)
     const pct = (x: number) => `${Math.round(x * 100)}%`
     window.setTimeout(() => useTown.getState().toast(`${this.speakerShort(a.speaker)} ${after.trust >= before.trust ? 'gana' : 'pierde'} confianza: ${pct(before.trust)} → ${pct(after.trust)}`), 1800)
+  }
+
+  /** A resident's relationships as they stand now, bent by what they remember. */
+  relationsOf(id: string) {
+    return livingRelations(this.content.residents.find((r) => r.id === id)?.relationships ?? [], this.memory.bondsOf(id))
   }
 
   /** "la Baronesa", "el forastero", "Kael": how the town names a speaker in passing. */

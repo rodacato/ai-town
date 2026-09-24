@@ -10,9 +10,14 @@ import { statusOf } from '../../../core/sim/status'
 import { town } from '../../town'
 import './inspector.css'
 import { firstName } from '../../../core/lang'
+import type { Turn } from '../../../core/memory/bonds'
+
+const TURN_TAG: Record<Turn, string> = { broken: 'Rota', mended: 'Paces', befriended: 'Nueva', resented: 'Rencor' }
 
 export function Inspector({ id }: { id: string }) {
   const reaction = useTown((s) => s.reactions[id])
+  useTown((s) => s.memoryEntries)
+  const relations = town.relationsOf(id)
   const profile = town.content.residents.find((r) => r.id === id)!
   const [status, setStatus] = useState('')
 
@@ -71,7 +76,7 @@ export function Inspector({ id }: { id: string }) {
       <section>
         <h3 className="section-label">Relaciones</h3>
         <ul className="relations">
-          {profile.relationships.map((rel) => {
+          {relations.map((rel) => {
             const other = town.content.residents.find((p) => p.id === rel.id)!
             return (
               <li key={rel.id}>
@@ -79,7 +84,11 @@ export function Inspector({ id }: { id: string }) {
                   <Avatar look={other.look} size={30} />
                   <span className="rel-text">
                     <span className="rel-name">{other.name}</span>
-                    <span className="rel-label">{rel.label}</span>
+                    <span className="rel-label">
+                      {rel.turn && <span className={`rel-turn turn-${rel.turn}`}>{TURN_TAG[rel.turn]}</span>}
+                      {rel.label}
+                    </span>
+                    {rel.turn && rel.base && <span className="rel-label rel-before">Antes: {rel.base}</span>}
                   </span>
                 </button>
               </li>

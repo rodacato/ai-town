@@ -15,7 +15,7 @@ export interface Chapter {
   entries: ChronicleEntry[]
 }
 
-const WEIGHT: Record<ChronicleKind, number> = { end: 9, death: 8, leave: 7, plot: 6, event: 5, reveal: 4, ruler: 3, decree: 2, petition: 1, dawn: 0 }
+const WEIGHT: Record<ChronicleKind, number> = { end: 9, death: 8, leave: 7, plot: 6, event: 5, reveal: 4, ruler: 3, bond: 2, decree: 2, petition: 1, dawn: 0 }
 
 /** The chronicle split into days, newest first, each headed by its most striking line. */
 export function chapters(entries: ChronicleEntry[]): Chapter[] {

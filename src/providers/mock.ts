@@ -4,20 +4,18 @@ import { firstName as first, listNames, toPlace } from '../core/lang'
 import type { WorldContent } from '../core/world/content'
 import { createRng, type Rng } from '../core/world/rng'
 import { buildPrompt } from './llm/prompt'
+import { isWarm } from '../core/memory/bonds'
 import { WEATHER_TEXT } from '../core/sim/weather'
 
 export type Vocabulary = WorldContent['vocabulary']
 
 /** Rough life expectancy per ancestry, so a 142-year-old dwarf is not treated as frail. */
 const LIFESPAN: Record<string, number> = { human: 90, halfling: 140, halforc: 75, tiefling: 100, gnome: 350, dwarf: 350, elf: 700 }
-const NEGATIVE_RELATION = ['rival', 'no le cae', 'critica', 'usurpadora', 'desconfianza', 'vigila']
 
 const hashString = (s: string) => [...s].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) | 0, 7)
 const clamp = (v: number, lo = 0, hi = 1) => Math.min(hi, Math.max(lo, v))
 
-function isPositiveRelation(label: string) {
-  return !NEGATIVE_RELATION.some((w) => label.includes(w))
-}
+const isPositiveRelation = isWarm
 
 interface Reading {
   opportunity: boolean

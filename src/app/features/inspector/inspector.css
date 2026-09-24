@@ -438,3 +438,28 @@
   background: var(--surface-sunk);
   color: var(--ink-3);
 }
+
+.rel-turn {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.turn-broken,
+.turn-resented {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+.turn-mended,
+.turn-befriended {
+  background: var(--sage-soft);
+  color: color-mix(in srgb, var(--sage) 55%, var(--ink));
+}
+
+.rel-before {
+  font-style: italic;
+}

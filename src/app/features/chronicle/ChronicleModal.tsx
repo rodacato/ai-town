@@ -10,7 +10,7 @@ import { useDialog } from '../../shared/useDialog'
 import { town } from '../../town'
 import './chronicle.css'
 
-const KIND_ICON: Record<ChronicleKind, string> = { dawn: '🌅', decree: '📜', event: '⚡', reveal: '🔎', death: '🪦', leave: '🎒', ruler: '👑', petition: '✉️', plot: '🗡️', end: '🏁' }
+const KIND_ICON: Record<ChronicleKind, string> = { dawn: '🌅', decree: '📜', event: '⚡', reveal: '🔎', death: '🪦', leave: '🎒', ruler: '👑', petition: '✉️', plot: '🗡️', end: '🏁', bond: '🤝' }
 
 export function ChronicleModal() {
   const open = useTown((s) => s.chronicleOpen)
