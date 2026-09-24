@@ -33,6 +33,7 @@ CUSTOM_LLM_HOST=… CUSTOM_LLM_KEY=… CUSTOM_LLM_PROTOCOL=openai
 | `npm run build` | Build de producción en `dist/` |
 | `npm run bench -- --help` | Banco de pruebas en la terminal |
 | `npm run reign -- --help` | Duelo de gobernantes en la terminal |
+| `npm run perf -- --help` | Cuánto cuesta simular días enteros a ×16, sin navegador |
 | `npm run fake-llm` | LLM falso compatible con OpenAI en el puerto 6199 |
 
 ## Organización

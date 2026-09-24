@@ -21,6 +21,7 @@ import { ActivityModal } from '../features/activity/ActivityModal'
 import { KeyGate } from './KeyGate'
 import { ThronePanel } from '../features/throne/ThronePanel'
 import { MailboxModal } from '../features/throne/MailboxModal'
+import { PerfMeter, perfWanted } from '../features/perf/PerfMeter'
 import './shell.css'
 
 const SettingsModal = lazy(() => import('../features/settings/SettingsModal').then((m) => ({ default: m.SettingsModal })))
@@ -83,6 +84,7 @@ export function App() {
         <ThronePanel />
         <RightPanel />
       </div>
+      {perfWanted() && <PerfMeter />}
       <EndScreen />
       <ChronicleModal />
       <MailboxModal />

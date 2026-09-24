@@ -26,6 +26,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 - Preparado para varios mundos: quién gobierna y cómo se le nombra, el gremio y su deudor, quién pide qué y dónde se hace la fiesta salen del mundo (`realm`), no del código. Registro de mundos con selector en Configuración (aparece con más de uno), y cada mundo guarda su partida.
 - Segundo mundo, **Aguamansa**: un pueblo de pescadores a orillas de un lago, con 13 vecinos, playa, muelle, faro y arrozal, gobernado por un alcalde, con sus propios pregones de ejemplo, desenlaces, economía, peticiones y contrabandistas. Reutiliza el kit de arte de Chismeroble; se elige en Configuración y en la terminal con `--mundo`.
 - La arena de la orilla se dibuja como arena.
+- Medidor de rendimiento: `?perf` en la dirección muestra cuadros por segundo, tiempo de lógica y de dibujo, objetos y memoria; `npm run perf` mide sin navegador la lógica de días enteros a la velocidad que digas, con pregones.
 
 ### Cambiado
 - Los peligros del destino y del modo dios, los lugares con techo o con ambiente de noche, dónde se entierra y por dónde se va la gente salen del mundo, no del código.
