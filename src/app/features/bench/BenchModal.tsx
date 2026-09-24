@@ -23,6 +23,7 @@ import { Duel } from './Duel'
 import { useDuel } from './duelStore'
 import { JudgePanel } from './JudgePanel'
 import { GOLDEN_SIZE, passesGolden } from '../../../core/bench/golden'
+import { foldersSupported } from './folder'
 import { nameOf } from '../../../core/lang'
 
 const KINDS: ContenderKind[] = ['rules', 'anthropic', 'openai', 'shellm', 'custom']
@@ -475,16 +476,18 @@ function History() {
   const runs = useBench((s) => s.runs)
   const show = useBench((s) => s.show)
   const remove = useBench((s) => s.remove)
-  const importRun = useBench((s) => s.importRun)
+  const importRuns = useBench((s) => s.importRuns)
+  const exportAll = useBench((s) => s.exportAll)
   const picker = (
     <label className="btn-secondary compact import-btn">
-      Importar JSON
+      Importar
       <input
         type="file"
         accept="application/json,.json"
+        multiple
         onChange={(e) => {
-          const file = e.target.files?.[0]
-          if (file) void importRun(file)
+          const files = [...(e.target.files ?? [])]
+          if (files.length) void importRuns(files)
           e.target.value = ''
         }}
       />
@@ -493,13 +496,20 @@ function History() {
   if (!runs.length)
     return (
       <div className="history-empty">
-        <p className="empty-note">Aún no hay pruebas guardadas. Se guardan solo en este navegador; también puedes importar las de «npm run bench».</p>
+        <SharedFolder />
+        <p className="empty-note">Aún no hay pruebas guardadas. Se guardan en este navegador y, si enlazas una carpeta, también ahí. Puedes importar las de «npm run bench» o un lote exportado de otra máquina.</p>
         {picker}
       </div>
     )
   return (
     <div className="history-wrap">
-      <div className="history-actions">{picker}</div>
+      <SharedFolder />
+      <div className="history-actions">
+        {picker}
+        <button className="btn-secondary compact" onClick={exportAll} title="Todas las pruebas en un solo archivo, para otra máquina">
+          Exportar todo ({runs.length})
+        </button>
+      </div>
       <ul className="history">
       {runs.map((run) => (
         <li key={run.id}>
@@ -571,6 +581,38 @@ function GoldenCases({ run, label }: { run: BenchRun; label: (id: string) => str
         </table>
       </div>
     </details>
+  )
+}
+
+/** Where the runs are shared with other machines: a folder in Chrome and Edge, files everywhere else. */
+function SharedFolder() {
+  const { folder, linkFolder, reconnectFolder, unlinkFolder } = useBench()
+  if (!foldersSupported())
+    return <p className="field-hint shared-folder">Para compartir entre máquinas usa «Exportar todo» e «Importar». Con Chrome o Edge puedes enlazar además una carpeta sincronizada.</p>
+  if (!folder)
+    return (
+      <div className="shared-folder">
+        <span>Enlaza una carpeta sincronizada (iCloud, Dropbox, Drive) y cada prueba se guardará ahí; otra máquina que apunte a la misma carpeta las verá. «npm run bench» puede guardar ahí también.</span>
+        <button className="btn-secondary compact" onClick={() => void linkFolder()}>
+          Enlazar carpeta
+        </button>
+      </div>
+    )
+  return (
+    <div className="shared-folder is-linked">
+      <span>
+        📁 Carpeta compartida: <b>{folder.name}</b>
+        {folder.access === 'granted' ? '' : ' · el navegador pide permiso de nuevo'}
+      </span>
+      {folder.access !== 'granted' && (
+        <button className="btn-secondary compact" onClick={() => void reconnectFolder()}>
+          Dar permiso
+        </button>
+      )}
+      <button className="btn-link small" onClick={() => void unlinkFolder()}>
+        Desenlazar
+      </button>
+    </div>
   )
 }
 

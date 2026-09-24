@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { executeRun, RUN_FORMAT, trialsPerContender, type ContenderInfo } from '../../../core/bench/run'
+import { executeRun, trialsPerContender, type ContenderInfo } from '../../../core/bench/run'
 import type { BenchProgress, Contender } from '../../../core/bench/runner'
 import { createProvider } from '../../../providers'
 import { PRESETS, type Connection, type LlmSettings } from '../../../providers/llm/config'
@@ -7,6 +7,9 @@ import { createRulesProvider, mockDecision } from '../../../providers/mock'
 import { useTown } from '../../store'
 import { town } from '../../town'
 import { history, type BenchRun } from './history'
+import { bundleRuns, mergeRuns, readRuns } from '../../../core/bench/bundle'
+import { folderAccess, forgetFolder, linkedFolder, pickFolder, readFolder, removeFromFolder, writeToFolder } from './folder'
+import { download } from '../experiment/export'
 import { runJudge } from '../../../core/bench/judge'
 import { GOLDEN_SIZE } from '../../../core/bench/golden'
 import { createModelJudge } from '../../../providers/judge'
@@ -40,7 +43,14 @@ interface BenchState extends Prefs {
   loadHistory: () => Promise<void>
   show: (run: BenchRun) => void
   remove: (id: string) => Promise<void>
-  importRun: (file: File) => Promise<void>
+  /** Runs from files: one run each, or bundles of many. */
+  importRuns: (files: File[]) => Promise<void>
+  exportAll: () => void
+  /** A folder, ideally synced across machines, where runs are saved and read; null when none is linked. */
+  folder: { name: string; access: PermissionState } | null
+  linkFolder: () => Promise<void>
+  reconnectFolder: () => Promise<void>
+  unlinkFolder: () => Promise<void>
   /** A judge model reading the current run's decisions; its verdict is saved into the run. */
   judging: { done: number; total: number; controller: AbortController } | null
   judge: (spec: { kind: Connection['kind']; model: string }, perContender: number) => Promise<void>
@@ -90,6 +100,13 @@ function contenderFor(spec: ContenderSpec, llm: LlmSettings): { contender: Conte
   const conn = { ...llm.connections[spec.kind], model: spec.model.trim() }
   const { provider, concurrency, timeoutMs } = createProvider({ active: spec.kind, connections: { ...llm.connections, [spec.kind]: conn } }, town.content)
   return { contender: { id, label, provider, concurrency, timeoutMs }, info: { id, label, kind: spec.kind, model: conn.model, host: conn.host, concurrency } }
+}
+
+/** Saves a run in this browser and, when a folder is linked and allowed, in the folder too. */
+async function keepRun(run: BenchRun, folder: BenchState['folder']) {
+  await history.save(run)
+  const dir = folder?.access === 'granted' ? await linkedFolder() : undefined
+  if (dir) await writeToFolder(dir, run)
 }
 
 export const useBench = create<BenchState>((set, get) => ({
@@ -144,30 +161,67 @@ export const useBench = create<BenchState>((set, get) => ({
     cancelAnimationFrame(frame)
     set({ running: null, current: run, view: 'result' })
     if (run.trials.length) {
-      await history.save(run).catch(() => useTown.getState().toast('No se pudo guardar la prueba en este navegador; expórtala para no perderla.'))
+      await keepRun(run, get().folder).catch(() => useTown.getState().toast('No se pudo guardar la prueba; expórtala para no perderla.'))
       void get().loadHistory()
     }
   },
   cancel: () => get().running?.controller.abort(),
   loadHistory: async () => {
+    let local: BenchRun[] = []
     try {
-      set({ runs: await history.list() })
+      local = await history.list()
     } catch {
-      set({ runs: [] })
+      // Blocked storage: the history starts empty.
+    }
+    const dir = await linkedFolder()
+    if (!dir) return set({ runs: local, folder: null })
+    const access = await folderAccess(dir, false).catch((): PermissionState => 'denied')
+    set({ folder: { name: dir.name, access } })
+    if (access !== 'granted') return set({ runs: local })
+    const shared = await readFolder(dir).catch(() => [])
+    // What arrives from the folder is kept here too, so unlinking it loses nothing.
+    const known = new Set(local.map((r) => r.id))
+    await Promise.all(shared.filter((r) => !known.has(r.id)).map((r) => history.save(r).catch(() => undefined)))
+    set({ runs: mergeRuns(local, shared) })
+  },
+  exportAll: () => download(`ai-town-pruebas-${new Date().toISOString().slice(0, 10)}.json`, bundleRuns(get().runs), 'application/json'),
+  folder: null,
+  linkFolder: async () => {
+    try {
+      const dir = await pickFolder()
+      // The history so far goes into the folder, so the other machine sees it too.
+      await Promise.all(get().runs.map((r) => writeToFolder(dir, r)))
+      await get().loadHistory()
+      useTown.getState().toast(`Las pruebas se guardan también en «${dir.name}».`)
+    } catch (err) {
+      if ((err as Error)?.name !== 'AbortError') useTown.getState().toast('No se pudo usar esa carpeta.')
     }
   },
+  reconnectFolder: async () => {
+    const dir = await linkedFolder()
+    if (dir) await folderAccess(dir, true).catch(() => undefined)
+    await get().loadHistory()
+  },
+  unlinkFolder: async () => {
+    await forgetFolder()
+    await get().loadHistory()
+  },
   show: (run) => set({ current: run, view: 'result' }),
-  importRun: async (file) => {
+  importRuns: async (files) => {
     const { toast } = useTown.getState()
-    try {
-      const run = JSON.parse(await file.text()) as BenchRun
-      if (run?.format !== RUN_FORMAT || !Array.isArray(run.trials) || !run.report?.contenders) throw new Error('format')
-      await history.save(run)
-      await get().loadHistory()
-      set({ current: run, view: 'result' })
-    } catch {
-      toast('Ese archivo no es una prueba de AI Town (JSON de «npm run bench» o exportado de aquí).')
+    const runs: BenchRun[] = []
+    for (const file of files) {
+      try {
+        runs.push(...readRuns(await file.text()))
+      } catch (err) {
+        toast(`«${file.name}»: ${err instanceof Error ? err.message : 'no se pudo leer.'}`)
+      }
     }
+    if (!runs.length) return
+    await Promise.all(runs.map((r) => keepRun(r, get().folder)))
+    await get().loadHistory()
+    if (runs.length === 1) set({ current: runs[0], view: 'result' })
+    else toast(`${runs.length} pruebas importadas.`)
   },
   judging: null,
   judge: async (spec, perContender) => {
@@ -188,7 +242,7 @@ export const useBench = create<BenchState>((set, get) => ({
         onProgress: (done, total) => set({ judging: { done, total, controller } }),
       })
       const judged = { ...run, judge: verdict }
-      await history.save(judged).catch(() => useTown.getState().toast('No se pudo guardar el juicio en este navegador; exporta la prueba para no perderlo.'))
+      await keepRun(judged, get().folder).catch(() => useTown.getState().toast('No se pudo guardar el juicio; exporta la prueba para no perderlo.'))
       set({ current: judged, runs: get().runs.map((r) => (r.id === judged.id ? judged : r)) })
     } catch (err) {
       if (!controller.signal.aborted) useTown.getState().toast(`El juez no pudo terminar: ${err instanceof Error ? err.message : 'error'}`)
@@ -199,6 +253,8 @@ export const useBench = create<BenchState>((set, get) => ({
   cancelJudge: () => get().judging?.controller.abort(),
   remove: async (id) => {
     await history.remove(id)
+    const dir = get().folder?.access === 'granted' ? await linkedFolder() : undefined
+    if (dir) await removeFromFolder(dir, id).catch(() => useTown.getState().toast('Se borró de este navegador, pero no de la carpeta compartida.'))
     if (get().current?.id === id) set({ current: null, view: 'history' })
     await get().loadHistory()
   },

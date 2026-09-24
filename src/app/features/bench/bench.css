@@ -841,3 +841,28 @@
   min-width: 150px;
   font-size: 12px;
 }
+
+.shared-folder {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 12px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+
+.shared-folder > span {
+  flex: 1;
+}
+
+.shared-folder.is-linked {
+  border-style: solid;
+  background: var(--surface-solid);
+}
+
+p.shared-folder {
+  border: 0;
+  padding: 0;
+}

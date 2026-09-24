@@ -13,6 +13,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 - Juez de personaje en el banco de pruebas y en la terminal (`--juez`, `--muestras`): otro modelo puntúa de 1 a 5 si las decisiones de una muestra fija suenan a cada vecino, con su razón; se guarda en la corrida y entra en la comparación.
 - Casos de oro: 10 decisiones con una respuesta clara que se eligen solas (verdad, reglas de personaje y modo simulado de acuerdo). Cada prueba los califica, entran en la comparación y la **prueba rápida** (`--rapida` en la terminal) hace solo esas 10 preguntas por modelo.
+- Compartir pruebas entre máquinas: carpeta compartida (Chrome y Edge) donde cada prueba se guarda y se leen las que haya, «Exportar todo» en un solo archivo, importación de varios archivos o lotes a la vez, y `AI_TOWN_RUNS_DIR` para que `npm run bench` guarde en esa carpeta.
 - Las corridas guardan el razonamiento de cada decisión (recortado).
 - El LLM falso responde también como Baronesa y como juez.
 

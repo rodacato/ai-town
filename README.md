@@ -104,7 +104,10 @@ El botón **Pruebas** compara modelos con los mismos pregones y residentes. Una 
 
 La pestaña **Duelo de Baronesas** pone a gobernar el mismo año, con la misma semilla, dificultad y golpes del destino, al trono vacío, a las reglas y a los modelos que añadas. Estima el costo antes de empezar, muestra la tabla de resultados y cuatro gráficas (vecinos, confianza, ánimo y tesoro) con el cursor sincronizado, junto con las cartas que cada una escribió. El duelo sigue corriendo aunque cambies de pestaña, y se exporta en JSON (el mismo formato que `npm run reign`).
 
-Las pruebas se guardan en este navegador (IndexedDB), el historial resume cada una (quién acertó más, cuánto costó, errores) y se exportan en JSON o CSV. La pestaña **Comparar** pone lado a lado dos contendientes de cualquier prueba (el mismo modelo en dos días o dos modelos) y marca cada métrica como mejor, peor o igual, con qué residentes cambiaron de decisión.
+Las pruebas se guardan en este navegador (IndexedDB), el historial resume cada una (quién acertó más, cuánto costó, errores) y se exportan en JSON o CSV. Para compartirlas entre máquinas:
+
+- **Carpeta compartida** (Chrome y Edge): enlaza una carpeta sincronizada (iCloud, Dropbox, Drive) y cada prueba se guarda ahí como JSON; otra máquina que enlace la misma carpeta las ve, y lo que llega se queda también en el navegador. Con `AI_TOWN_RUNS_DIR` apuntando a esa carpeta, `npm run bench` guarda ahí sus corridas.
+- **Exportar todo / Importar**: el historial completo en un solo archivo, y la importación acepta varios archivos a la vez, sean corridas sueltas o lotes. La pestaña **Comparar** pone lado a lado dos contendientes de cualquier prueba (el mismo modelo en dos días o dos modelos) y marca cada métrica como mejor, peor o igual, con qué residentes cambiaron de decisión.
 
 ### Desde la terminal
 
