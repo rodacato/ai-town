@@ -18,12 +18,12 @@ const close = () => useTown.setState({ activityOpen: false })
 
 type Filter = 'all' | 'calls' | 'realm' | 'town'
 const FILTERS: [Filter, string, ActivityKind[]][] = [
-  ['all', 'Todo', ['ruler', 'residents', 'musing', 'realm', 'town']],
-  ['calls', 'Decisiones', ['ruler', 'residents', 'musing']],
-  ['realm', 'Reino', ['realm', 'ruler']],
+  ['all', 'Todo', ['ruler', 'residents', 'musing', 'petition', 'realm', 'town']],
+  ['calls', 'Decisiones', ['ruler', 'residents', 'musing', 'petition']],
+  ['realm', 'Reino', ['realm', 'ruler', 'petition']],
   ['town', 'Pueblo', ['town', 'residents', 'musing']],
 ]
-const ICON: Record<ActivityKind, string> = { ruler: '👑', residents: '📣', musing: '💭', realm: '📜', town: '🏘️' }
+const ICON: Record<ActivityKind, string> = { ruler: '👑', residents: '📣', musing: '💭', petition: '✉️', realm: '📜', town: '🏘️' }
 
 const since = (at: number, now: number) => {
   const s = Math.max(0, Math.round((now - at) / 1000))

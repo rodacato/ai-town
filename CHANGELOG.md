@@ -19,8 +19,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 - Caché de prompts de Anthropic: las instrucciones y el anuncio, iguales para todo el pueblo, se marcan para la caché. El inspector muestra los tokens leídos y escritos, el costo los cobra a su precio y el banco añade la columna **Caché** (parte del prompt servida y ahorro) y la variante **Sin caché** del mismo modelo (`~sin-cache` en la terminal) para medirlo.
 - Memoria de cada vecino: recuerda quién le pasó mentiras que se creyó y quién le avisó a tiempo de algo cierto. Entra en su prompt (también junto a cada rumor que le llega), en las reglas locales (desconfía de quien le mintió y avisa primero a quien le debe) y en su ficha del inspector.
 - Relaciones que cambian: dos mentiras rompen una amistad, dos avisos a tiempo reconcilian a rivales o hacen amigos nuevos, y una mentira de un desconocido deja rencor. Salen de la memoria de cada vecino, se anuncian en la crónica, se marcan en la ficha y las usan el prompt, los rumores y las reglas locales.
+- Peticiones a la Baronesa escritas por el modelo de los vecinos: cada vecino con motivo la redacta con su voz, su situación y su confianza en ella; sin modelo, o si falla, usa sus palabras de siempre. Se anotan en la crónica y en la actividad, y quien más días lleva sin comer puede pedir por sí mismo. El LLM falso también responde peticiones.
 
 ### Cambiado
+- Las reglas de la Baronesa reconocen una petición por su tema, no por sus palabras, para que las redactadas por un modelo cuenten igual.
 - El prompt de cada residente empieza por lo común (anuncio y vecinos) y sigue con lo suyo; las pruebas nuevas no reciben el mismo texto que las guardadas antes de este cambio.
 - Lo que hace la guardia pesa la mitad que lo que dice la Baronesa en la confianza del pueblo, para que en años de muchos golpes la confianza no se infle sola.
 
