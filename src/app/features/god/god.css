@@ -1,0 +1,143 @@
+.god-panel {
+  position: absolute;
+  top: 84px;
+  left: var(--gutter);
+  bottom: calc(var(--timeline-h) + var(--gutter) * 2);
+  z-index: 12;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: 300px;
+  padding: 18px;
+  border-radius: var(--r-xl);
+  overflow-y: auto;
+  animation: god-in 260ms var(--ease-out);
+}
+
+@keyframes god-in {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+}
+
+.god-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.god-head h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.god-intro {
+  margin-top: -10px;
+  font-size: 12.5px;
+  color: var(--ink-3);
+  line-height: 1.45;
+}
+
+.god-panel section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.god-clock {
+  float: right;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.god-grid {
+  display: grid;
+  gap: 6px;
+}
+
+.god-grid.four {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.god-grid.five {
+  grid-template-columns: repeat(5, 1fr);
+}
+
+.god-btn {
+  padding: 8px 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface-solid);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    border-color 140ms var(--ease-out),
+    transform 140ms var(--ease-out);
+}
+
+.god-btn:hover {
+  border-color: var(--accent);
+}
+
+.god-btn:active {
+  transform: scale(0.96);
+}
+
+.god-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.god-btn.is-active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.god-btn.stacked {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  font-size: 11.5px;
+}
+
+.god-btn.stacked span {
+  font-size: 18px;
+}
+
+.segmented.four {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.segmented.four .segmented-thumb {
+  width: calc((100% - 8px) / 4);
+}
+
+.god-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.god-actions .god-btn {
+  text-align: left;
+  padding: 9px 12px;
+  font-size: 13px;
+}
+
+.god-place select {
+  height: 36px;
+}
+
+.god-panel .btn-link {
+  align-self: flex-start;
+  font-size: 12.5px;
+}

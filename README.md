@@ -27,6 +27,15 @@ Son 20 residentes, entre ellos un mentiroso compulsivo, un paranoico, una recié
 
 Al pregonar eliges si el anuncio es **verdad**, **mentira** o **al azar**. Los residentes nunca lo saben (no llega al prompt): deciden solo con lo que oyen. Cuando todos han decidido, el mapa lo revela: si era verdad, el dragón incendia el bosque, aparece el troll en el puente, se sirve el festín o brilla el oro; si era mentira, no hay nada y quien fue vuelve a casa decepcionado. Quien está cerca de un peligro real huye. El panel dice cuántos acertaron (creyeron lo verdadero o dudaron de lo falso) y el inspector lo marca en cada residente. Qué ocurre con cada tipo de anuncio se define por palabras clave en `outcomes` del mundo.
 
+## Modo dios
+
+El botón ⚡ **Dios** de la barra superior (o la tecla `G`) abre un cajón para cambiar el mundo al instante, sin tapar el mapa:
+
+- **Tiempo:** saltar a amanecer, mediodía, atardecer o noche, y correr el pueblo a ×1, ×2, ×4 o pausarlo (los modelos siguen a su ritmo).
+- **Clima:** despejado, lluvia, tormenta con relámpagos, nieve o niebla. Los residentes lo notan: el clima entra en el prompt, y en el modo simulado los que no son valientes ni codiciosos no salen con mal tiempo.
+- **Desatar:** un dragón que incendia, una bestia, un festín o un tesoro, donde tenga sentido o en el lugar que elijas. Quien está cerca huye de lo peligroso o se acerca a curiosear lo bueno.
+- **Pueblo:** reunir a todos en un lugar, toque de queda y un pregón sorpresa (ejemplo al azar con verdad al azar).
+
 ## Modelo de decisiones
 
 El engrane de la barra superior abre la configuración. Opciones:

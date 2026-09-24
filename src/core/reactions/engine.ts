@@ -5,7 +5,7 @@ import type { Resident, Simulation, Task } from '../sim/simulation'
 import type { Point } from '../world/types'
 import type { Announcement } from './announcement'
 import { buildContext } from './context'
-import { judge, planOutcome, THREATS, type Outcome } from './outcome'
+import { judge, planOutcome, react, THREATS, type Outcome } from './outcome'
 import { firstName as first } from '../lang'
 
 export type Phase = 'unaware' | 'heard' | 'thinking' | 'decided' | 'error'
@@ -75,8 +75,6 @@ const SPEECH_PAUSE = 1.4
 const INDOOR_DELAY = 0.6
 /** Seconds after the last decision before the truth shows, so people have time to get where they were going. */
 const REVEAL_DELAY = 7
-/** Tiles around a real threat from which people run home. */
-const FLEE_RADIUS = 7
 
 
 export class ReactionEngine {
@@ -417,17 +415,16 @@ export class ReactionEngine {
       reaction.verdict = judge(reaction.decision, outcome.truth)
       this.emit({ type: 'change', id: reaction.id })
     }
-    for (const r of this.sim.residents) {
-      if (r.mode === 'inside') continue
-      const near = Math.hypot(r.x - outcome.at.x, r.y - outcome.at.y) <= FLEE_RADIUS
-      const action = this.reactions.get(r.profile.id)?.decision?.action
-      if (outcome.truth && THREATS.includes(outcome.visual) && near) this.sim.assign(r, [{ kind: 'enterHome', label: 'Huye despavorido' }])
-      else if (!outcome.truth && (action === 'go' || action === 'investigate'))
-        this.sim.assign(r, [
-          { kind: 'wait', seconds: 2.5, label: 'Aquí no hay nada…' },
-          { kind: 'enterHome', label: 'Vuelve a casa decepcionado' },
-        ])
-    }
+    if (outcome.truth && THREATS.includes(outcome.visual)) react(this.sim, outcome)
+    if (!outcome.truth)
+      for (const r of this.sim.residents) {
+        const action = this.reactions.get(r.profile.id)?.decision?.action
+        if (r.mode !== 'inside' && (action === 'go' || action === 'investigate'))
+          this.sim.assign(r, [
+            { kind: 'wait', seconds: 2.5, label: 'Aquí no hay nada…' },
+            { kind: 'enterHome', label: 'Vuelve a casa decepcionado' },
+          ])
+      }
     this.emit({ type: 'outcome', outcome })
   }
 }

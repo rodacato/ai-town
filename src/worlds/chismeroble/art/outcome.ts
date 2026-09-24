@@ -186,10 +186,12 @@ function nothing(view: Container): Animate {
   const mark = new Graphics()
   mark.moveTo(-5, -12).quadraticCurveTo(-5, -20, 1, -20).quadraticCurveTo(7, -20, 6, -14).quadraticCurveTo(5, -10, 1, -8).lineTo(1, -4).stroke({ width: 3, color: 0x74685c, cap: 'round' })
   mark.circle(1, 1, 1.8).fill(0x74685c)
-  mark.position.set(0, -24)
+  mark.position.set(0, -30)
+  mark.scale.set(1.7)
+  puff.scale.set(1.3)
   view.addChild(puff, mark)
   return (t) => {
-    mark.y = -24 + Math.sin(t * 2) * 3
+    mark.y = -30 + Math.sin(t * 2) * 3
     puff.alpha = 0.85 + Math.sin(t * 1.3) * 0.1
   }
 }

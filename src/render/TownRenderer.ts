@@ -13,6 +13,8 @@ import { PlaceMarker } from './placeMarker'
 import { OriginBeacon, WaveFx } from './reactionFx'
 import { ResidentSprite, type ReactionVisual } from './residentSprite'
 import { SentrySprite } from './sentrySprite'
+import { WEATHER_GRADE, WeatherFx } from './weather'
+import type { Outcome } from '../core/reactions/outcome'
 import { drawTerrain, islandMask } from './terrain'
 
 export interface RendererEvents {
@@ -32,7 +34,12 @@ export class TownRenderer {
   private overlay = new Container()
   private sprites = new Map<string, ResidentSprite>()
   private sentries: SentrySprite[] = []
-  private outcome: { key: unknown; sprite: ArtSprite } | null = null
+  private shown = new Map<'outcome' | 'event', { key: Outcome; sprite: ArtSprite }>()
+  private godEvent: Outcome | null = null
+  private speed = 1
+  private weather: WeatherFx
+  /** Weather sits outside the world's colour grade, so rain and snow stay bright at night. */
+  private weatherLayer = new Container()
   private swaying: NonNullable<PropSprite['sway']>[] = []
   private animated: ((time: number, dt: number, ambience: Ambience) => void)[] = []
   private sky = new ColorMatrixFilter()
@@ -160,6 +167,10 @@ export class TownRenderer {
     this.world.addChild(mask, this.clouds.view)
     this.clouds.view.mask = mask
     this.birds = new Birds(span)
+    this.weather = new WeatherFx(span, N * TILE_H)
+    const weatherMask = islandMask(N)
+    this.weatherLayer.addChild(this.weather.view, weatherMask)
+    this.weather.view.mask = weatherMask
     this.world.addChild(this.birds.view, this.overlay)
     this.overlay.addChildAt(this.marker.view, 0)
     this.overlay.sortableChildren = true
@@ -171,7 +182,7 @@ export class TownRenderer {
         this.rumorAt.set(e.to, this.time)
       }
     })
-    app.stage.addChild(this.world, this.lights)
+    app.stage.addChild(this.world, this.lights, this.weatherLayer, this.weather.flash)
     this.lights.blendMode = 'add'
     this.lights.eventMode = 'none'
     this.calm = this.calmQuery.matches
@@ -249,12 +260,16 @@ export class TownRenderer {
     this.ambience.night = sky.night
     this.lights.position.copyFrom(this.world.position)
     this.lights.scale.copyFrom(this.world.scale)
+    this.weatherLayer.position.copyFrom(this.world.position)
+    this.weatherLayer.scale.copyFrom(this.world.scale)
     this.lights.alpha = Math.max(0, sky.night - 0.15) * (1 + Math.sin(this.time * 3) * 0.04)
     this.lights.visible = this.lights.alpha > 0.01
-    const tinted = sky.alpha > 0.005
+    const grade = WEATHER_GRADE[this.sim.weather]
+    const tinted = sky.alpha > 0.005 || this.sim.weather !== 'clear'
     if (tinted) {
       const k = (shift: number) => 1 - sky.alpha + sky.alpha * (((sky.tint >> shift) & 255) / 255)
-      this.sky.matrix = [k(16), 0, 0, 0, 0, 0, k(8), 0, 0, 0, 0, 0, k(0), 0, 0, 0, 0, 0, 1, 0]
+      const [r, g, b] = [k(16) * grade[0][0], k(8) * grade[1][0], k(0) * grade[2][0]]
+      this.sky.matrix = [r, 0, 0, 0, grade[0][1], 0, g, 0, 0, grade[1][1], 0, 0, b, 0, grade[2][1], 0, 0, 0, 1, 0]
     }
     if (tinted !== !!this.world.filters?.length) this.world.filters = tinted ? [this.sky] : []
   }
@@ -320,29 +335,44 @@ export class TownRenderer {
     this.events.onHover(id)
   }
 
-  /** Shows what the announcement turned into once the engine reveals it, and clears it on reset. */
-  private syncOutcome(t: number, dt: number) {
-    const o = this.engine.outcome
-    if (this.outcome?.key !== o) {
-      if (this.outcome) this.outcome.sprite.view.destroy({ children: true })
-      this.outcome = null
-      const sprite = o && this.art.outcome?.(o)
-      if (sprite) {
-        sprite.view.zIndex = sprite.depth
-        this.objects.addChild(sprite.view)
-        this.outcome = { key: o, sprite }
+  /** Runs the town faster, slower, or not at all (0); model requests are unaffected. */
+  setSpeed(speed: number) {
+    this.speed = speed
+  }
+
+  /** An event from the god panel, drawn alongside any announcement's outcome. */
+  showEvent(event: Outcome | null) {
+    this.godEvent = event
+  }
+
+  /** Keeps the announcement's revealed outcome and the god panel's event on the map, and clears them on reset. */
+  private syncOutcomes(t: number, dt: number) {
+    for (const [slot, o] of [
+      ['outcome', this.engine.outcome],
+      ['event', this.godEvent],
+    ] as const) {
+      const current = this.shown.get(slot)
+      if (current?.key !== o) {
+        current?.sprite.view.destroy({ children: true })
+        this.shown.delete(slot)
+        const sprite = o && this.art.outcome?.(o)
+        if (sprite) {
+          sprite.view.zIndex = sprite.depth
+          this.objects.addChild(sprite.view)
+          this.shown.set(slot, { key: o, sprite })
+        }
       }
-    }
-    if (this.outcome) {
-      if (this.calm) this.outcome.sprite.view.scale.set(1)
-      else this.outcome.sprite.update?.(t, dt, this.ambience)
+      const shown = this.shown.get(slot)
+      if (!shown) continue
+      if (this.calm) shown.sprite.view.scale.set(1)
+      else shown.sprite.update?.(t, dt, this.ambience)
     }
   }
 
   private tick(dt: number) {
     this.time += dt
     const t = this.time
-    this.sim.update(dt)
+    this.sim.update(dt * this.speed)
     if (this.engine.announcement && this.announcementAt < 0) this.announcementAt = t
     if (!this.engine.announcement) {
       this.announcementAt = -1
@@ -352,7 +382,9 @@ export class TownRenderer {
     const zoom = this.camera.scale
     for (const [id, s] of this.sprites) s.update(t, dt, this.reactionVisual(id), zoom)
     if (!this.calm) for (const s of this.sentries) s.update(t)
-    this.syncOutcome(t, dt)
+    this.syncOutcomes(t, dt)
+    this.weather.set(this.sim.weather)
+    this.weather.update(dt, t, this.app.screen, this.calm)
     this.spreadBubbles()
     this.updateSky()
     if (!this.calm) {

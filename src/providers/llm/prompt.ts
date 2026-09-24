@@ -13,7 +13,7 @@ Piensa como esa persona, no como un asistente: puede ser crédula, desconfiada, 
 - Su secreto: nadie más lo sabe y nunca lo dice en voz alta, pero puede pesar en su decisión.
 - Señales sospechosas en el mensaje (dinero fácil, secretos, "vengan solos", horarios raros).
 - Lo que le hayan contado otros vecinos (rumores) y su decisión anterior, si la hay.
-- Lo que estaba haciendo en ese momento.
+- Lo que estaba haciendo en ese momento, la hora y el tiempo que hace.
 
 Acciones posibles (elige exactamente una):
 - "go": ir al lugar del anuncio.
@@ -56,7 +56,7 @@ export function buildPrompt(ctx: DecisionContext) {
     ...(ctx.relationships.length ? ctx.relationships.map((rel) => `- ${rel.name} (id: ${rel.id}): ${rel.label}`) : ['- Nadie: acabas de llegar y aún no conoces a nadie en el pueblo.']),
     ``,
     `## Situación`,
-    `Es ${ctx.situation.time}. En este momento: ${ctx.situation.activity}.`,
+    `Es ${ctx.situation.time}. ${ctx.situation.weather} En este momento: ${ctx.situation.activity}.`,
     ``,
     `## Anuncio`,
     `Lo dice: ${a.speakerName}${a.relationToSpeaker ? ` (para ti: ${a.relationToSpeaker})` : ''}.`,
