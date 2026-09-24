@@ -194,3 +194,32 @@
 .check input {
   accent-color: var(--accent-ink);
 }
+
+.vault-unlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-solid);
+  font-size: 13px;
+}
+
+.vault-unlock .btn-link {
+  align-self: flex-start;
+}
+
+.vault-unlock-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.key-gate {
+  width: min(480px, 100%);
+}
+
+.field-hint.is-safe {
+  color: #4f6b3a;
+}

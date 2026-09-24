@@ -22,9 +22,10 @@ import { SEASONS, SEASON_TEXT, type Season } from '../core/sim/season'
 import type { Weather } from '../core/sim/weather'
 import { Simulation } from '../core/sim/simulation'
 import { createProvider } from '../providers'
-import { activeLabel, keyRing, saveSettings, withKeys, type LlmSettings } from '../providers/llm/config'
+import { activeLabel, missingKey, saveSettings, withKeys, type LlmSettings } from '../providers/llm/config'
 import { ACTION_META } from '../theme/actions'
-import { forgetKeys, openKeys, sealKeys } from '../providers/llm/vault'
+import * as keys from './keys'
+import { transportInfo } from '../providers/llm/client'
 import { TownRenderer } from '../render/TownRenderer'
 import { activeWorld } from '../worlds'
 import { useTown } from './store'
@@ -80,6 +81,7 @@ class TownController {
       useTown.setState({ weather: this.sim.weather, season: this.sim.season })
     } else this.freshStart()
     if (useTown.getState().autoplay) this.applyProvider()
+    void transportInfo().then(({ envKeys }) => useTown.setState({ envKeys, keysChecked: true }))
     this.sim.onLedger((l) => this.onLedger(l))
     this.engine.memory = this.memory
     useTown.setState({ memoryEntries: [...this.memory.entries] })
@@ -120,7 +122,7 @@ class TownController {
     this.syncClock()
     if (HAD_PLAINTEXT_KEYS) {
       saveSettings(useTown.getState().llm)
-      useTown.getState().toast('Por seguridad, tus keys ya no se guardan sin cifrar. Siguen activas en esta pestaña.')
+      useTown.getState().toast('Tus keys estaban guardadas sin cifrar y ya las quité. Siguen activas en esta pestaña: guárdalas cifradas en Configuración para no perderlas al recargar.')
     }
     const clock = window.setInterval(() => {
       this.syncClock()
@@ -273,6 +275,7 @@ class TownController {
     saveSettings(llm)
     useTown.setState({ llm })
     this.applyProvider()
+    void keys.resealKeys(llm)
   }
 
   /** Residents decide with the chosen model, except in the terrarium, where they use rules unless told otherwise. */
@@ -377,19 +380,19 @@ class TownController {
 
   /** Keeps the current keys encrypted with a passphrase so they survive reloads. */
   async rememberKeys(passphrase: string) {
-    await sealKeys(keyRing(useTown.getState().llm), passphrase)
-    useTown.setState({ vaultLocked: false })
+    await keys.rememberKeys(useTown.getState().llm, passphrase)
+    useTown.setState({ vaultLocked: false, vaultOpen: true })
   }
 
   async unlockKeys(passphrase: string) {
-    const keys = await openKeys(passphrase)
-    this.applySettings(withKeys(useTown.getState().llm, keys))
-    useTown.setState({ vaultLocked: false })
+    const ring = await keys.unlockKeys(passphrase)
+    this.applySettings(withKeys(useTown.getState().llm, ring))
+    useTown.setState({ vaultLocked: false, vaultOpen: true })
   }
 
   forgetRememberedKeys() {
-    forgetKeys()
-    useTown.setState({ vaultLocked: false })
+    keys.forgetRememberedKeys()
+    useTown.setState({ vaultLocked: false, vaultOpen: false })
   }
 
   /** A real event starts: it lasts a random while, and only when it is over do its costs or gains land. */
@@ -575,7 +578,9 @@ class TownController {
     const state = useTown.getState()
     const e = this.sim.economy
     if (!e || state.rulerBusy || (!force && state.rulerMode === 'manual')) return
-    const useModel = state.rulerMode === 'model' && state.llm.active !== 'mock'
+    const keyless = state.rulerMode === 'model' && missingKey(state.llm, state.envKeys)
+    if (keyless) state.toast('La Baronesa gobierna hoy con reglas: falta la key del modelo.')
+    const useModel = state.rulerMode === 'model' && state.llm.active !== 'mock' && !keyless
     const modelOk = useModel && state.rulerCalls < state.rulerCap
     if (useModel && !modelOk) state.toast(`La Baronesa llegó al tope de ${state.rulerCap} consultas al modelo en esta partida; gobierna con reglas.`)
     const active = state.llm.active

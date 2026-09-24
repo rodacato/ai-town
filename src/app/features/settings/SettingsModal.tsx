@@ -7,6 +7,7 @@ import { useTown } from '../../store'
 import { town } from '../../town'
 import { Alert, Check, Close, Eye, EyeOff, Refresh } from '../../shared/icons'
 import { NewGame } from '../../shared/NewGame'
+import { VaultUnlock } from '../../shared/VaultUnlock'
 import { useDialog } from '../../shared/useDialog'
 import './settings.css'
 
@@ -34,6 +35,7 @@ function Dialog({ onClose }: { onClose: () => void }) {
   const [remember, setRemember] = useState(false)
   const [passphrase, setPassphrase] = useState('')
   const vaultLocked = useTown((s) => s.vaultLocked)
+  const vaultOpen = useTown((s) => s.vaultOpen)
 
   useEffect(() => {
     void transportMode().then(setMode)
@@ -80,7 +82,13 @@ function Dialog({ onClose }: { onClose: () => void }) {
 
   const save = async () => {
     town.applySettings(draft)
-    if (remember) await town.rememberKeys(passphrase)
+    if (remember && !vaultOpen) {
+      try {
+        await town.rememberKeys(passphrase)
+      } catch (err) {
+        return toast(err instanceof Error ? err.message : 'No se pudieron guardar las keys.')
+      }
+    }
     const label = draft.active === 'mock' ? 'el modo simulado' : `${PRESETS[draft.active].label}${conn?.model ? ` (${conn.model})` : ''}`
     toast(announcement ? `Listo: las próximas decisiones las toma ${label}.` : `Listo: ahora decide ${label}.`)
     onClose()
@@ -172,11 +180,17 @@ function Dialog({ onClose }: { onClose: () => void }) {
                     {showKey ? <EyeOff /> : <Eye />}
                   </button>
                 </div>
-                <label className="check">
-                  <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
-                  Recordar mis keys en este navegador, cifradas con una frase
-                </label>
-                {remember && (
+                {vaultOpen ? (
+                  <p className="field-hint is-safe">🔒 Tus keys se guardan cifradas en este navegador; cada cambio se vuelve a cifrar al guardar.</p>
+                ) : vaultLocked ? (
+                  <p className="field-hint is-warning">Desbloquea arriba tus keys guardadas antes de cambiarlas, o se perderán.</p>
+                ) : (
+                  <label className="check">
+                    <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
+                    Recordarlas cifradas en este navegador, con una frase (recomendado)
+                  </label>
+                )}
+                {remember && !vaultOpen && !vaultLocked && (
                   <input
                     className="input"
                     type="password"
@@ -188,7 +202,7 @@ function Dialog({ onClose }: { onClose: () => void }) {
                   />
                 )}
                 <p className="field-hint">
-                  Sin marcar, la key vive solo en esta pestaña y se borra al cerrarla. Usa keys dedicadas, con tope de gasto, y rótalas al terminar.
+                  {vaultOpen ? '' : 'Sin recordarla, la key vive solo en esta pestaña y se pierde al recargar o cerrarla. '}Usa keys dedicadas, con tope de gasto, y rótalas al terminar.
                 </p>
               </div>
 
@@ -288,45 +302,6 @@ function Dialog({ onClose }: { onClose: () => void }) {
         </footer>
       </div>
     </div>
-  )
-}
-
-function VaultUnlock({ onUnlocked }: { onUnlocked: () => void }) {
-  const [pass, setPass] = useState('')
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
-  const unlock = async () => {
-    setBusy(true)
-    setError('')
-    try {
-      await town.unlockKeys(pass)
-      onUnlocked()
-      useTown.getState().toast('Keys desbloqueadas para esta pestaña.')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudieron abrir.')
-    }
-    setBusy(false)
-  }
-  return (
-    <form
-      className="vault-unlock"
-      onSubmit={(e) => {
-        e.preventDefault()
-        void unlock()
-      }}
-    >
-      <p>Tienes keys guardadas y cifradas en este navegador.</p>
-      <div className="input-group">
-        <input className="input" type="password" value={pass} placeholder="Tu frase secreta" onChange={(e) => setPass(e.target.value)} aria-label="Frase secreta" autoComplete="current-password" />
-        <button className="btn-secondary compact" type="submit" disabled={!pass || busy}>
-          {busy ? 'Abriendo…' : 'Desbloquear'}
-        </button>
-      </div>
-      {error && <p className="field-error">{error}</p>}
-      <button type="button" className="btn-link small" onClick={() => town.forgetRememberedKeys()}>
-        Olvidar las keys guardadas
-      </button>
-    </form>
   )
 }
 

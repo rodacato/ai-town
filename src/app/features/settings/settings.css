@@ -171,21 +171,6 @@
   color: #2f556b;
 }
 
-.vault-unlock {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px 14px;
-  border-radius: var(--r-md);
-  border: 1px solid var(--border-strong);
-  background: var(--surface-solid);
-  font-size: 13px;
-}
-
-.vault-unlock .btn-link {
-  align-self: flex-start;
-}
-
 .price-fields {
   border: 0;
   padding: 0;

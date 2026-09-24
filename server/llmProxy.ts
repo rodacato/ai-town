@@ -29,7 +29,7 @@ export function llmProxy(env: Record<string, string>): Plugin {
   const channels = new Map<string, Channel>()
   const handler: Connect.NextHandleFunction = (req, res, next) => {
     const route = req.url?.split('?')[0]
-    if (req.method === 'GET' && route === '/health') return json(res, 200, { ok: true })
+    if (req.method === 'GET' && route === '/health') return json(res, 200, { ok: true, envKeys: Object.keys(ENV_KEYS).filter((k) => env[ENV_KEYS[k]]) })
     if (req.method === 'GET' && route === '/channel') return openChannel(res, channels)
     if (req.method !== 'POST') return next()
     if (route === '/job') return void startJob(req, res, channels, env)

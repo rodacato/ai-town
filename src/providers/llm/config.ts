@@ -121,6 +121,15 @@ export function withKeys(settings: LlmSettings, keys: Record<string, string>): L
   }
 }
 
+/** The big hosted APIs refuse every request without a key; SheLLM and local servers often need none. */
+export const needsKey = (kind: Connection['kind']) => kind === 'anthropic' || kind === 'openai'
+
+/** The chosen model cannot answer: its key is neither typed in nor in the dev server's .env. */
+export function missingKey(settings: LlmSettings, envKeys: readonly string[]) {
+  if (settings.active === 'mock') return false
+  return needsKey(settings.active) && !settings.connections[settings.active].apiKey && !envKeys.includes(settings.active)
+}
+
 export function activeLabel(settings: LlmSettings) {
   if (settings.active === 'mock') return 'Simulado'
   const c = settings.connections[settings.active]
