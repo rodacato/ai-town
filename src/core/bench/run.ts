@@ -3,6 +3,7 @@ import type { Example, WorldContent } from '../world/content'
 import { analyze, cellKey, type BenchReport } from './analysis'
 import { runBench, type BenchProgress, type Contender, type Trial } from './runner'
 import type { RunJudgment } from './judge'
+import { goldenCases, goldenScore, type GoldenCase } from './golden'
 import { buildScenario } from './scenarios'
 
 export const RUN_FORMAT = 'ai-town-bench/1'
@@ -35,6 +36,10 @@ export interface BenchRun {
   report: BenchReport
   /** A judge model's reading of how in character the decisions were; added after the run, if asked. */
   judge?: RunJudgment
+  /** The decisions with only one right answer, picked on their own; absent in runs made before them. */
+  golden?: GoldenCase[]
+  /** Only the golden decisions were asked: a quick, cheap check. */
+  quick?: boolean
 }
 
 export interface RunSetup {
@@ -45,11 +50,16 @@ export interface RunSetup {
   contenders: { contender: Contender; info: ContenderInfo }[]
   /** What the rule-based mode would decide, to score agreement against. */
   reference?: (ctx: DecisionContext) => Decision
+  /** Ask only the golden decisions. */
+  quick?: boolean
 }
 
 export async function executeRun(setup: RunSetup, opts: { signal?: AbortSignal; onTrial?: (t: Trial, p: BenchProgress) => void } = {}): Promise<BenchRun> {
-  const { content, examples, seed, repetitions, contenders, reference } = setup
-  const scenarios = examples.map((e) => buildScenario(content, e, seed))
+  const { content, examples, seed, repetitions, contenders, reference, quick } = setup
+  const built = examples.map((e) => buildScenario(content, e, seed))
+  const golden = reference ? goldenCases(built, reference) : []
+  const isGolden = (s: string, r: string) => golden.some((g) => g.scenario === s && g.resident === r)
+  const scenarios = quick ? built.map((s) => ({ ...s, contexts: s.contexts.filter((ctx) => isGolden(s.id, ctx.resident.id)) })).filter((s) => s.contexts.length) : built
   const refs = reference ? new Map(scenarios.flatMap((s) => s.contexts.map((ctx) => [cellKey(s.id, ctx.resident.id), reference(ctx)] as const))) : undefined
   const startedAt = performance.now()
   const { trials, durations, stopped } = await runBench({ scenarios, repetitions, contenders: contenders.map((c) => c.contender) }, opts)
@@ -67,8 +77,15 @@ export async function executeRun(setup: RunSetup, opts: { signal?: AbortSignal; 
     stopped,
     cancelled: !!opts.signal?.aborted,
     trials,
-    report: analyze(trials, contenders.map((c) => c.contender.id), refs),
+    report: withGolden(analyze(trials, contenders.map((c) => c.contender.id), refs), golden, trials),
+    ...(golden.length ? { golden } : {}),
+    ...(quick ? { quick } : {}),
   }
+}
+
+function withGolden(report: BenchReport, golden: GoldenCase[], trials: Trial[]): BenchReport {
+  if (!golden.length) return report
+  return { ...report, contenders: report.contenders.map((c) => ({ ...c, golden: goldenScore(golden, trials, c.contender) })) }
 }
 
 /** Residents asked per contender: everyone but a neighbor who made the announcement, times repetitions. */

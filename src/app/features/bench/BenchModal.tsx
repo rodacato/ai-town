@@ -22,6 +22,7 @@ import { TYPICAL_REPLY_TOKENS } from '../../../providers/llm/pricing'
 import { Duel } from './Duel'
 import { useDuel } from './duelStore'
 import { JudgePanel } from './JudgePanel'
+import { GOLDEN_SIZE, passesGolden } from '../../../core/bench/golden'
 import { nameOf } from '../../../core/lang'
 
 const KINDS: ContenderKind[] = ['rules', 'anthropic', 'openai', 'shellm', 'custom']
@@ -211,9 +212,19 @@ function NewRun() {
           </p>
         )}
         {problem && <p className="field-error">{problem}</p>}
-        <button className="btn-primary" disabled={!!problem} onClick={() => void start()}>
-          Correr prueba
-        </button>
+        <div className="bench-start-actions">
+          <button
+            className="btn-secondary"
+            disabled={!!problem}
+            onClick={() => void start(true)}
+            title={`Solo las ${GOLDEN_SIZE} decisiones con una respuesta clara, una vez cada una${priced.length ? `: ≈ ${usd((priced.reduce((n, c) => n + c.cost!, 0) * GOLDEN_SIZE) / Math.max(1, perModel))}` : ''}`}
+          >
+            Prueba rápida · {GOLDEN_SIZE} casos de oro
+          </button>
+          <button className="btn-primary" disabled={!!problem} onClick={() => void start()}>
+            Correr prueba
+          </button>
+        </div>
       </footer>
     </div>
   )
@@ -258,11 +269,13 @@ function Result({ run }: { run: BenchRun }) {
   const name = `bench-${run.world}-${stamp()}`
   const hasRef = reports.some((r) => r.referenceAgreement !== null && r.contender !== 'rules')
   const best = bestOf(reports)
+  const hasGolden = reports.some((r) => r.golden)
   return (
     <div className="bench-result">
       <p className="bench-meta">
         {new Date(run.createdAt).toLocaleString('es')} · semilla <span className="mono">{run.seed}</span> · {run.repetitions} {run.repetitions === 1 ? 'repetición' : 'repeticiones'} · {seconds(run.durationMs)}
         {run.cancelled && <span className="badge">Cancelada</span>}
+        {run.quick && <span className="badge">Prueba rápida</span>}
       </p>
 
       <div className="table-scroll">
@@ -274,6 +287,7 @@ function Result({ run }: { run: BenchRun }) {
               <th scope="col" title="Respuestas con el JSON pedido, sin arreglos">Formato</th>
               <th scope="col" title="Cuántas repeticiones coinciden con la acción más común del residente">Consistencia</th>
               <th scope="col" title="Creencias que coinciden con lo que de verdad pasó: le creyó a lo cierto y dudó de lo falso">Acierto</th>
+              {hasGolden && <th scope="col" title="Decisiones con una respuesta clara (creer lo cierto y actuar como el personaje) que acertó">Oro</th>}
               <th scope="col" title="Decisiones que no contradicen la personalidad del residente (miedosos que no van al peligro, escépticos que no se tragan lo sospechoso…)">Personaje</th>
               {hasRef && <th scope="col" title="Acción más común igual a la de las reglas locales; una referencia, no la verdad">Como las reglas</th>}
               <th scope="col">Errores</th>
@@ -289,12 +303,13 @@ function Result({ run }: { run: BenchRun }) {
           </thead>
           <tbody>
             {reports.map((r) => (
-              <Row key={r.contender} r={r} label={label(r.contender)} hasRef={hasRef} ms={run.durations?.[r.contender]} best={best} />
+              <Row key={r.contender} r={r} label={label(r.contender)} hasRef={hasRef} hasGolden={hasGolden} ms={run.durations?.[r.contender]} best={best} />
             ))}
           </tbody>
         </table>
       </div>
 
+      {run.golden && <GoldenCases run={run} label={label} />}
       <JudgePanel run={run} label={label} />
       <Errors run={run} label={label} />
       <OutOfCharacter reports={reports} label={label} />
@@ -394,6 +409,7 @@ const BEST = {
   format: [(r: ContenderReport) => (r.format.checked ? r.format.ok / r.format.checked : null), 'max'],
   consistency: [(r: ContenderReport) => r.consistency, 'max'],
   truth: [(r: ContenderReport) => r.truth ?? null, 'max'],
+  golden: [(r: ContenderReport) => r.golden?.rate ?? null, 'max'],
   persona: [(r: ContenderReport) => r.persona ?? null, 'max'],
   ttft: [(r: ContenderReport) => r.metrics.ttft?.p50 ?? null, 'min'],
   total: [(r: ContenderReport) => r.metrics.total?.p50 ?? null, 'min'],
@@ -421,7 +437,7 @@ function bestOf(reports: ContenderReport[]): Best {
   return out
 }
 
-function Row({ r, label, hasRef, ms, best }: { r: ContenderReport; label: string; hasRef: boolean; ms?: number; best: Best }) {
+function Row({ r, label, hasRef, hasGolden, ms, best }: { r: ContenderReport; label: string; hasRef: boolean; hasGolden: boolean; ms?: number; best: Best }) {
   const m = r.metrics
   const decided = r.trials - r.errors
   const top = (key: keyof typeof BEST) => (best[key]?.has(r.contender) ? 'is-best' : '')
@@ -435,6 +451,11 @@ function Row({ r, label, hasRef, ms, best }: { r: ContenderReport; label: string
       <td className={`mono ${top('truth')}`} title={r.truth != null ? `Se tragó ${r.fooled ?? 0} mentiras · dudó de ${r.doubted ?? 0} verdades` : undefined}>
         {pct(r.truth ?? null)}
       </td>
+      {hasGolden && (
+        <td className={`mono ${top('golden')}`} title={r.golden ? `${r.golden.passed} de ${r.golden.total}` : undefined}>
+          {pct(r.golden?.rate ?? null)}
+        </td>
+      )}
       <td className={`mono ${top('persona')}`}>{pct(r.persona ?? null)}</td>
       {hasRef && <td className="mono">{r.contender === 'rules' ? '—' : pct(r.referenceAgreement)}</td>}
       <td className={`mono ${r.errors ? 'is-bad' : ''}`}>{r.errors ? `${r.errors}/${r.trials}` : '0'}</td>
@@ -502,6 +523,57 @@ function History() {
   )
 }
 
+const ACTION_SHORT: Record<string, string> = { go: 'ir', stay_home: 'casa', warn: 'avisar', investigate: 'investigar', ignore: 'ignorar' }
+
+/** Each golden decision, what was right, and how every contender did on it. */
+function GoldenCases({ run, label }: { run: BenchRun; label: (id: string) => string }) {
+  const contenders = run.contenders.map((c) => c.id)
+  const scenario = (id: string) => run.scenarios.find((s) => s.id === id)?.text ?? id
+  return (
+    <details className="golden">
+      <summary className="section-label">Casos de oro · {run.golden!.length} decisiones con una respuesta clara</summary>
+      <p className="field-hint">Se eligen solos: la verdad del pregón, las reglas de personaje y el modo simulado coinciden, y pocas acciones encajan con el vecino. Acierta quien cree lo cierto y elige una de esas acciones. Las reglas locales aciertan todos por construcción: sirven de referencia, no compiten.</p>
+      <div className="table-scroll">
+        <table className="bench-table golden-table">
+          <thead>
+            <tr>
+              <th scope="col">Vecino y pregón</th>
+              <th scope="col">Lo correcto</th>
+              {contenders.map((c) => (
+                <th key={c} scope="col">
+                  {label(c)}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {run.golden!.map((g) => (
+              <tr key={`${g.scenario}-${g.resident}`}>
+                <th scope="row">
+                  {shortName(g.resident)}
+                  <span className="golden-sub">«{scenario(g.scenario).slice(0, 30)}…»</span>
+                </th>
+                <td>
+                  {g.believes ? 'creer' : 'no creer'} · {g.actions.map((a) => ACTION_SHORT[a]).join(', ')}
+                </td>
+                {contenders.map((c) => {
+                  const mine = run.trials.filter((t) => t.contender === c && t.scenario === g.scenario && t.resident === g.resident)
+                  const ok = mine.filter((t) => passesGolden(g, t)).length
+                  return (
+                    <td key={c} className={`mono ${mine.length && ok === mine.length ? 'is-best' : mine.length && !ok ? 'is-bad' : ''}`}>
+                      {mine.length ? (mine.length === 1 ? (ok ? '✓' : '✗') : `${ok}/${mine.length}`) : '—'}
+                    </td>
+                  )
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  )
+}
+
 /** One line to tell runs apart: who got it most right, what it cost, and whether anything failed. */
 function runDigest(run: BenchRun) {
   const models = run.report.contenders.filter((r) => r.contender !== 'rules')
@@ -510,6 +582,7 @@ function runDigest(run: BenchRun) {
   const costs = models.map((r) => r.metrics.costUsd).filter((c): c is number => c !== null)
   const errors = run.report.contenders.reduce((n, r) => n + r.errors, 0)
   return [
+    run.quick ? 'prueba rápida' : '',
     top ? `más acierto: ${label(top.contender)} (${pct(top.truth!)})` : '',
     costs.length ? `costó ${usd(costs.reduce((a, b) => a + b, 0), models.some((r) => r.metrics.costEstimated))}` : '',
     errors ? `${errors} errores` : 'sin errores',

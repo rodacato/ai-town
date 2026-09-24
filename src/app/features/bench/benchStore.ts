@@ -8,6 +8,7 @@ import { useTown } from '../../store'
 import { town } from '../../town'
 import { history, type BenchRun } from './history'
 import { runJudge } from '../../../core/bench/judge'
+import { GOLDEN_SIZE } from '../../../core/bench/golden'
 import { createModelJudge } from '../../../providers/judge'
 
 export type ContenderKind = 'rules' | Connection['kind']
@@ -33,7 +34,8 @@ interface BenchState extends Prefs {
   setOpen: (open: boolean) => void
   setView: (view: BenchState['view']) => void
   setPrefs: (prefs: Partial<Prefs>) => void
-  start: () => Promise<void>
+  /** `quick` asks only the golden decisions, once each, over every announcement. */
+  start: (quick?: boolean) => Promise<void>
   cancel: () => void
   loadHistory: () => Promise<void>
   show: (run: BenchRun) => void
@@ -107,13 +109,14 @@ export const useBench = create<BenchState>((set, get) => ({
     const { specs, scenarioIds, repetitions, seed } = get()
     savePrefs({ specs, scenarioIds, repetitions, seed })
   },
-  start: async () => {
-    const { specs, scenarioIds, repetitions, seed } = get()
+  start: async (quick = false) => {
+    const { specs, scenarioIds, seed } = get()
+    const repetitions = quick ? 1 : get().repetitions
     const llm = useTown.getState().llm
     const contenders = specs.map((s) => contenderFor(s, llm))
-    const examples = town.content.examples.filter((e) => scenarioIds.includes(e.id))
+    const examples = quick ? town.content.examples : town.content.examples.filter((e) => scenarioIds.includes(e.id))
     const controller = new AbortController()
-    const total = trialsPerContender(town.content, examples, repetitions)
+    const total = quick ? GOLDEN_SIZE : trialsPerContender(town.content, examples, repetitions)
     const progress = Object.fromEntries(contenders.map(({ contender }) => [contender.id, { contender: contender.id, done: 0, total, errors: 0 }]))
     set({ running: { startedAt: performance.now(), progress, lastError: {}, controller }, view: 'new' })
 
@@ -128,7 +131,7 @@ export const useBench = create<BenchState>((set, get) => ({
       errors = {}
     }
     const run = await executeRun(
-      { content: town.content, examples, seed, repetitions, contenders, reference: (ctx) => mockDecision(ctx, town.content.vocabulary) },
+      { content: town.content, examples, seed, repetitions, contenders, reference: (ctx) => mockDecision(ctx, town.content.vocabulary), quick },
       {
         signal: controller.signal,
         onTrial: (t, p) => {

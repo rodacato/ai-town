@@ -50,6 +50,7 @@ const METRICS: MetricDef[] = [
   { id: 'format', label: 'Formato', unit: 'pct', higherIsBetter: true, noise: 0.02, read: (r) => (r.format.checked ? r.format.ok / r.format.checked : null) },
   { id: 'consistency', label: 'Consistencia', unit: 'pct', higherIsBetter: true, noise: 0.03, read: (r) => r.consistency },
   { id: 'truth', label: 'Acierto', unit: 'pct', higherIsBetter: true, noise: 0.03, read: (r) => r.truth ?? null },
+  { id: 'golden', label: 'Casos de oro', unit: 'pct', higherIsBetter: true, noise: 0.05, read: (r) => r.golden?.rate ?? null },
   { id: 'persona', label: 'Personaje', unit: 'pct', higherIsBetter: true, noise: 0.03, read: (r) => r.persona ?? null },
   { id: 'judge', label: 'Personaje según el juez', unit: 'pct', higherIsBetter: true, noise: 0.05, read: (r, run) => judgeScore(r.contender, run) },
   { id: 'reference', label: 'Como las reglas', unit: 'pct', higherIsBetter: true, noise: 0.03, read: (r) => (r.contender === 'rules' ? null : r.referenceAgreement) },
