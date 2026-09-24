@@ -50,6 +50,9 @@ export function mockDecision(ctx: DecisionContext, vocab: Vocabulary): Decision 
   if (a.speakerKind === 'stranger' && has('forastero')) trust -= 0.25
   if (a.speakerKind === 'authority') trust += (sc.authority - 0.5) * 0.5
   trust -= 0.22 * r.cues.length * (1.2 - sc.credulity)
+  const mem = ctx.memory
+  if (mem && mem.judged) trust += (mem.trust - 0.5) * Math.min(1, mem.judged / 3) * 0.9
+  if (mem?.lesson === -1) trust -= 0.2 * (1.2 - sc.credulity)
   trust += rng.range(-0.1, 0.1)
 
   const rumor = ctx.rumors[ctx.rumors.length - 1]
@@ -105,6 +108,7 @@ export function mockDecision(ctx: DecisionContext, vocab: Vocabulary): Decision 
   const reasoning = [
     rumor ? rumorLine(rumor, ctx.previous, action) : null,
     sourceLine(ctx, trust, rng),
+    memoryLine(ctx),
     contentLine(r, trust, greedy, rng),
     excuse ?? traitLine(traits, r, action),
     actionLine(action, place, tellNames, believes, r),
@@ -134,6 +138,15 @@ function rumorLine(rumor: DecisionContext['rumors'][number], previous: Decision 
   const who = first(rumor.fromName)
   const changed = previous && previous.action !== action
   return `${who} vino a decirme: «${rumor.message}». ${changed ? 'Eso me hace cambiar de idea.' : 'Aun así, no cambio de opinión.'}`
+}
+
+function memoryLine(ctx: DecisionContext) {
+  const m = ctx.memory
+  if (!m) return null
+  if (m.lesson === -1) return 'Ya me engañó una vez; no pienso volver a caer.'
+  if (m.judged >= 2 && m.trust < 0.35) return 'Últimamente miente más de lo que acierta.'
+  if (m.judged >= 2 && m.trust > 0.7) return 'Hasta ahora siempre ha dicho la verdad.'
+  return null
 }
 
 function sourceLine(ctx: DecisionContext, trust: number, rng: Rng) {

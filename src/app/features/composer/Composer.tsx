@@ -8,6 +8,7 @@ import { Megaphone } from '../../shared/icons'
 import { PlaceChip } from '../../shared/PlaceChip'
 import { SpeakerBadge } from '../../shared/SpeakerBadge'
 import { SpeakerPicker } from './SpeakerPicker'
+import { TrustMeter } from '../../shared/TrustMeter'
 import './composer.css'
 
 const TONE_LABEL: Record<Example['tone'], string> = { confiable: 'Confiable', urgente: 'Urgente', sospechoso: 'Sospechoso', emergencia: 'Emergencia' }
@@ -46,6 +47,7 @@ export function Composer() {
       <div className="field">
         <span className="field-label">¿Quién lo anuncia?</span>
         <SpeakerPicker />
+        <TrustMeter speaker={speaker} />
       </div>
 
       <div className="field">

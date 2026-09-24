@@ -14,6 +14,9 @@ import { activeWorld } from '../worlds'
 import { useTown } from './store'
 import { EMPTY_DRAFT } from './store/composer'
 import { HAD_PLAINTEXT_KEYS } from './store/settings'
+import { loadMemory, saveMemory } from './memoryStorage'
+import { speakerName } from '../core/reactions/announcement'
+import type { Outcome } from '../core/reactions/outcome'
 
 export const LAYOUT = { panelWidth: 380, gutter: 24, timelineHeight: 92 }
 const MAP_INSETS = { right: LAYOUT.panelWidth + LAYOUT.gutter + 16, bottom: LAYOUT.timelineHeight + LAYOUT.gutter + 12 }
@@ -28,6 +31,8 @@ class TownController {
   readonly content = activeWorld.content
   readonly sim = new Simulation(activeWorld.content)
   readonly engine: ReactionEngine
+  readonly memory = loadMemory(activeWorld.content.id)
+  private remembered = new Set<string>()
   private renderer: TownRenderer | null = null
   private toastedFor = new Set<string>()
   private snapshotFrame = 0
@@ -37,13 +42,17 @@ class TownController {
   constructor() {
     const { provider, concurrency, timeoutMs } = createProvider(useTown.getState().llm, this.content)
     this.engine = new ReactionEngine(this.sim, new DecisionScheduler(provider, concurrency, timeoutMs))
+    this.engine.memory = this.memory
+    useTown.setState({ memoryEntries: [...this.memory.entries] })
     this.engine.on((e) => {
       if (e.type === 'reasoning') return this.scheduleReasoning()
       if (e.type === 'log') this.pendingLog.push(e.entry)
       if (e.type === 'outcome') {
         useTown.setState({ outcome: e.outcome })
         useTown.getState().toast(e.outcome.summary)
+        this.remember(e.outcome)
       }
+      if (e.type === 'complete' && this.engine.announcement?.speaker.kind === 'sight') this.remember(useTown.getState().godEvent)
       if (e.type === 'complete' && this.engine.announcement && !this.toastedFor.has(this.engine.announcement.id)) {
         this.toastedFor.add(this.engine.announcement.id)
         useTown.getState().toast('Todo el pueblo ha decidido.')
@@ -174,6 +183,46 @@ class TownController {
   forgetRememberedKeys() {
     forgetKeys()
     useTown.setState({ vaultLocked: false })
+  }
+
+  /** Records a revealed announcement or a sighting, and tells how the speaker's standing moved. */
+  private remember(outcome: Outcome | null) {
+    const a = this.engine.announcement
+    if (!a || !outcome || this.remembered.has(a.id)) return
+    this.remembered.add(a.id)
+    const decided = [...this.engine.reactions.values()].filter((r) => r.decision && !r.isSpeaker)
+    const sight = a.speaker.kind === 'sight'
+    const before = this.memory.reputation(a.speaker)
+    const said = a.text.length > 70 ? `${a.text.slice(0, 67)}…` : a.text
+    this.memory.record({
+      id: a.id,
+      minutes: a.minutes,
+      text: a.text,
+      speaker: a.speaker,
+      truth: outcome.truth,
+      summary: sight ? outcome.summary.replace(/\.$/, '').replace(/^./, (c) => c.toLowerCase()) : `${this.speakerShort(a.speaker)} anunció «${said}» y ${outcome.truth ? 'era verdad' : 'era mentira'}`,
+      believers: decided.filter((r) => r.decision!.believes).map((r) => r.id),
+      doubters: decided.filter((r) => !r.decision!.believes).map((r) => r.id),
+    })
+    saveMemory(this.content.id, this.memory)
+    useTown.setState({ memoryEntries: [...this.memory.entries] })
+    if (sight) return
+    const after = this.memory.reputation(a.speaker)
+    const pct = (x: number) => `${Math.round(x * 100)}%`
+    window.setTimeout(() => useTown.getState().toast(`${this.speakerShort(a.speaker)} ${after.trust >= before.trust ? 'gana' : 'pierde'} confianza: ${pct(before.trust)} → ${pct(after.trust)}`), 1800)
+  }
+
+  /** "la Baronesa", "el forastero", "Kael": how the town names a speaker in passing. */
+  speakerShort(s: Announcement['speaker']) {
+    if (s.kind === 'neighbor') return speakerName(this.content, s).split(',')[0].split(' ')[0]
+    return this.content.speakers[s.kind].label
+  }
+
+  forgetMemory() {
+    this.memory.clear()
+    this.remembered.clear()
+    saveMemory(this.content.id, this.memory)
+    useTown.setState({ memoryEntries: [] })
   }
 
   // God panel: direct control over the town, for trying things out without waiting.

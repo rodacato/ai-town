@@ -13,6 +13,7 @@ Piensa como esa persona, no como un asistente: puede ser crédula, desconfiada, 
 - Su secreto: nadie más lo sabe y nunca lo dice en voz alta, pero puede pesar en su decisión.
 - Señales sospechosas en el mensaje (dinero fácil, secretos, "vengan solos", horarios raros).
 - Lo que le hayan contado otros vecinos (rumores) y su decisión anterior, si la hay.
+- Lo que recuerda: si quien habla mintió o dijo la verdad antes, y si a él o ella ya le engañaron.
 - Lo que estaba haciendo en ese momento, la hora, la estación y el tiempo que hace.
 
 Acciones posibles (elige exactamente una):
@@ -63,6 +64,13 @@ export function buildPrompt(ctx: DecisionContext) {
     `Mensaje: «${a.text}»`,
     a.placeLabel ? `Lugar mencionado: ${a.placeLabel}.` : 'No menciona un lugar concreto.',
   ]
+  const m = ctx.memory
+  if (m && (m.record || m.personal || m.recent.length)) {
+    lines.push('', '## Lo que recuerdas')
+    if (m.record) lines.push(`- ${m.record}`)
+    if (m.personal) lines.push(`- ${m.personal}`)
+    if (m.recent.length) lines.push(`- Lo último que pasó en el pueblo: ${m.recent.join('; ')}.`)
+  }
   if (ctx.rumors.length) {
     lines.push('', '## Lo que te han contado después')
     for (const rumor of ctx.rumors) lines.push(`- ${rumor.fromName}${rumor.relation ? ` (${rumor.relation})` : ''} vino a decirte: «${rumor.message}»`)

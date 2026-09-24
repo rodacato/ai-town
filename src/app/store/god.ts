@@ -1,5 +1,6 @@
 import type { StateCreator } from 'zustand'
 import type { TownState } from '.'
+import type { MemoryEntry } from '../../core/memory/memory'
 import type { Outcome } from '../../core/reactions/outcome'
 import type { Season } from '../../core/sim/season'
 import type { Weather } from '../../core/sim/weather'
@@ -14,6 +15,8 @@ export interface GodSlice {
   /** An event unleashed from the panel, independent of any announcement. */
   godEvent: Outcome | null
   curfew: boolean
+  /** Snapshot of the town's memory, refreshed whenever it records something. */
+  memoryEntries: MemoryEntry[]
   setGodOpen: (open: boolean) => void
 }
 
@@ -24,5 +27,6 @@ export const createGodSlice: StateCreator<TownState, [], [], GodSlice> = (set) =
   season: 'summer',
   godEvent: null,
   curfew: false,
+  memoryEntries: [],
   setGodOpen: (godOpen) => set({ godOpen }),
 })

@@ -6,6 +6,7 @@ import type { Point } from '../world/types'
 import type { Announcement } from './announcement'
 import { buildContext } from './context'
 import { judge, planOutcome, react, THREATS, type Outcome } from './outcome'
+import type { TownMemory } from '../memory/memory'
 import { firstName as first } from '../lang'
 
 export type Phase = 'unaware' | 'heard' | 'thinking' | 'decided' | 'error'
@@ -90,6 +91,8 @@ export class ReactionEngine {
   private completed = false
   private revealing = false
   outcome: Outcome | null = null
+  /** The town's memory, when this engine runs the live town; the benchmark leaves it out. */
+  memory: TownMemory | null = null
   startedAt = 0
 
   constructor(
@@ -256,7 +259,7 @@ export class ReactionEngine {
     reaction.usage = null
     r.frozen = true
     this.emit({ type: 'change', id: reaction.id })
-    const ctx = buildContext(this.sim, a, r, reaction.rumors, reaction.decision)
+    const ctx = buildContext(this.sim, a, r, reaction.rumors, reaction.decision, this.memory ?? undefined)
     const provider = this.scheduler.provider
     this.log(reaction.id, 'queued', provider.label)
     this.scheduler.enqueue({
