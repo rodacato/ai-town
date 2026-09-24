@@ -13,11 +13,16 @@ export interface MemoryEntry {
   summary: string
   believers: string[]
   doubters: string[]
+  /** Something the speaker did rather than said, like the guard stopping thieves or not: weighs on trust, never counts as a lie. */
+  deed?: boolean
 }
 
 export interface Reputation {
   truths: number
   lies: number
+  /** Deeds that protected the town, and ones that failed it. */
+  good: number
+  bad: number
   /** 0–1, starting at one half with no record and moving with every revealed announcement. */
   trust: number
 }
@@ -44,15 +49,17 @@ export class TownMemory {
   reputation(speaker: Speaker): Reputation {
     const key = speakerKey(speaker)
     const judged = this.entries.filter((e) => e.speaker.kind !== 'sight' && speakerKey(e.speaker) === key && e.truth !== undefined)
-    const truths = judged.filter((e) => e.truth).length
-    const lies = judged.length - truths
-    return { truths, lies, trust: (truths + 1) / (judged.length + 2) }
+    const said = judged.filter((e) => !e.deed)
+    const deeds = judged.filter((e) => e.deed)
+    const truths = said.filter((e) => e.truth).length
+    const good = deeds.filter((e) => e.truth).length
+    return { truths, lies: said.length - truths, good, bad: deeds.length - good, trust: (truths + good + 1) / (judged.length + 2) }
   }
 
   /** Last announcement by this speaker whose truth came out, from this resident's point of view. */
   lastWith(speaker: Speaker, residentId: string) {
     const key = speakerKey(speaker)
-    const last = [...this.entries].reverse().find((e) => e.speaker.kind !== 'sight' && speakerKey(e.speaker) === key && e.truth !== undefined)
+    const last = [...this.entries].reverse().find((e) => e.speaker.kind !== 'sight' && !e.deed && speakerKey(e.speaker) === key && e.truth !== undefined)
     if (!last) return null
     const believed = last.believers.includes(residentId) ? true : last.doubters.includes(residentId) ? false : null
     return { entry: last, believed }

@@ -1,5 +1,5 @@
 import { alive, averageMood, runDay, startEconomy, type Economy } from '../economy/economy'
-import { applyImpact } from '../economy/impact'
+import { applyImpact, guardDeed, rollHours } from '../economy/impact'
 import { TownMemory } from '../memory/memory'
 import type { OutcomeVisual } from '../reactions/outcome'
 import type { Season } from '../sim/season'
@@ -108,8 +108,11 @@ export async function runReign(o: ReignOptions): Promise<ReignResult> {
       for (const line of dawnStanding(standing, e, memory.reputation({ kind: 'authority' }).trust, day, goals)) chronicle.add(minutes + 5, standing.end ? 'end' : 'plot', line)
     }
     for (const f of o.fate.filter((f) => f.day === day)) {
-      const line = applyImpact(e, f.visual)
-      chronicle.add(minutes - 600, 'event', `${f.text}${line ? ` ${line}` : ''}`)
+      const rng = createRng(o.seed * 7919 + day)
+      const impact = applyImpact(e, f.visual, rollHours(f.visual, rng.next), rng.next)
+      chronicle.add(minutes - 600, 'event', `${f.text}${impact.text ? ` ${impact.text}` : ''}`)
+      const deed = guardDeed(impact, f.visual, minutes - 600)
+      if (deed) memory.record(deed)
     }
     const report = buildReport({ content: o.content, economy: e, memory, chronicle: chronicle.entries, minutes: minutes + 30, season, weather: 'clear', day, seed: o.seed, standing })
     const turn = standing.end ? { actions: [], problems: [] } : await o.rule(report)

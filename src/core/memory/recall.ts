@@ -20,10 +20,9 @@ export function recallFor(memory: TownMemory, a: Announcement, residentId: strin
   const rep = memory.reputation(a.speaker)
   const judged = rep.truths + rep.lies
   const sight = a.speaker.kind === 'sight'
-  const record =
-    sight || !judged
-      ? null
-      : `${speakerName} ha anunciado ${judged} ${judged === 1 ? 'cosa' : 'cosas'} antes: ${rep.truths} ${rep.truths === 1 ? 'resultó verdad' : 'resultaron verdad'} y ${rep.lies} ${rep.lies === 1 ? 'mentira' : 'mentiras'}.`
+  const said = judged ? `${speakerName} ha anunciado ${judged} ${judged === 1 ? 'cosa' : 'cosas'} antes: ${rep.truths} ${rep.truths === 1 ? 'resultó verdad' : 'resultaron verdad'} y ${rep.lies} ${rep.lies === 1 ? 'mentira' : 'mentiras'}.` : ''
+  const deeds = rep.good + rep.bad ? `Cuando hubo peligro, su guardia protegió al pueblo ${rep.good} ${rep.good === 1 ? 'vez' : 'veces'} y le falló ${rep.bad}.` : ''
+  const record = sight || !(said || deeds) ? null : [said, deeds].filter(Boolean).join(' ')
   const last = sight ? null : memory.lastWith(a.speaker, residentId)
   let personal: string | null = null
   let lesson: Recall['lesson'] = 0

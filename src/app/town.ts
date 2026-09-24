@@ -4,7 +4,7 @@ import { ReactionEngine, type LogEntry, type Reaction } from '../core/reactions/
 import { eventAt, react, type OutcomeVisual } from '../core/reactions/outcome'
 import { isNight } from '../core/sim/rhythm'
 import { alive, averageMood, foodDays, type Ledger } from '../core/economy/economy'
-import { applyImpact } from '../core/economy/impact'
+import { applyImpact, EFFECTS, guardDeed, rollHours } from '../core/economy/impact'
 import { Chronicle, type ChronicleKind } from '../core/realm/chronicle'
 import { enact, type Decree, type DecreeResult } from '../core/realm/decrees'
 import { buildReport, reportText } from '../core/realm/report'
@@ -91,7 +91,7 @@ class TownController {
         useTown.setState({ outcome: e.outcome })
         useTown.getState().toast(e.outcome.summary)
         this.remember(e.outcome)
-        if (e.outcome.truth) this.impact(e.outcome.visual)
+        if (e.outcome.truth) this.beginEvent(e.outcome.visual, e.outcome.summary)
       }
       if (e.type === 'complete') this.settleDecisions()
       if (e.type === 'complete' && this.engine.announcement?.speaker.kind === 'sight') this.remember(useTown.getState().godEvent)
@@ -125,6 +125,7 @@ class TownController {
     const clock = window.setInterval(() => {
       this.syncClock()
       this.fateTick()
+      this.eventsTick()
       this.museTick()
     }, 1000)
     const save = () => this.save()
@@ -391,15 +392,38 @@ class TownController {
     useTown.setState({ vaultLocked: false })
   }
 
-  /** A real event's toll on the granary, the treasury and spirits. */
-  private impact(visual: OutcomeVisual) {
-    if (!this.sim.economy) return
-    const line = applyImpact(this.sim.economy, visual)
-    this.syncRealm()
-    if (line) {
-      this.log('event', line)
-      window.setTimeout(() => useTown.getState().toast(line), 2600)
+  /** A real event starts: it lasts a random while, and only when it is over do its costs or gains land. */
+  private beginEvent(visual: OutcomeVisual, summary: string) {
+    if (!this.sim.economy || !EFFECTS[visual]) return
+    const hours = rollHours(visual)
+    const activity = this.track('town', `En curso: ${summary}`, { status: 'pending', detail: 'Su costo o beneficio depende de cuánto dure.' })
+    useTown.setState((s) => ({ events: [...s.events, { visual, summary, until: Math.floor(this.sim.minutes + hours * 60), hours, activity }] }))
+  }
+
+  /** Settles the events whose time is up: the longer they lasted, the more they cost or paid. */
+  private eventsTick() {
+    const e = this.sim.economy
+    const { events } = useTown.getState()
+    if (!e || !events.length) return
+    const due = events.filter((x) => this.sim.minutes >= x.until)
+    if (!due.length) return
+    useTown.setState({ events: events.filter((x) => !due.includes(x)) })
+    for (const x of due) {
+      const impact = applyImpact(e, x.visual, x.hours, Math.random, (id) => firstName(this.content.residents.find((r) => r.id === id)?.name ?? id))
+      const deed = guardDeed(impact, x.visual, this.sim.minutes)
+      if (deed) {
+        this.memory.record(deed)
+        saveMemory(this.content.id, this.memory)
+        useTown.setState({ memoryEntries: [...this.memory.entries] })
+      }
+      if (!impact.text) continue
+      this.chronicle.add(this.sim.minutes, 'event', impact.text)
+      useTown.setState({ chronicle: this.chronicle.entries.slice(-80) })
+      this.settle(x.activity, { status: 'ok', title: impact.text, detail: `Duró ${x.hours} ${x.hours === 1 ? 'hora' : 'horas'}${impact.guarded === null ? '' : impact.guarded ? ' · la guardia cumplió: sube la confianza' : ' · sin leva, nadie lo frenó: baja la confianza'}` })
+      useTown.getState().toast(impact.text)
+      if (useTown.getState().godEvent?.visual === x.visual && !(this.engine.active && !this.engine.settled)) this.clearEvent()
     }
+    this.syncRealm()
   }
 
   /** Dawn: the day's accounts in one line, and who is gone. */
@@ -536,8 +560,8 @@ class TownController {
   }
 
   private reignState(): ReignState {
-    const { rulerMode, rulerCap, rulerCalls, rulerCost, lastTurn, mailbox, honesty, standing, endSeen, autoplay, seed, fateDone, residentsOnModel, history, seasonStart, activity } = useTown.getState()
-    return { rulerMode, rulerCap, rulerCalls, rulerCost, lastTurn, mailbox, honesty, standing, endSeen, autoplay, seed, fateDone, residentsOnModel, history, seasonStart, activity: activity.slice(-150) }
+    const { rulerMode, rulerCap, rulerCalls, rulerCost, lastTurn, mailbox, honesty, standing, endSeen, autoplay, seed, fateDone, residentsOnModel, history, seasonStart, activity, events } = useTown.getState()
+    return { rulerMode, rulerCap, rulerCalls, rulerCost, lastTurn, mailbox, honesty, standing, endSeen, autoplay, seed, fateDone, residentsOnModel, history, seasonStart, activity: activity.slice(-150), events }
   }
 
   setRulerMode(rulerMode: RulerMode) {
@@ -710,7 +734,7 @@ class TownController {
     this.renderer?.showEvent(event)
     useTown.setState({ godEvent: event })
     useTown.getState().toast(event.summary)
-    this.impact(visual)
+    this.beginEvent(visual, event.summary)
     const busy = this.engine.active && !this.engine.settled
     if (busy) return react(this.sim, event, (r) => r.frozen || r.tasks.length > 0)
     this.begin(

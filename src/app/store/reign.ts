@@ -1,6 +1,7 @@
 import type { StateCreator } from 'zustand'
 import type { TownState } from '.'
 import type { TokenUsage } from '../../core/decisions/types'
+import type { OutcomeVisual } from '../../core/reactions/outcome'
 import type { DayRecord } from '../../core/realm/reign'
 import { freshStanding, type Standing } from '../../core/realm/standing'
 
@@ -38,6 +39,17 @@ export interface Activity {
   costUsd?: number
 }
 
+/** A real event still going on; it settles its costs when `until` comes. */
+export interface RunningEvent {
+  visual: OutcomeVisual
+  summary: string
+  /** Game minute when it ends. */
+  until: number
+  hours: number
+  /** Its line in the log, updated when it ends. */
+  activity: number
+}
+
 export interface Letter {
   day: number
   text: string
@@ -71,6 +83,7 @@ export interface ReignState {
   /** Season the game began in, as an index into SEASONS; the rest follow every ten days. */
   seasonStart: number
   activity: Activity[]
+  events: RunningEvent[]
 }
 
 export interface ReignSlice extends ReignState {
@@ -94,6 +107,7 @@ export const FRESH_REIGN: ReignState = {
   history: [],
   seasonStart: 1,
   activity: [],
+  events: [],
 }
 
 export const newSeed = () => 1 + Math.floor(Math.random() * 99_999)
