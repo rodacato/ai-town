@@ -6,6 +6,21 @@ import type { Season } from '../../core/sim/season'
 import type { Weather } from '../../core/sim/weather'
 
 /** The god panel: direct control over time, weather and events, for trying things out on the spot. */
+export interface Realm {
+  day: number
+  treasury: number
+  granary: number
+  foodDays: number
+  mood: number
+  taxRate: number
+  foodPrice: number
+  hungry: number
+  gone: string[]
+  dead: string[]
+  /** Per resident: hunger, health, mood and coins, for the inspector. */
+  people: Record<string, { status: string; daysHungry: number; health: number; mood: number; coins: number }>
+}
+
 export interface GodSlice {
   godOpen: boolean
   /** Simulation speed; 0 pauses the town (model requests keep going). */
@@ -15,6 +30,8 @@ export interface GodSlice {
   /** An event unleashed from the panel, independent of any announcement. */
   godEvent: Outcome | null
   curfew: boolean
+  /** The realm at a glance, refreshed at every dawn and after anything that moves it. */
+  realm: Realm | null
   /** Snapshot of the town's memory, refreshed whenever it records something. */
   memoryEntries: MemoryEntry[]
   setGodOpen: (open: boolean) => void
@@ -27,6 +44,7 @@ export const createGodSlice: StateCreator<TownState, [], [], GodSlice> = (set) =
   season: 'summer',
   godEvent: null,
   curfew: false,
+  realm: null,
   memoryEntries: [],
   setGodOpen: (godOpen) => set({ godOpen }),
 })

@@ -3,6 +3,8 @@ import { detectPlace, type Announcement } from '../core/reactions/announcement'
 import { ReactionEngine, type LogEntry, type Reaction } from '../core/reactions/engine'
 import { eventAt, react, type OutcomeVisual } from '../core/reactions/outcome'
 import { isNight } from '../core/sim/rhythm'
+import { averageMood, foodDays, type Ledger } from '../core/economy/economy'
+import { applyImpact } from '../core/economy/impact'
 import type { Season } from '../core/sim/season'
 import type { Weather } from '../core/sim/weather'
 import { Simulation } from '../core/sim/simulation'
@@ -15,6 +17,7 @@ import { useTown } from './store'
 import { EMPTY_DRAFT } from './store/composer'
 import { HAD_PLAINTEXT_KEYS } from './store/settings'
 import { loadMemory, saveMemory } from './memoryStorage'
+import { forgetTown, restoreTown, saveTown } from './townState'
 import { speakerName } from '../core/reactions/announcement'
 import type { Outcome } from '../core/reactions/outcome'
 
@@ -42,8 +45,12 @@ class TownController {
   constructor() {
     const { provider, concurrency, timeoutMs } = createProvider(useTown.getState().llm, this.content)
     this.engine = new ReactionEngine(this.sim, new DecisionScheduler(provider, concurrency, timeoutMs))
+    const restored = restoreTown(this.content.id, this.sim)
+    if (restored) useTown.setState({ weather: this.sim.weather, season: this.sim.season })
+    this.sim.onLedger((l) => this.onLedger(l))
     this.engine.memory = this.memory
     useTown.setState({ memoryEntries: [...this.memory.entries] })
+    this.syncRealm()
     this.engine.on((e) => {
       if (e.type === 'reasoning') return this.scheduleReasoning()
       if (e.type === 'log') this.pendingLog.push(e.entry)
@@ -51,6 +58,7 @@ class TownController {
         useTown.setState({ outcome: e.outcome })
         useTown.getState().toast(e.outcome.summary)
         this.remember(e.outcome)
+        if (e.outcome.truth) this.impact(e.outcome.visual)
       }
       if (e.type === 'complete' && this.engine.announcement?.speaker.kind === 'sight') this.remember(useTown.getState().godEvent)
       if (e.type === 'complete' && this.engine.announcement && !this.toastedFor.has(this.engine.announcement.id)) {
@@ -79,9 +87,15 @@ class TownController {
       useTown.getState().toast('Por seguridad, tus keys ya no se guardan sin cifrar. Siguen activas en esta pestaña.')
     }
     const clock = window.setInterval(() => this.syncClock(), 1000)
+    const save = () => saveTown(this.content.id, this.sim)
+    const autosave = window.setInterval(save, 5000)
+    window.addEventListener('pagehide', save)
     return () => {
       disposed = true
+      save()
       window.clearInterval(clock)
+      window.clearInterval(autosave)
+      window.removeEventListener('pagehide', save)
       this.renderer?.destroy()
       this.renderer = null
       useTown.setState({ ready: false })
@@ -140,6 +154,9 @@ class TownController {
     window.setTimeout(() => {
       this.engine.stop()
       this.sim.reset()
+      forgetTown(this.content.id)
+      this.forgetMemory()
+      this.syncRealm()
       this.renderer?.showEvent(null)
       this.renderer?.setSpeed(1)
       this.renderer?.select(null)
@@ -150,7 +167,7 @@ class TownController {
       this.syncClock()
       window.setTimeout(() => {
         useTown.setState({ resetting: false })
-        useTown.getState().toast('Pueblo reiniciado. Todos vuelven a su rutina.')
+        useTown.getState().toast('Partida nueva: el pueblo empieza de cero, sin memoria y con el granero lleno.')
       }, 120)
     }, 320)
   }
@@ -183,6 +200,48 @@ class TownController {
   forgetRememberedKeys() {
     forgetKeys()
     useTown.setState({ vaultLocked: false })
+  }
+
+  /** A real event's toll on the granary, the treasury and spirits. */
+  private impact(visual: OutcomeVisual) {
+    if (!this.sim.economy) return
+    const line = applyImpact(this.sim.economy, visual)
+    this.syncRealm()
+    if (line) window.setTimeout(() => useTown.getState().toast(line), 2600)
+  }
+
+  /** Dawn: the day's accounts in one line, and who is gone. */
+  private onLedger(l: Ledger) {
+    const { toast } = useTown.getState()
+    const name = (id: string) => this.content.residents.find((r) => r.id === id)?.name.split(' ')[0] ?? id
+    toast(`Amanece el día ${l.day + 1}: cosecha +${l.harvest}, ${l.sold} raciones vendidas${l.unfed.length ? `, ${l.unfed.length} sin comer` : ''}.`)
+    for (const id of l.died) window.setTimeout(() => toast(`${name(id)} murió de hambre. Hay una tumba nueva en el cementerio.`), 1500)
+    for (const id of l.left) window.setTimeout(() => toast(`${name(id)} no aguantó más y se marcha del pueblo.`), 1500)
+    this.syncRealm()
+  }
+
+  syncRealm() {
+    const e = this.sim.economy
+    if (!e) return
+    const people = Object.fromEntries(
+      Object.entries(e.needs).map(([id, n]) => [id, { status: n.status, daysHungry: n.daysHungry, health: n.health, mood: n.mood, coins: e.purses[id] ?? 0 }]),
+    )
+    const ids = Object.keys(e.needs)
+    useTown.setState({
+      realm: {
+        day: e.day,
+        treasury: e.treasury,
+        granary: e.granary,
+        foodDays: foodDays(e),
+        mood: averageMood(e),
+        taxRate: e.taxRate,
+        foodPrice: e.foodPrice,
+        hungry: ids.filter((id) => e.needs[id].status === 'hungry' || e.needs[id].status === 'sick').length,
+        gone: ids.filter((id) => e.needs[id].status === 'gone'),
+        dead: ids.filter((id) => e.needs[id].status === 'dead'),
+        people,
+      },
+    })
   }
 
   /** Records a revealed announcement or a sighting, and tells how the speaker's standing moved. */
@@ -253,6 +312,7 @@ class TownController {
     this.renderer?.showEvent(event)
     useTown.setState({ godEvent: event })
     useTown.getState().toast(event.summary)
+    this.impact(visual)
     const busy = this.engine.active && !this.engine.settled
     if (busy) return react(this.sim, event, (r) => r.frozen || r.tasks.length > 0)
     this.begin(
@@ -319,7 +379,7 @@ class TownController {
   }
 
   private syncClock() {
-    useTown.setState({ minutes: Math.floor(this.sim.minutes), outside: this.sim.residents.filter((r) => r.mode !== 'inside').length })
+    useTown.setState({ minutes: Math.floor(this.sim.minutes), outside: this.sim.residents.filter((r) => r.mode === 'walking' || r.mode === 'idle').length })
   }
 
   private scheduleSnapshot() {

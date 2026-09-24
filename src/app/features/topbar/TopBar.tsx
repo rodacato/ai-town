@@ -49,7 +49,7 @@ export function TopBar() {
           <span className="pill-label">Dios</span>
         </button>
         <BenchButton />
-        <button className="pill panel btn-pill" onClick={() => town.reset()} title="Devuelve a todos a su rutina y borra el anuncio">
+        <button className="pill panel btn-pill" onClick={() => town.reset()} title="Partida nueva: el pueblo vuelve a empezar, sin memoria ni historia">
           <Reset className="pill-icon reset" />
           Reiniciar
         </button>

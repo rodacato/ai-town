@@ -13,6 +13,7 @@ import { ResetVeil, Toasts } from './Toasts'
 import { TopBar } from '../features/topbar/TopBar'
 import { TownCanvas } from '../features/map/TownCanvas'
 import { GodPanel } from '../features/god/GodPanel'
+import { RealmHud } from '../features/realm/RealmHud'
 import './shell.css'
 
 const SettingsModal = lazy(() => import('../features/settings/SettingsModal').then((m) => ({ default: m.SettingsModal })))
@@ -53,6 +54,7 @@ export function App() {
     >
       <TownCanvas />
       <TopBar />
+      <RealmHud />
       <MapControls />
       <MapHint />
       <HoverTag />

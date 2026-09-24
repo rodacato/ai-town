@@ -1,0 +1,38 @@
+.realm-hud {
+  position: absolute;
+  top: 88px;
+  left: var(--gutter);
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  max-width: min(460px, calc(100vw - var(--panel-w) - var(--gutter) * 3));
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+}
+
+.realm-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.realm-stat b {
+  font-weight: 600;
+}
+
+.realm-stat.is-low b {
+  color: #9a4a42;
+}
+
+.realm-sub {
+  font-size: 11px;
+  color: var(--ink-3);
+}
+
+.realm-day {
+  font-size: 11.5px;
+  color: var(--ink-3);
+}
