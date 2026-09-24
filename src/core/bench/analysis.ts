@@ -17,6 +17,12 @@ export interface ContenderReport {
   persona?: number | null
   /** Broken personality rules by id, with the residents who broke them. */
   personaBroken?: Record<string, { count: number; residents: string[] }>
+  /** Share of beliefs that matched what really happened; null when no scenario had a truth. */
+  truth?: number | null
+  /** Believed something false. */
+  fooled?: number
+  /** Doubted something true. */
+  doubted?: number
   metrics: RunMetrics
   byScenario: Record<string, { actions: Record<Action, number>; believed: number; decided: number }>
 }
@@ -94,6 +100,7 @@ export function analyze(trials: Trial[], contenders: string[], reference?: Refer
       }
     }
     const brokenTotal = Object.values(personaBroken).reduce((n, e) => n + e.count, 0)
+    const scored = mine.filter((t) => t.right !== undefined)
     const compared = reference ? [...modes.get(c)!].filter(([k]) => reference.has(k)) : []
     return {
       contender: c,
@@ -104,6 +111,9 @@ export function analyze(trials: Trial[], contenders: string[], reference?: Refer
       beliefConsistency: mean(repeated.map((cell) => cell.trials.filter((t) => t.believes === cell.believes).length / cell.trials.length)),
       persona: checked ? 1 - brokenTotal / checked : null,
       personaBroken,
+      truth: scored.length ? scored.filter((t) => t.right).length / scored.length : null,
+      fooled: scored.filter((t) => !t.right && t.believes).length,
+      doubted: scored.filter((t) => !t.right && !t.believes).length,
       referenceAgreement: compared.length ? compared.filter(([k, cell]) => reference!.get(k)!.action === cell.action).length / compared.length : null,
       metrics: runMetrics(mine),
       byScenario,

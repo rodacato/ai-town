@@ -48,6 +48,7 @@ interface MetricDef {
 const METRICS: MetricDef[] = [
   { id: 'format', label: 'Formato', unit: 'pct', higherIsBetter: true, noise: 0.02, read: (r) => (r.format.checked ? r.format.ok / r.format.checked : null) },
   { id: 'consistency', label: 'Consistencia', unit: 'pct', higherIsBetter: true, noise: 0.03, read: (r) => r.consistency },
+  { id: 'truth', label: 'Acierto', unit: 'pct', higherIsBetter: true, noise: 0.03, read: (r) => r.truth ?? null },
   { id: 'persona', label: 'Personaje', unit: 'pct', higherIsBetter: true, noise: 0.03, read: (r) => r.persona ?? null },
   { id: 'reference', label: 'Como las reglas', unit: 'pct', higherIsBetter: true, noise: 0.03, read: (r) => (r.contender === 'rules' ? null : r.referenceAgreement) },
   { id: 'errors', label: 'Errores', unit: 'pct', higherIsBetter: false, noise: 0.01, read: (r) => (r.trials ? r.errors / r.trials : null) },

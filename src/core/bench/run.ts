@@ -23,7 +23,7 @@ export interface BenchRun {
   world: string
   seed: number
   repetitions: number
-  scenarios: { id: string; text: string; tone: string }[]
+  scenarios: { id: string; text: string; tone: string; truth?: boolean }[]
   contenders: ContenderInfo[]
   durationMs: number
   durations: Record<string, number>
@@ -57,7 +57,7 @@ export async function executeRun(setup: RunSetup, opts: { signal?: AbortSignal; 
     world: content.id,
     seed,
     repetitions,
-    scenarios: examples.map((e) => ({ id: e.id, text: e.text, tone: e.tone })),
+    scenarios: examples.map((e) => ({ id: e.id, text: e.text, tone: e.tone, truth: e.truth })),
     contenders: contenders.map((c) => c.info),
     durationMs: performance.now() - startedAt,
     durations,

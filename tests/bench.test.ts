@@ -112,6 +112,34 @@ describe('a full run', () => {
   })
 })
 
+describe('truth accuracy', () => {
+  const believing = (believes: boolean): DecisionProvider => ({
+    id: String(believes),
+    label: String(believes),
+    async *decide(ctx): AsyncIterable<DecisionEvent> {
+      yield { type: 'final', decision: { ...mockDecision(ctx, content.vocabulary), believes } }
+    },
+  })
+
+  it('scores beliefs against what really happened in each announcement', async () => {
+    const scenarios = content.examples.map((ex) => buildScenario(content, ex, 7))
+    const lies = scenarios.filter((s) => s.truth === false).reduce((n, s) => n + s.contexts.length, 0)
+    const truths = scenarios.filter((s) => s.truth === true).reduce((n, s) => n + s.contexts.length, 0)
+    expect(lies).toBeGreaterThan(0)
+    const { trials } = await runBench({ scenarios, repetitions: 1, contenders: [contender('gullible', believing(true)), contender('cynic', believing(false))] })
+    const [gullible, cynic] = analyze(trials, ['gullible', 'cynic']).contenders
+    expect(gullible).toMatchObject({ fooled: lies, doubted: 0 })
+    expect(cynic).toMatchObject({ fooled: 0, doubted: truths })
+    expect(gullible.truth).toBeCloseTo(truths / (truths + lies))
+  })
+
+  it('leaves accuracy empty when no announcement says what was true', async () => {
+    const scenario = { ...buildScenario(content, content.examples[0], 7), truth: undefined }
+    const { trials } = await runBench({ scenarios: [scenario], repetitions: 1, contenders: [contender('rules', createRulesProvider(content.vocabulary))] })
+    expect(analyze(trials, ['rules']).contenders[0].truth).toBeNull()
+  })
+})
+
 describe('persona coherence', () => {
   const reckless: DecisionProvider = {
     id: 'reckless',

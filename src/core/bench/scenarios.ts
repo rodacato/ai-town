@@ -12,6 +12,8 @@ export interface Scenario {
   id: string
   text: string
   tone: Example['tone']
+  /** What really happened, when the world says. */
+  truth?: boolean
   /** One context per resident who is not the speaker: the first reaction, without word of mouth. */
   contexts: DecisionContext[]
 }
@@ -32,6 +34,7 @@ export function buildScenario(content: WorldContent, example: Example, seed: num
     id: example.id,
     text: example.text,
     tone: example.tone,
+    truth: example.truth,
     contexts: sim.residents.filter((r) => r.profile.id !== speakerId).map((r) => buildContext(sim, announcement, r, [], null)),
   }
 }

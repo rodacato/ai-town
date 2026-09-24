@@ -62,6 +62,7 @@ El botón **Pruebas** compara modelos con los mismos pregones y residentes. Una 
 
 - **Formato**: respuestas con el JSON pedido sin que la app tenga que arreglar nada (y qué falló cuando no).
 - **Consistencia**: con 2+ repeticiones, qué tanto repite cada residente su decisión.
+- **Acierto**: si cree lo que de verdad pasó. Cada pregón de ejemplo tiene su verdad en la historia del mundo (el banquete, el troll y el dragón son ciertos; el oro de la cripta es una estafa), así que se califica solo: premia creer a las fuentes creíbles y desconfiar de las señales de estafa. Dice también cuántas mentiras se tragó y de cuántas verdades dudó.
 - **Personaje**: decisiones que no contradicen la personalidad del residente. Solo cuenta contradicciones claras (un miedoso que va hacia el dragón, un escéptico que se traga la oferta sospechosa, un huraño que sale a avisar a todos) y el informe dice quién rompió qué regla. Las reglas están en `src/core/bench/coherence.ts`.
 - **Como las reglas**: coincidencia con el modo simulado. Es una referencia para detectar cambios, no la respuesta correcta.
 - **Acuerdo** entre contendientes, reparto de acciones por pregón, latencia (p50/p95), tokens/s, tokens y costo.

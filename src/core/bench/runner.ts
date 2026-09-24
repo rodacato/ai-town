@@ -26,6 +26,8 @@ export interface Trial {
   format: FormatCheck | null
   /** Personality rules that applied and which of them the decision broke; null when there was no decision. Optional for runs saved before it existed. */
   persona?: { checked: number; broken: string[] } | null
+  /** Whether the belief matched what really happened; absent when the scenario has no truth. */
+  right?: boolean
   queueMs: number
   ttftMs: number | null
   totalMs: number | null
@@ -132,6 +134,7 @@ function track(scheduler: DecisionScheduler, contender: string, s: Scenario, ctx
         error: null,
         format: text === null ? null : checkFormat(text),
         persona: checkCoherence(ctx, s.tone, d),
+        ...(s.truth === undefined ? {} : { right: d.believes === s.truth }),
       }),
     onError: (message) =>
       finish({ ...base(), action: null, believes: null, confidence: null, speech: null, error: message, format: text === null ? null : checkFormat(text), persona: null }),
