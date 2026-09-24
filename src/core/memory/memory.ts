@@ -53,7 +53,8 @@ export class TownMemory {
     const deeds = judged.filter((e) => e.deed)
     const truths = said.filter((e) => e.truth).length
     const good = deeds.filter((e) => e.truth).length
-    return { truths, lies: said.length - truths, good, bad: deeds.length - good, trust: (truths + good + 1) / (judged.length + 2) }
+    // A deed weighs half a word: the guard doing its job should not outweigh what the Baroness says.
+    return { truths, lies: said.length - truths, good, bad: deeds.length - good, trust: (truths + good / 2 + 1) / (said.length + deeds.length / 2 + 2) }
   }
 
   /** Last announcement by this speaker whose truth came out, from this resident's point of view. */

@@ -22,6 +22,9 @@ export interface DecreeResult {
 
 export const LIMITS = { maxTax: 0.6, maxPrice: 6, rationCost: 3, festivalGold: 40, festivalFood: 15, maxBuy: 120, maxBonus: 10 }
 
+/** What merchants ask per ration in this game. */
+export const rationCost = (e: Economy) => e.rationCost ?? LIMITS.rationCost
+
 const LAW_TEXT: Record<keyof Laws, [on: string, off: string]> = {
   curfew: ['Toque de queda: nadie en la calle desde el atardecer hasta el alba.', 'Se levanta el toque de queda.'],
   rationing: ['Racionamiento: media ración por cabeza hasta nuevo aviso.', 'Se acaba el racionamiento: raciones completas otra vez.'],
@@ -76,7 +79,7 @@ export function enact(e: Economy, d: Decree): DecreeResult {
     }
     case 'buyFood': {
       if (!(Number.isInteger(d.rations) && d.rations > 0 && d.rations <= LIMITS.maxBuy)) return fail(`Se pueden comprar entre 1 y ${LIMITS.maxBuy} raciones.`)
-      const cost = d.rations * LIMITS.rationCost
+      const cost = d.rations * rationCost(e)
       if (cost > e.treasury) return fail(`No alcanza el tesoro: ${d.rations} raciones cuestan ${cost} monedas y hay ${e.treasury}.`)
       e.treasury -= cost
       e.granary += d.rations

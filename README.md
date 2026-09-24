@@ -40,7 +40,7 @@ El tablero de arriba a la izquierda resume el reino y dice quién gobierna; al p
 
 ### Eventos
 
-Todos los eventos cuestan o pagan algo, y todos duran un rato al azar: su efecto llega al terminar y crece con lo que duraron. Aplica igual a los del calendario del destino, a los que desatas en Dios y a los pregones que resultan ciertos. El festín gasta grano pero da de comer a todos; la caravana trae grano y tasas; el tesoro y el hierro del meteorito suman monedas; la crecida y el incendio cuestan grano y reparaciones; el dragón, la bestia, los lobos y el incendio dejan heridos. Frente al dragón, el ladrón, la bestia, los lobos y los esqueletos cuenta la guardia: con la leva el daño es la mitad y la confianza en la Baronesa sube; sin ella, nadie lo frena y baja.
+Todos los eventos cuestan o pagan algo, y todos duran un rato al azar: su efecto llega al terminar y crece con lo que duraron. Aplica igual a los del calendario del destino, a los que desatas en Dios y a los pregones que resultan ciertos. El festín gasta grano pero da de comer a todos; la caravana trae grano y tasas; el tesoro y el hierro del meteorito suman monedas; la crecida y el incendio cuestan grano y reparaciones; el dragón, la bestia, los lobos y el incendio dejan heridos. Frente al dragón, el ladrón, la bestia, los lobos y los esqueletos cuenta la guardia: con la leva el daño es la mitad y la confianza en la Baronesa sube; sin ella, nadie lo frena y baja. Lo que hace la guardia pesa la mitad que lo que dice la Baronesa.
 
 ### El trono
 
@@ -59,7 +59,7 @@ Bartolo le debe una fortuna a un gremio de ladrones. El gremio conspira más cua
 - **Vecinos que piensan solos**: de día, cada pocas horas un vecino se para a pensar en su hambre, sus monedas, los impuestos y lo que se comenta. El pensamiento aparece en un globo sobre el mapa y le sube o baja un poco el ánimo.
 - **Crónica** (📜 en el tablero): el reinado día a día, con gráficas de vecinos, ánimo, confianza y tesoro.
 - **Bitácora** (📒, `B`): cada amanecer con el desglose de comida y dinero, decretos, eventos y cada decisión, con quién la tomó, cuánto tardó, cuántos tokens usó y cuánto costó. Arriba separa lo que gastan los vecinos de lo que gasta la Baronesa y dice si el modelo responde; en la barra, un punto azul avisa que está pensando y uno rojo que la última consulta falló.
-- **Partida**: se guarda sola en el navegador. **Nueva partida** (en Configuración o en el Terrario) empieza en una estación al azar, el lunes por la mañana, a ×2. También se puede guardar en un archivo y cargarla después.
+- **Partida**: se guarda sola en el navegador. **Nueva partida** (en Configuración o en el Terrario) empieza en una estación al azar, el lunes por la mañana, a ×2, con la dificultad que elijas: **normal**, **dura** (golpes más seguidos y más duros, reservas al 70 %, peor cosecha y grano más caro) o **cruel** (casi un golpe al día, media reserva y cosechas pobres). También se puede guardar en un archivo y cargarla después.
 
 ## Comparar modelos
 
@@ -111,10 +111,11 @@ npm run bench -- -m shellm:claude -m shellm:codex -r 3 -c 16
 npm run bench -- -m anthropic:claude-opus-5 -m custom:llama3.2@http://localhost:11434 -s banquet,troll
 npm run bench -- --compare bench-results/antes.json bench-results/despues.json
 npm run reign -- -m anthropic:claude-sonnet-5 -m custom:qwen3@http://mi-servidor:8000=0.2/0.6 --seed 12
+npm run reign -- --dificultad cruel --seed 12
 npm run reign -- --dry-run --seed 12
 ```
 
-`npm run bench` corre el banco sin navegador, guarda la corrida en `bench-results/` (se importa en el historial) y Ctrl+C cancela guardando lo que alcanzó. `npm run reign` es el **duelo de gobernantes**: varias Baronesas gobiernan el mismo año con la misma semilla y el mismo calendario del destino, junto al trono vacío y las reglas como referencia, y al final muestra quién terminó el año, vecinos, asaltos, confianza, mentiras, fallos de formato, costo, un puntaje y las cartas que escribieron.
+`npm run bench` corre el banco sin navegador, guarda la corrida en `bench-results/` (se importa en el historial) y Ctrl+C cancela guardando lo que alcanzó. `npm run reign` es el **duelo de gobernantes**: varias Baronesas gobiernan el mismo año con la misma semilla, la misma dificultad y el mismo calendario del destino, junto al trono vacío y las reglas como referencia, y al final muestra quién terminó el año, vecinos, asaltos, confianza, mentiras, fallos de formato, costo, un puntaje y las cartas que escribieron.
 
 ## Atajos
 

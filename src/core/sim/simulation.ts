@@ -4,7 +4,7 @@ import { createRng, type Rng } from '../world/rng'
 import type { Point } from '../world/types'
 import { createWorld, isWalkable, type World } from '../world/world'
 import { routineNow, staysIn } from './rhythm'
-import { catchUp, startEconomy, type Economy, type Ledger } from '../economy/economy'
+import { catchUp, startEconomy, type Economy, type EconomyRules, type Ledger } from '../economy/economy'
 import type { Season } from './season'
 import type { Weather } from './weather'
 
@@ -61,6 +61,8 @@ export class Simulation {
   season: Season = 'summer'
   /** The town's purse, granary and people's needs; null for worlds without an economy. */
   economy: Economy | null
+  /** The rules the economy runs by: the world's own, or made harder for this game. */
+  economyRules: EconomyRules | null
   /** Graves dug for residents who died, so a reset can clear them. */
   graves: Point[] = []
   private ledgerListeners = new Set<(l: Ledger) => void>()
@@ -75,7 +77,14 @@ export class Simulation {
     this.world = createWorld(content)
     this.rng = createRng(seed)
     for (const profile of content.residents) this.residents.push(this.spawn(profile))
+    this.economyRules = content.economy ?? null
     this.economy = content.economy ? startEconomy(content.economy, content.residents.map((r) => r.id), this.minutes) : null
+  }
+
+  /** Runs the economy by other rules; `fresh` restarts the purses and granary from them, for a new game. */
+  useEconomyRules(rules: EconomyRules, fresh: boolean) {
+    this.economyRules = rules
+    if (fresh) this.economy = startEconomy(rules, this.content.residents.map((r) => r.id), this.minutes)
   }
 
   /** Respawns everyone in place so renderer sprites keep pointing at the same Resident objects. */
@@ -86,6 +95,7 @@ export class Simulation {
     this.season = 'summer'
     const fresh = this.residents.map((r) => this.spawn(r.profile))
     fresh.forEach((f, i) => Object.assign(this.residents[i], f))
+    this.economyRules = this.content.economy ?? null
     this.economy = this.content.economy ? startEconomy(this.content.economy, this.content.residents.map((r) => r.id), this.minutes) : null
     const cemetery = this.world.places.find((p) => p.id === 'cemetery')
     for (const g of this.graves) {
@@ -124,9 +134,9 @@ export class Simulation {
 
   /** Runs the dawn ledger for any day that has begun, and sends the dead and the departed off the map. */
   private settleDays() {
-    if (!this.economy || !this.content.economy) return
+    if (!this.economy || !this.economyRules) return
     const seasonOf = (day: number) => (this.season = this.seasonAt?.(day) ?? this.season)
-    for (const ledger of catchUp(this.economy, this.content.economy, seasonOf, this.minutes)) {
+    for (const ledger of catchUp(this.economy, this.economyRules, seasonOf, this.minutes)) {
       for (const id of ledger.died) {
         const r = this.get(id)!
         r.mode = 'gone'

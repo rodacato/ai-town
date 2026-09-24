@@ -28,6 +28,7 @@ import { firstName, nameOf } from '../core/lang'
 import type { Outcome } from '../core/reactions/outcome'
 import type { MemoryEntry } from '../core/memory/memory'
 import { Terrarium, type TerrariumHost } from './terrarium'
+import { DIFFICULTY, withDifficulty, type Difficulty } from '../core/realm/difficulty'
 import { Throne, type ThroneHost } from './throne'
 import { roundSummary } from '../core/reactions/round'
 import { clip } from '../core/format'
@@ -78,6 +79,7 @@ class TownController implements TerrariumHost, ThroneHost {
       this.throne.queue = reign?.queued ?? []
       useTown.setState({ chronicle: restored.chronicle.slice(-80), ...(reign ?? {}), ...(reign ? { speed: reign.speed } : {}) })
       useTown.setState({ weather: this.sim.weather, season: this.sim.season })
+      if (this.content.economy) this.sim.useEconomyRules(withDifficulty(this.content.economy, useTown.getState().difficulty), false)
     } else this.freshStart()
     if (useTown.getState().autoplay) this.applyProvider()
     void transportInfo().then(({ envKeys }) => useTown.setState({ envKeys, keysChecked: true }))
@@ -210,7 +212,7 @@ class TownController implements TerrariumHost, ThroneHost {
     this.deciding = null
   }
 
-  reset() {
+  reset(difficulty: Difficulty = 'normal') {
     if (useTown.getState().resetting) return
     useTown.setState({ resetting: true })
     window.setTimeout(() => {
@@ -232,19 +234,21 @@ class TownController implements TerrariumHost, ThroneHost {
       this.renderer?.camera.fit(false)
       this.pendingLog = []
       useTown.setState({ announcement: null, reactions: {}, reasoning: {}, log: [], complete: false, draft: EMPTY_DRAFT, outcome: null, godEvent: null, weather: 'clear', chronicle: [] })
-      this.freshStart()
+      this.freshStart(difficulty)
       this.syncClock()
       window.setTimeout(() => {
         useTown.setState({ resetting: false })
-        useTown.getState().toast('Partida nueva: el pueblo empieza de cero, sin memoria y con el granero lleno.')
+        useTown.getState().toast(`Partida nueva, dificultad ${DIFFICULTY[difficulty].label.toLowerCase()}: el pueblo empieza de cero y sin memoria.`)
       }, 120)
     }, 320)
   }
 
   /** A new game: its own calendar of fate, a season picked at random, Monday morning, at double speed. */
-  private freshStart() {
+  private freshStart(difficulty: Difficulty = 'normal') {
     const seasonStart = Math.floor(Math.random() * 4)
-    useTown.setState({ seed: newSeed(), seasonStart })
+    useTown.setState({ seed: newSeed(), seasonStart, difficulty })
+    if (this.content.economy) this.sim.useEconomyRules(withDifficulty(this.content.economy, difficulty), true)
+    this.syncRealm()
     this.setSeason(SEASONS[seasonStart])
     this.setSpeed(2)
   }

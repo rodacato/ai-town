@@ -11,6 +11,7 @@ import { Bolt, Close } from '../../shared/icons'
 import { Choice } from '../../shared/Choice'
 import { town } from '../../town'
 import { SEASON_ICON } from '../../../theme/seasons'
+import { DIFFICULTY } from '../../../core/realm/difficulty'
 import { NewGame } from '../../shared/NewGame'
 import { GOALS } from '../../../core/realm/standing'
 import { describeEffect } from '../../../core/economy/impact'
@@ -108,7 +109,7 @@ const foretell = (visual: OutcomeVisual, place: string) => {
 
 /** The town running on its own: start or stop it, see what fate has in store, keep the game in a file. */
 function Terrarium() {
-  const { autoplay, seed, fateDone, residentsOnModel, realm, season, standing, llm } = useTown()
+  const { autoplay, seed, fateDone, residentsOnModel, realm, season, standing, llm, difficulty } = useTown()
   const file = useRef<HTMLInputElement>(null)
   const day = realm?.day ?? 0
   const coming = town.terrarium.calendar().filter((f) => f.day > fateDone && f.day >= day).slice(0, 3)
@@ -128,7 +129,7 @@ function Terrarium() {
       <p className="field-hint">
         {standing.end
           ? `Partida terminada: ${standing.end.title}. Reinicia para empezar otra.`
-          : `Día ${day + 1} de ${GOALS.yearDays} · ${SEASON_ICON[season]} ${SEASON_TEXT[season].label} · semilla ${seed}. Las estaciones cambian cada 10 días y el destino golpea en su día.`}
+          : `Día ${day + 1} de ${GOALS.yearDays} · ${SEASON_ICON[season]} ${SEASON_TEXT[season].label} · dificultad ${DIFFICULTY[difficulty].label.toLowerCase()} · semilla ${seed}. Las estaciones cambian cada 10 días y el destino golpea en su día.`}
       </p>
       <label className="check">
         <input type="checkbox" checked={residentsOnModel} disabled={llm.active === 'mock'} onChange={(e) => town.setResidentsOnModel(e.target.checked)} />

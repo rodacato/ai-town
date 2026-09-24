@@ -31,7 +31,7 @@ Lo que puedes hacer (máximo ${MAX_ACTIONS} acciones por día):
 - "impuesto": fijar el impuesto entre 0 y 60 (%). Subirlo llena el tesoro pero enfada al pueblo.
 - "precio_racion": fijar el precio de la ración del granero real entre 0 y 6 monedas.
 - "repartir_comida": dar hoy una ración gratis a quien pasa hambre.
-- "comprar_comida": comprar raciones a mercaderes (3 monedas cada una, máximo 120).
+- "comprar_comida": comprar raciones a mercaderes (al precio que dice el informe, máximo 120).
 - "paga_extra": regalar entre 1 y 10 monedas a cada vecino.
 - "fiesta": 40 monedas y 15 raciones para una fiesta que alegra al pueblo.
 - "ley": activar o quitar "toque_de_queda", "racionamiento" (media ración, el granero dura el doble pero enferma y entristece) o "leva" (dos guardias más, cuestan 6 monedas al día).
@@ -121,7 +121,7 @@ export function rulesRuler(r: RoyalReport): RulerTurn {
   const lean = r.season === 'winter' || r.season === 'autumn'
   if (r.hungry >= 2 && r.granary >= r.hungry) add({ kind: 'decree', decree: { kind: 'handout' } }, `${r.hungry} pasaron hambre ayer, así que abro el granero.`)
   if (r.foodDays < (lean ? 6 : 3)) {
-    const rations = Math.min(120, Math.floor(r.treasury / 3), lean ? 90 : 30)
+    const rations = Math.min(120, Math.floor(r.treasury / r.rationCost), lean ? 90 : 30)
     if (rations >= 10) add({ kind: 'decree', decree: { kind: 'buyFood', rations } }, `El granero da para poco: compro ${rations} raciones.`)
   }
   if (r.foodDays < 2 && !r.laws.rationing) add({ kind: 'decree', decree: { kind: 'law', law: 'rationing', on: true } }, 'Sin comida suficiente, toca racionar.')

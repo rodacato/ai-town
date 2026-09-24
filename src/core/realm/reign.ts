@@ -6,6 +6,7 @@ import type { Season } from '../sim/season'
 import type { WorldContent } from '../world/content'
 import { createRng } from '../world/rng'
 import { Chronicle } from './chronicle'
+import { DIFFICULTY, withDifficulty, type Difficulty } from './difficulty'
 import { nameOf } from '../lang'
 import { seasonOfDay } from './terrarium'
 import { enact } from './decrees'
@@ -31,6 +32,8 @@ export interface ReignOptions {
   seasonLength: number
   /** The season the reign begins in, as an index into SEASONS; spring by default. */
   seasonStart?: number
+  /** Leaner reserves and harvests; the calendar of fate is passed in already made for it. */
+  difficulty?: Difficulty
   fate: FateEvent[]
   rule: (report: RoyalReport) => Promise<RulerTurn>
   goals?: Partial<Goals>
@@ -66,8 +69,11 @@ export interface ReignResult {
 }
 
 
+/** Blows of fate that help the town rather than hurt it. */
+const BOONS: OutcomeVisual[] = ['caravan', 'treasure']
+
 /** A seeded calendar of blows of fate: a fair, repeatable string of trouble and luck for any ruler. */
-export function fateCalendar(seed: number, days: number): FateEvent[] {
+export function fateCalendar(seed: number, days: number, difficulty: Difficulty = 'normal'): FateEvent[] {
   const rng = createRng(seed)
   const pool: [OutcomeVisual, string, string][] = [
     ['thief', 'market', 'Un ladrón asaltó el tesoro.'],
@@ -79,9 +85,13 @@ export function fateCalendar(seed: number, days: number): FateEvent[] {
     ['treasure', 'crypt', 'Encontraron un cofre de oro en la cripta.'],
     ['meteor', 'field', 'Cayó un meteorito en el huerto.'],
   ]
+  const { gap, boons } = DIFFICULTY[difficulty]
+  const good = pool.filter(([v]) => BOONS.includes(v))
+  const bad = pool.filter(([v]) => !BOONS.includes(v))
+  const pick = (list: typeof pool) => list[Math.floor(rng.next() * list.length)]
   const out: FateEvent[] = []
-  for (let d = 2; d < days; d += 2 + Math.floor(rng.next() * 3)) {
-    const [visual, place, text] = pool[Math.floor(rng.next() * pool.length)]
+  for (let d = 2; d < days; d += gap[0] + Math.floor(rng.next() * (gap[1] - gap[0] + 1))) {
+    const [visual, place, text] = boons === null ? pick(pool) : pick(rng.next() < boons ? good : bad)
     out.push({ day: d, hour: 9 + Math.floor(rng.next() * 11), visual, place, text })
   }
   return out
@@ -89,7 +99,7 @@ export function fateCalendar(seed: number, days: number): FateEvent[] {
 
 /** Runs a whole reign without the map: dawns, fate, reports and the ruler's actions. The same for every ruler given the same seed. */
 export async function runReign(o: ReignOptions): Promise<ReignResult> {
-  const rules = o.content.economy!
+  const rules = withDifficulty(o.content.economy!, o.difficulty ?? 'normal')
   const ids = o.content.residents.map((r) => r.id)
   const e = startEconomy(rules, ids, 6 * 60)
   const memory = new TownMemory()

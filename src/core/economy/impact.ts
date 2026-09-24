@@ -61,7 +61,7 @@ export function applyImpact(e: Economy, visual: OutcomeVisual, hours?: number, r
   const lasted = hours ?? Math.round((fx.hours[0] + fx.hours[1]) / 2)
   const span = Math.min(1.8, Math.max(0.5, lasted / ((fx.hours[0] + fx.hours[1]) / 2)))
   const guarded = fx.guardable ? e.laws.levy : null
-  const harm = guarded ? 0.5 : 1
+  const harm = (guarded ? 0.5 : 1) * (e.harm ?? 1)
   const scale = (v: number) => (v < 0 ? v * harm : v) * span
 
   const gold = Math.round(scale((fx.goldShare ?? 0) * Math.max(0, e.treasury) + (fx.gold ?? 0)))
