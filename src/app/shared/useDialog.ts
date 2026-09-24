@@ -9,7 +9,7 @@ export function useDialog<T extends HTMLElement>(onClose: () => void, initialFoc
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') return onClose()
       if (e.key !== 'Tab' || !ref.current) return
-      const focusable = [...ref.current.querySelectorAll<HTMLElement>('button:not([disabled]), input, select, [tabindex]:not([tabindex="-1"])')]
+      const focusable = [...ref.current.querySelectorAll<HTMLElement>('button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])')]
       const first = focusable[0]
       const last = focusable[focusable.length - 1]
       if (e.shiftKey && document.activeElement === first) {

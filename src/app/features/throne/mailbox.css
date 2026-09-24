@@ -1,0 +1,92 @@
+.mailbox {
+  width: min(640px, 100%);
+}
+
+.mailbox-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.mailbox-bar .segmented {
+  flex: 1 1 260px;
+  max-width: 320px;
+}
+
+.mailbox-bar .btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.letters {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.letter {
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md, 12px);
+}
+
+.letter.is-new {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.letter-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.letter-new {
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+.letter-text {
+  margin: 6px 0;
+  white-space: pre-wrap;
+}
+
+.letter-reply {
+  margin: 6px 0;
+  padding-left: 10px;
+  border-left: 3px solid var(--sage);
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.letter-compose {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.letter-compose textarea {
+  resize: vertical;
+}
+
+.letter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+}
+
+.mailbox-empty {
+  padding: 18px 0;
+  text-align: center;
+}

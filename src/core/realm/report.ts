@@ -10,6 +10,12 @@ import { rationCost } from './decrees'
 import { GOALS, guildWord, type GuildWord, type Standing } from './standing'
 import { grievances, type PetitionTopic } from './petitions'
 
+export interface CreatorReply {
+  /** What she asked. */
+  letter: string
+  reply: string
+}
+
 export interface Petition {
   from: string
   text: string
@@ -37,6 +43,8 @@ export interface RoyalReport {
   trust: 'por los suelos' | 'baja' | 'dudosa' | 'buena' | 'muy alta'
   news: string[]
   petitions: Petition[]
+  /** The creator's answers to her letters, arriving for the first time. */
+  replies: CreatorReply[]
   /** What the court hears of the thieves' guild. */
   guild: GuildWord
   unrest: boolean
@@ -67,6 +75,7 @@ export function buildReport(input: {
   standing?: Standing
   /** Petitions already worded, by a model; without them the residents with a grievance use their usual words. */
   petitions?: Petition[]
+  replies?: CreatorReply[]
 }): RoyalReport {
   const { economy: e, content } = input
   const rng = createRng(input.seed * 1000 + input.day)
@@ -98,6 +107,7 @@ export function buildReport(input: {
     trust: trustWord(input.memory.reputation({ kind: 'authority' }).trust),
     news,
     petitions,
+    replies: input.replies ?? [],
     guild: input.standing ? guildWord(input.standing) : 'nada',
     unrest: (input.standing?.unrest ?? 0) > 0,
     daysLeft: Math.max(0, GOALS.yearDays - input.day),
@@ -132,5 +142,6 @@ export function reportText(r: RoyalReport) {
     '',
     '## Peticiones',
     ...(r.petitions.length ? r.petitions.map((p) => `- ${p.from}: «${p.text}»`) : ['- Nadie ha pedido audiencia.']),
+    ...(r.replies.length ? ['', '## Respuestas del creador a tus cartas', ...r.replies.map((x) => `- Le pediste: «${x.letter}» Te responde: «${x.reply}»`)] : []),
   ].join('\n')
 }

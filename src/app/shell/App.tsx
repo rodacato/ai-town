@@ -19,6 +19,7 @@ import { ChronicleModal } from '../features/chronicle/ChronicleModal'
 import { ActivityModal } from '../features/activity/ActivityModal'
 import { KeyGate } from './KeyGate'
 import { ThronePanel } from '../features/throne/ThronePanel'
+import { MailboxModal } from '../features/throne/MailboxModal'
 import './shell.css'
 
 const SettingsModal = lazy(() => import('../features/settings/SettingsModal').then((m) => ({ default: m.SettingsModal })))
@@ -71,6 +72,7 @@ export function App() {
       </div>
       <EndScreen />
       <ChronicleModal />
+      <MailboxModal />
       <ActivityModal />
       <KeyGate />
       <Toasts />

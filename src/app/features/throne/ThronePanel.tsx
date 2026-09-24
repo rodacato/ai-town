@@ -150,6 +150,7 @@ const MODES: [RulerMode, string][] = [
 function BaronessRoom() {
   const { rulerMode, rulerBusy, rulerCalls, rulerCap, rulerCost, lastTurn, mailbox, honesty, llm } = useTown()
   const [report, setReport] = useState(false)
+  const ideas = useTown((s) => s.ideas.length)
   const model = llm.active === 'mock' ? null : `${llm.connections[llm.active].model} (${llm.active})`
   return (
     <div className="throne-room">
@@ -219,14 +220,19 @@ function BaronessRoom() {
                 </li>
               ))}
             </ul>
-            {mailbox.some((l) => !l.seen) && (
-              <button className="btn-link" onClick={() => town.throne.markLettersSeen()}>
-                Marcar como leídas
+            <button className="btn-link" onClick={() => useTown.setState({ mailboxOpen: true })}>
+              Abrir el buzón ({mailbox.length}){mailbox.some((l) => !l.seen) ? ' · hay nuevas' : ''}
+            </button>
+          </>
+        ) : (
+          <>
+            <p className="field-hint">Peticiones de la Baronesa a quien creó este mundo. Nada se aplica solo; puedes contestarle.</p>
+            {ideas > 0 && (
+              <button className="btn-link" onClick={() => useTown.setState({ mailboxOpen: true })}>
+                Ver las {ideas} ideas guardadas
               </button>
             )}
           </>
-        ) : (
-          <p className="field-hint">Peticiones de la Baronesa a quien creó este mundo. Nada se aplica solo.</p>
         )}
       </section>
     </div>
