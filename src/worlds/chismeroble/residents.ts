@@ -75,6 +75,7 @@ export const RESIDENTS: ResidentProfile[] = [
     ],
     home: 'watch',
     routine: { street: 4, bridge: 2, keep: 2, plaza: 2, gate: 1, home: 1 },
+    nightRoutine: { street: 2, gate: 2, keep: 1 },
     look: { skin: SKIN.fair, hair: HAIR.brown, hairStyle: 'short', shirt: 0x8a9aa8, pants: 0x3b4450, accessory: 'helmet', ancestry: 'human' },
   },
   {
@@ -201,6 +202,7 @@ export const RESIDENTS: ResidentProfile[] = [
     ],
     home: 'bard',
     routine: { tavern: 3, plaza: 3, oak: 2, visit: 2, street: 1 },
+    nightRoutine: { tavern: 3, plaza: 1 },
     look: { skin: SKIN.light, hair: HAIR.blond, hairStyle: 'long', shirt: 0x5b8fb9, pants: 0x3c4f6b, accessory: 'lute', ancestry: 'elf' },
   },
   {
@@ -273,6 +275,7 @@ export const RESIDENTS: ResidentProfile[] = [
     ],
     home: 'hunter',
     routine: { forest: 4, bridge: 2, riverbank: 2, tavern: 1, home: 1 },
+    nightRoutine: { forest: 3, home: 1 },
     look: { skin: SKIN.tiefling, hair: HAIR.violet, hairStyle: 'long', shirt: 0x4f5a4a, pants: 0x3b3531, accessory: 'longbow', ancestry: 'tiefling' },
   },
   {
@@ -309,6 +312,7 @@ export const RESIDENTS: ResidentProfile[] = [
     ],
     home: 'peddler',
     routine: { plaza: 4, market: 3, tavern: 2, home: 1 },
+    nightRoutine: { tavern: 2, home: 1 },
     look: { skin: SKIN.tan, hair: HAIR.black, hairStyle: 'curly', shirt: 0x8a4f7a, pants: 0x3f3552, accessory: 'hat', ancestry: 'human' },
   },
   {
@@ -341,6 +345,7 @@ export const RESIDENTS: ResidentProfile[] = [
     relationships: [],
     home: 'tavern',
     routine: { tavern: 4, plaza: 2, market: 2, bridge: 1, gate: 1 },
+    nightRoutine: { tavern: 2, gate: 1 },
     look: { skin: SKIN.brown, hair: HAIR.black, hairStyle: 'long', shirt: 0x4f5a6a, pants: 0x3a3430, accessory: 'bag', ancestry: 'human' },
   },
   {
@@ -359,6 +364,7 @@ export const RESIDENTS: ResidentProfile[] = [
     ],
     home: 'gravedigger',
     routine: { cemetery: 6, temple: 2, tavern: 1, home: 1 },
+    nightRoutine: { cemetery: 3, home: 1 },
     look: { skin: SKIN.light, hair: HAIR.grey, hairStyle: 'bald', shirt: 0x3e3a44, pants: 0x2e2a30, accessory: 'shovel', ancestry: 'human', beard: HAIR.grey },
   },
 ]

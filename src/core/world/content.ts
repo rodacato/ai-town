@@ -62,6 +62,8 @@ export interface ResidentProfile {
   home: string
   /** Weights over place ids, plus the special keys 'home' and 'visit'. */
   routine: Record<string, number>
+  /** Where they go between 22:00 and 6:00; without one they sleep at home. */
+  nightRoutine?: Record<string, number>
   look: Look
 }
 
