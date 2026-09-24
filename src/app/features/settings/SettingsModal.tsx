@@ -100,7 +100,7 @@ function Dialog({ onClose }: { onClose: () => void }) {
   return (
     <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal panel" role="dialog" aria-modal="true" aria-labelledby="settings-title" ref={dialog}>
-        <header className="modal-header">
+        <div className="modal-header">
           <div>
             <h2 id="settings-title">Modelo de decisiones</h2>
             <p>Elige quién piensa por los residentes de {town.content.name}.</p>
@@ -108,7 +108,7 @@ function Dialog({ onClose }: { onClose: () => void }) {
           <button className="icon-btn" onClick={onClose} aria-label="Cerrar">
             <Close />
           </button>
-        </header>
+        </div>
 
         <div className="modal-body">
           {mode && (

@@ -113,7 +113,7 @@ function ActivityLog() {
   return (
     <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && close()}>
       <div className="modal panel activity" role="dialog" aria-modal="true" aria-labelledby="activity-title" ref={dialog}>
-        <header className="modal-header">
+        <div className="modal-header">
           <div>
             <h2 id="activity-title">Bitácora</h2>
             <p>Lo que va pasando en el terrario y cada decisión: quién la tomó, cuánto tardó y cuánto costó.</p>
@@ -121,7 +121,7 @@ function ActivityLog() {
           <button className="icon-btn" onClick={close} aria-label="Cerrar">
             <Close />
           </button>
-        </header>
+        </div>
         <div className="modal-body">
           <Status now={now} />
           <div className="segmented" role="tablist" aria-label="Filtrar" style={{ ['--cols' as string]: FILTERS.length, ['--active' as string]: FILTERS.findIndex(([k]) => k === filter) }}>

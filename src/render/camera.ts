@@ -19,6 +19,8 @@ const MAX_ZOOM = 2.8
 const MAX_FLING = 1200
 const easeInOut = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
 const clampZoom = (s: number) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, s))
+/** Velocity that glides a given distance before the fling decay stops it. */
+const GLIDE = -Math.log(0.002)
 
 export class Camera {
   private targetScale = 1
@@ -87,6 +89,16 @@ export class Camera {
     const p = target()
     this.flyTo({ scale, x: screen.x - p.x * scale, y: screen.y - p.y * scale }, 0.8)
     this.following = target
+  }
+
+  /** Moves the map by a distance on screen, gliding, as a keyboard nudge does. */
+  panBy(dx: number, dy: number) {
+    this.touched = true
+    this.following = null
+    this.flight = null
+    this.anchor = null
+    if (this.instant) this.view.position.set(this.view.x + dx, this.view.y + dy)
+    else this.velocity = { x: dx * GLIDE, y: dy * GLIDE }
   }
 
   unfollow() {

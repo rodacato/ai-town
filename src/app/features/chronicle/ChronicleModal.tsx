@@ -62,7 +62,7 @@ function Chronicle() {
   return (
     <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && close()}>
       <div className="modal panel chronicle" role="dialog" aria-modal="true" aria-labelledby="chronicle-title" ref={dialog}>
-        <header className="modal-header">
+        <div className="modal-header">
           <div>
             <h2 id="chronicle-title">Crónica de {town.content.name}</h2>
             <p>
@@ -72,7 +72,7 @@ function Chronicle() {
           <button className="icon-btn" onClick={close} aria-label="Cerrar">
             <Close />
           </button>
-        </header>
+        </div>
         <div className="modal-body">
           <div className="sparks">
             {SERIES.map((s) => (

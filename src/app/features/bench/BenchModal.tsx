@@ -55,7 +55,7 @@ function Dialog() {
   return (
     <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && close()}>
       <div className="modal panel bench-modal" role="dialog" aria-modal="true" aria-labelledby="bench-title" ref={ref}>
-        <header className="modal-header">
+        <div className="modal-header">
           <div>
             <h2 id="bench-title">Banco de pruebas</h2>
             <p>Los mismos pregones, a los mismos residentes, con varios modelos. Compara decisiones, formato, velocidad y costo.</p>
@@ -63,7 +63,7 @@ function Dialog() {
           <button className="icon-btn" onClick={close} aria-label="Cerrar">
             <Close />
           </button>
-        </header>
+        </div>
         <nav className="bench-tabs" aria-label="Secciones">
           {tabs.map(([id, label]) => (
             <button key={id} className={view === id ? 'is-active' : ''} aria-current={view === id ? 'page' : undefined} onClick={() => setView(id)}>

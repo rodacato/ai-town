@@ -19,7 +19,7 @@ function Gate() {
   return (
     <div className="modal-backdrop">
       <div className="modal panel key-gate" role="dialog" aria-modal="true" aria-labelledby="key-gate-title" ref={dialog}>
-        <header className="modal-header">
+        <div className="modal-header">
           <div>
             <h2 id="key-gate-title">{vaultLocked ? 'Tus keys están guardadas' : `Falta tu key de ${label}`}</h2>
             <p>
@@ -28,7 +28,7 @@ function Gate() {
                 : 'Una key que no guardas cifrada vive solo en la pestaña y se pierde al recargar. Sin ella, el modelo no puede responder.'}
             </p>
           </div>
-        </header>
+        </div>
         <div className="modal-body">
           {vaultLocked ? (
             <VaultUnlock onUnlocked={dismiss} autoFocus />
