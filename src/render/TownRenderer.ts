@@ -25,7 +25,7 @@ export interface RendererEvents {
 
 export interface RendererOptions {
   /** Space covered by floating UI panels, so the camera centers on the visible part of the map. */
-  insets: () => { right: number; bottom: number }
+  insets: () => { right: number; bottom: number; top?: number }
 }
 
 export class TownRenderer {

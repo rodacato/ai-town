@@ -38,7 +38,7 @@ export class Camera {
     private view: Container,
     private el: HTMLElement,
     private bounds: Rect,
-    private viewport: () => { w: number; h: number; right: number; bottom: number },
+    private viewport: () => { w: number; h: number; right: number; bottom: number; top?: number },
   ) {
     this.on('pointerdown', (e) => this.pointerDown(e as PointerEvent))
     this.on('pointermove', (e) => this.pointerMove(e as PointerEvent))
@@ -63,9 +63,8 @@ export class Camera {
 
   fit(animate = true) {
     this.touched = false
-    const { w, h, right, bottom } = this.viewport()
-    const pad = 40
-    const top = 76
+    const { w, h, right, bottom, top = 76 } = this.viewport()
+    const pad = Math.min(40, w * 0.04)
     const scale = clampZoom(Math.min((w - right - pad * 2) / this.bounds.w, (h - top - bottom - pad) / this.bounds.h) * 1.1)
     const cx = this.bounds.x + this.bounds.w / 2
     const cy = this.bounds.y + this.bounds.h / 2
@@ -162,8 +161,8 @@ export class Camera {
   }
 
   private focusPoint() {
-    const { w, h, right, bottom } = this.viewport()
-    return { x: (w - right) / 2, y: 76 + (h - 76 - bottom) / 2 }
+    const { w, h, right, bottom, top = 76 } = this.viewport()
+    return { x: (w - right) / 2, y: top + (h - top - bottom) / 2 }
   }
 
   private toWorld(p: { x: number; y: number }) {
