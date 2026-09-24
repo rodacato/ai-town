@@ -1,4 +1,5 @@
 import type { DecisionContext } from '../../core/decisions/types'
+import { bondLines } from '../../core/memory/recall'
 import { SCALES } from '../../core/world/content'
 import { levelOf, SCALE_LABEL } from '../../core/world/personality'
 
@@ -76,20 +77,27 @@ export function buildPromptParts(ctx: DecisionContext): { shared: string; own: s
     ...needsLines(ctx),
   ]
   const m = ctx.memory
-  if (m && (m.record || m.personal || m.recent.length)) {
+  const bonds = m ? bondLines(m) : []
+  if (m && (m.record || m.personal || m.recent.length || bonds.length)) {
     own.push('', '## Lo que recuerdas')
     if (m.record) own.push(`- ${m.record}`)
     if (m.personal) own.push(`- ${m.personal}`)
+    for (const line of bonds) own.push(`- ${line}`)
     if (m.recent.length) own.push(`- Lo último que pasó en el pueblo: ${m.recent.join('; ')}.`)
   }
   if (ctx.rumors.length) {
     own.push('', '## Lo que te han contado después')
-    for (const rumor of ctx.rumors) own.push(`- ${rumor.fromName}${rumor.relation ? ` (${rumor.relation})` : ''} vino a decirte: «${rumor.message}»`)
+    for (const rumor of ctx.rumors) own.push(`- ${rumor.fromName}${rumor.relation ? ` (${rumor.relation})` : ''} vino a decirte: «${rumor.message}»${tellerHistory(rumor)}`)
   }
   if (ctx.previous) {
     own.push('', '## Tu decisión anterior', `Habías decidido "${ctx.previous.action}" y dijiste: «${ctx.previous.speech}». Puedes mantenerla o cambiarla.`)
   }
   return { shared: shared.join('\n'), own: own.join('\n') }
+}
+
+function tellerHistory(r: DecisionContext['rumors'][number]) {
+  const parts = [...(r.misled ? [`ya te pasó ${r.misled === 1 ? 'una mentira' : `${r.misled} mentiras`}`] : []), ...(r.warned ? [`te avisó bien ${r.warned === 1 ? 'una vez' : `${r.warned} veces`}`] : [])]
+  return parts.length ? ` (${parts.join(' y ')})` : ''
 }
 
 export function buildPrompt(ctx: DecisionContext) {

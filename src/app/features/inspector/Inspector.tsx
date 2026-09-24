@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useTown } from '../../store'
 import { Avatar } from '../../shared/Avatar'
 import { NeedsCard } from './NeedsCard'
+import { MemoryCard } from './MemoryCard'
 import { PersonalityCard } from './PersonalityCard'
 import { ReactionDetail } from './ReactionDetail'
 import { Brain, Close } from '../../shared/icons'
@@ -64,6 +65,8 @@ export function Inspector({ id }: { id: string }) {
       <NeedsCard id={id} />
 
       <PersonalityCard personality={profile.personality} name={firstName(profile.name)} />
+
+      <MemoryCard id={id} />
 
       <section>
         <h3 className="section-label">Relaciones</h3>

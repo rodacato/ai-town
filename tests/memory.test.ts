@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { buildScenario } from '../src/core/bench/scenarios'
 import { TownMemory, type MemoryEntry } from '../src/core/memory/memory'
-import { recallFor } from '../src/core/memory/recall'
+import { bondLines, recallFor } from '../src/core/memory/recall'
 import { buildContext } from '../src/core/reactions/context'
 import { Simulation } from '../src/core/sim/simulation'
 import { buildPrompt } from '../src/providers/llm/prompt'
@@ -78,5 +78,67 @@ describe('town memory', () => {
     const m = new TownMemory([lie('old', 0)])
     m.record(lie('new', 40 * 1440))
     expect(m.entries.map((e) => e.id)).toEqual(['new'])
+  })
+})
+
+describe('personal memory', () => {
+  const sim = new Simulation(content)
+  const heard = (id: string, truth: boolean, from: string, to: string, believers = [to]): MemoryEntry => ({ ...lie(id, 0, believers), truth, told: [{ from, to }] })
+
+  it('holds a grudge against whoever passed on a lie it believed, and owes whoever warned it rightly', () => {
+    const m = new TownMemory([heard('a', false, 'kael', 'pip'), heard('b', false, 'kael', 'pip'), heard('c', true, 'finn', 'pip'), heard('d', false, 'mara', 'pip', [])])
+    expect(m.bondsOf('pip').get('kael')).toEqual({ misled: 2, warned: 0 })
+    expect(m.bondsOf('pip').get('finn')).toEqual({ misled: 0, warned: 1 })
+    expect(m.bondsOf('pip').has('mara')).toBe(false)
+    expect(m.bondsOf('kael').size).toBe(0)
+  })
+
+  it('counts who fooled each resident with announcements', () => {
+    const m = new TownMemory([lie('a', 0, ['pip']), lie('b', 10, ['pip', 'kael']), { ...lie('c', 20, ['pip']), speaker: { kind: 'stranger' } }])
+    expect(m.fooled({ kind: 'authority' }, 'pip')).toBe(2)
+    expect(m.foolers('pip').map((f) => [f.speaker.kind, f.times])).toEqual([['authority', 2], ['stranger', 1]])
+    expect(m.foolers('finn')).toEqual([])
+  })
+
+  it('puts grudges and debts into the prompt and marks the rumors of known tellers', () => {
+    const m = new TownMemory([heard('a', false, 'kael', 'pip'), heard('b', true, 'finn', 'pip')])
+    const a = { ...announce(sim, exampleByTone('confiable')), minutes: 3000 }
+    const pip = sim.residents.find((x) => x.profile.id === 'pip')!
+    const recall = recallFor(m, a, 'pip', 'La Baronesa', (id) => id.toUpperCase())
+    expect(recall.grudges).toEqual([{ id: 'kael', name: 'KAEL', times: 1 }])
+    expect(recall.debts).toEqual([{ id: 'finn', name: 'FINN', times: 1 }])
+    expect(bondLines(recall)).toHaveLength(2)
+    const rumor = { fromId: 'kael', fromName: 'Kael', relation: null, message: '¡Corre!' }
+    const prompt = buildPrompt(buildContext(sim, a, pip, [rumor], null, m))
+    expect(prompt).toContain('Te pasaron mentiras que te creíste')
+    expect(prompt).toContain('se lo debes')
+    expect(prompt).toContain('«¡Corre!» (ya te pasó una mentira)')
+  })
+
+  it('makes a resident trust a rumor less from someone who lied to them before', () => {
+    const a = announce(sim, exampleByTone('urgente'))
+    const tellers = sim.residents.map((r) => r.profile.relationships[0]?.id ?? 'kael')
+    const believing = (grudge: boolean) =>
+      sim.residents.filter((r, i) => {
+        const from = tellers[i]
+        const m = new TownMemory(grudge ? [{ ...heard('x', false, from, r.profile.id), speaker: { kind: 'sight' } }] : [])
+        const rumor = { fromId: from, fromName: from, relation: null, message: '¡Es cierto, vamos!' }
+        return mockDecision(buildContext(sim, a, r, [rumor], null, m), content.vocabulary).believes
+      }).length
+    expect(believing(true)).toBeLessThan(believing(false))
+  })
+
+  it('warns first whoever warned it before', () => {
+    const danger = announce(sim, exampleByTone('emergencia'))
+    const warners = sim.residents.filter((r) => mockDecision(buildContext(sim, danger, r, [], null, new TownMemory()), content.vocabulary).action === 'warn')
+    expect(warners.length).toBeGreaterThan(0)
+    for (const r of warners) {
+      const stranger = content.residents.find((x) => x.id !== r.profile.id && !r.profile.relationships.some((rel) => rel.id === x.id))!
+      const m = new TownMemory([{ ...heard('x', true, stranger.id, r.profile.id), speaker: { kind: 'sight' } }])
+      const d = mockDecision(buildContext(sim, danger, r, [], null, m), content.vocabulary)
+      expect(d.action).toBe('warn')
+      expect(d.tell[0]).toBe(stranger.id)
+      expect(d.reasoning).toContain('Le debo a')
+    }
   })
 })
