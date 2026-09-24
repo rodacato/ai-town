@@ -2,11 +2,13 @@ import type { Speaker } from '../../core/reactions/announcement'
 import { useTown } from '../store'
 import { town } from '../town'
 
-/** How much the town believes a speaker, from what it remembers of their past announcements. */
+/** How much the town believes a speaker, from their past announcements and, for the Baroness, how her guard did. */
 export function TrustMeter({ speaker, label = 'Confianza del pueblo' }: { speaker: Speaker; label?: string }) {
   useTown((s) => s.memoryEntries)
   const rep = town.memory.reputation(speaker)
-  const judged = rep.truths + rep.lies
+  const judged = rep.truths + rep.lies + rep.good + rep.bad
+  const said = `${rep.truths} ${rep.truths === 1 ? 'verdad' : 'verdades'} · ${rep.lies} ${rep.lies === 1 ? 'mentira' : 'mentiras'}`
+  const deeds = rep.good + rep.bad ? ` · guardia: ${rep.good} bien, ${rep.bad} mal` : ''
   const pct = Math.round(rep.trust * 100)
   const tone = !judged ? 'is-new' : rep.trust >= 0.6 ? 'is-high' : rep.trust < 0.4 ? 'is-low' : ''
   return (
@@ -17,7 +19,7 @@ export function TrustMeter({ speaker, label = 'Confianza del pueblo' }: { speake
       </span>
       <span className="mono trust-value">{judged ? `${pct}%` : '—'}</span>
       <span className="trust-detail">
-        {judged ? `${rep.truths} ${rep.truths === 1 ? 'verdad' : 'verdades'} · ${rep.lies} ${rep.lies === 1 ? 'mentira' : 'mentiras'}` : 'Sin historial todavía'}
+        {judged ? said + deeds : 'Sin historial todavía'}
       </span>
     </div>
   )

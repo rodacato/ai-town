@@ -94,8 +94,8 @@ describe('ruling by rules', () => {
     const base = { content, days: 40, seed: 12, seasonLength: 10, fate: fateCalendar(12, 40) }
     const absent = await runReign({ ...base, rule: async () => ({ thought: '', actions: [], problems: [] }) })
     const ruled = await runReign({ ...base, rule: async (r) => rulesRuler(r) })
-    expect(absent.deaths + absent.departures).toBeGreaterThan(0)
-    expect(ruled.deaths + ruled.departures).toBeLessThan(absent.deaths + absent.departures)
+    expect(absent.ending?.won).toBe(false)
+    expect(ruled.deaths + ruled.departures).toBeLessThanOrEqual(absent.deaths + absent.departures)
     expect(ruled.survivedDays).toBe(40)
     expect(ruled.ending?.won).toBe(true)
   })

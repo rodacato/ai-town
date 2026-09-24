@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { catchUp, runDay, startEconomy } from '../src/core/economy/economy'
-import { applyImpact } from '../src/core/economy/impact'
+import { applyImpact, guardDeed, rollHours } from '../src/core/economy/impact'
+import { TownMemory } from '../src/core/memory/memory'
 import { ReactionEngine } from '../src/core/reactions/engine'
 import { DecisionScheduler } from '../src/core/decisions/scheduler'
 import { Simulation } from '../src/core/sim/simulation'
@@ -53,13 +54,56 @@ describe('economy', () => {
   it('lets real events hit the granary and the treasury', () => {
     const e = startEconomy(rules, ids, 0)
     const g = e.granary
-    expect(applyImpact(e, 'flood')).toMatch(/crecida/)
+    expect(applyImpact(e, 'flood', 5).text).toMatch(/crecida.*\(5 h\)/)
     expect(e.granary).toBe(g - Math.round(g * 0.3))
     const t = e.treasury
     applyImpact(e, 'thief')
     expect(e.treasury).toBeLessThan(t)
-    applyImpact(e, 'caravan')
-    expect(e.granary).toBe(g - Math.round(g * 0.3) + 25)
+    const before = e.granary
+    applyImpact(e, 'caravan', 5.5)
+    expect(e.granary).toBe(before + 25)
+  })
+
+  it('charges a long event more than a short one, and a feast costs food', () => {
+    const short = startEconomy(rules, ids, 0)
+    const long = startEconomy(rules, ids, 0)
+    applyImpact(short, 'blaze', 1, () => 0)
+    applyImpact(long, 'blaze', 5, () => 0)
+    expect(long.treasury).toBeLessThan(short.treasury)
+    expect(long.granary).toBeLessThan(short.granary)
+    const fed = startEconomy(rules, ids, 0)
+    fed.needs[ids[0]].daysHungry = 2
+    const g = fed.granary
+    expect(applyImpact(fed, 'feast', 3.5).food).toBe(-15)
+    expect(fed.granary).toBe(g - 15)
+    expect(fed.needs[ids[0]].daysHungry).toBe(0)
+  })
+
+  it('lets the guard halve the harm and earn trust, or fail and lose it', () => {
+    const open = startEconomy(rules, ids, 0)
+    const guarded = startEconomy(rules, ids, 0)
+    guarded.laws.levy = true
+    const a = applyImpact(open, 'fire', 2.5, () => 0)
+    const b = applyImpact(guarded, 'fire', 2.5, () => 0)
+    expect(b.gold).toBeGreaterThan(a.gold)
+    expect(a.hurt).toHaveLength(1)
+    expect(b.hurt).toHaveLength(0)
+    const memory = new TownMemory()
+    memory.record(guardDeed(a, 'fire', 10)!)
+    expect(memory.reputation({ kind: 'authority' })).toMatchObject({ bad: 1, lies: 0 })
+    memory.record(guardDeed(b, 'fire', 20)!)
+    memory.record(guardDeed(applyImpact(guarded, 'thief'), 'thief', 30)!)
+    expect(memory.reputation({ kind: 'authority' }).trust).toBeGreaterThan(0.5)
+    expect(guardDeed(applyImpact(open, 'caravan'), 'caravan', 40)).toBeNull()
+  })
+
+  it('rolls a duration within each event\'s range', () => {
+    for (let i = 0; i < 20; i++) {
+      const h = rollHours('flood')
+      expect(h).toBeGreaterThanOrEqual(2)
+      expect(h).toBeLessThanOrEqual(8)
+    }
+    expect(rollHours('treasure')).toBe(1)
   })
 
   it('runs each dawn once, even after a long jump', () => {

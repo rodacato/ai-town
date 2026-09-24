@@ -12,6 +12,7 @@ import { Choice } from '../../shared/Choice'
 import { town } from '../../town'
 import { NewGame } from '../../shared/NewGame'
 import { GOALS } from '../../../core/realm/standing'
+import { describeEffect } from '../../../core/economy/impact'
 import './god.css'
 
 type Tab = 'terrarium' | 'world' | 'events' | 'town' | 'memory'
@@ -221,6 +222,8 @@ function World() {
 
 function Events() {
   const godEvent = useTown((s) => s.godEvent)
+  const running = useTown((s) => s.events)
+  const minutes = useTown((s) => s.minutes)
   const [place, setPlace] = useState('auto')
   const places = town.sim.world.places.filter((p) => p.keywords.length && p.spots.length)
   return (
@@ -238,7 +241,7 @@ function Events() {
       </label>
       <div className="god-grid three">
         {EVENTS.map((e) => (
-          <button key={e.visual} className="btn-secondary compact" onClick={() => town.unleash(e.visual, place === 'auto' ? e.place : place)}>
+          <button key={e.visual} className="btn-secondary compact" onClick={() => town.unleash(e.visual, place === 'auto' ? e.place : place)} title={describeEffect(e.visual)}>
             <span aria-hidden>{e.icon}</span> {e.label}
           </button>
         ))}
@@ -246,7 +249,19 @@ function Events() {
       <button className="btn-primary compact" onClick={() => town.unleashRandom()}>
         🎲 Algo inesperado
       </button>
-      <p className="field-hint">Quien lo ve decide qué hacer y puede correr la voz. De noche, lo inesperado suele ser más tenebroso.</p>
+      <p className="field-hint">Quien lo ve decide qué hacer y puede correr la voz. Cada evento dura un rato al azar y su costo o beneficio llega al terminar: cuanto más dura, más pesa. Pasa el ratón por un botón para ver qué cuesta.</p>
+      {running.length > 0 && (
+        <div className="field">
+          <span className="field-label">En curso</span>
+          <ul className="god-fate">
+            {running.map((x) => (
+              <li key={x.activity}>
+                {x.summary.replace(/\.$/, '')} <span className="mono">· termina en {Math.max(0, Math.ceil((x.until - minutes) / 60))} h</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       {godEvent && (
         <button className="btn-link" onClick={() => town.clearEvent()}>
           Quitar «{godEvent.summary.replace(/\.$/, '')}»
