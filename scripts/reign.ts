@@ -11,12 +11,12 @@ import { activeWorld } from '../src/worlds'
 import { usd } from '../src/core/format'
 import { bold, connectionForSpec, PRICE_RE, dim, fail, green, nodeStream, red, tty } from './cli'
 
-const HELP = `Duelo de gobernantes: varias Baronesas gobiernan el mismo año, con la misma semilla y el mismo calendario del destino.
+const HELP = `Duelo de gobernantes: varios gobernantes llevan el mismo año, con la misma semilla y el mismo calendario del destino.
 
 Uso: npm run reign -- [opciones]
 
-  -m, --model <proveedor:modelo[@host]>  Una Baronesa con modelo; repítelo para enfrentar varias.
-      --skip-rules                       Sin la Baronesa de reglas.
+  -m, --model <proveedor:modelo[@host]>  Un gobernante con modelo; repítelo para enfrentar varios.
+      --skip-rules                       Sin el gobernante de reglas.
       --skip-absent                      Sin el trono vacío (nadie gobierna).
       --seed <n>                         Semilla del calendario del destino (por defecto 7).
       --dificultad <normal|dura|cruel>   Golpes del destino, reservas y cosecha (por defecto normal).
@@ -28,7 +28,7 @@ Uso: npm run reign -- [opciones]
       --dry-run                          Muestra el plan y el calendario sin hacer peticiones.
   -h, --help
 
-Cada Baronesa con modelo hace una consulta por día. Hosts y keys salen de .env / .env.local, como en npm run bench.`
+Cada gobernante con modelo hace una consulta por día. Hosts y keys salen de .env / .env.local, como en npm run bench.`
 
 const { values: args } = parseArgs({
   options: {
@@ -72,7 +72,7 @@ if (!args['skip-rules']) contenders.push(rulesDuelist)
 for (const spec of args.model) {
   const connection = connectionForSpec(spec, { price })
   if (contenders.some((c) => c.id === spec)) fail(`«${spec}» está repetido.`)
-  const ruler = createModelRuler(connection, nodeStream)
+  const ruler = createModelRuler(connection, content, nodeStream)
   contenders.push({ id: spec, label: `${connection.model} (${connection.kind})`, decide: (report, signal) => ruler(report, AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)])) })
 }
 if (contenders.length < 2) fail('Hace falta al menos dos gobernantes. Añade alguno con -m proveedor:modelo.')
@@ -81,7 +81,7 @@ console.log(bold(`Duelo de gobernantes · ${content.name}`))
 console.log(dim(`${days} días · estaciones de ${SEASON_DAYS} días · semilla ${seed} · dificultad ${DIFFICULTY[difficulty].label.toLowerCase()} · ${fate.length} golpes del destino`))
 for (const c of contenders) console.log(`  ${c.label}`)
 const models = contenders.filter((c) => c.id.includes(':'))
-if (models.length) console.log(dim(`  ${models.length * days} consultas como máximo (una por día y Baronesa).`))
+if (models.length) console.log(dim(`  ${models.length * days} consultas como máximo (una por día y gobernante).`))
 if (args['dry-run']) {
   console.log(bold('\nCalendario del destino'))
   for (const f of fate) console.log(`  Día ${String(f.day + 1).padStart(2)} · ${String(f.hour).padStart(2, '0')}:00  ${f.text}`)

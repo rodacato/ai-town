@@ -6,6 +6,7 @@ import { useDialog } from '../../shared/useDialog'
 import { town } from '../../town'
 import { download, stamp } from '../experiment/export'
 import { letterKey, lettersMarkdown } from '../../ideas'
+import { RULER } from '../../ruler'
 import './mailbox.css'
 
 type Tab = 'game' | 'ideas'
@@ -27,13 +28,13 @@ function Mailbox() {
   const [tab, setTab] = useState<Tab>(mailbox.length || !ideas.length ? 'game' : 'ideas')
   const dialog = useDialog<HTMLDivElement>(close)
   const letters = tab === 'game' ? [...mailbox].reverse() : [...ideas].reverse()
-  const save = () => download(`cartas-${tab === 'game' ? 'partida' : 'ideas'}-${stamp()}.md`, lettersMarkdown([...letters].reverse(), tab === 'game' ? 'Cartas de la Baronesa en esta partida' : 'Ideas del buzón de la Baronesa'), 'text/markdown')
+  const save = () => download(`cartas-${tab === 'game' ? 'partida' : 'ideas'}-${stamp()}.md`, lettersMarkdown([...letters].reverse(), tab === 'game' ? `Cartas ${RULER.of} en esta partida` : `Ideas del buzón ${RULER.of}`), 'text/markdown')
   return (
     <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && close()}>
       <div className="modal panel mailbox" role="dialog" aria-modal="true" aria-labelledby="mailbox-title" ref={dialog}>
         <div className="modal-header">
           <div>
-            <h2 id="mailbox-title">Buzón de la Baronesa</h2>
+            <h2 id="mailbox-title">Buzón {RULER.of}</h2>
             <p>Lo que le pide a quien creó este mundo. Nada se aplica solo; si le contestas, lo lee en su próximo informe.</p>
           </div>
           <button className="icon-btn" onClick={close} aria-label="Cerrar">
@@ -63,7 +64,7 @@ function Mailbox() {
             </ul>
           ) : (
             <p className="field-hint mailbox-empty">
-              {tab === 'game' ? 'La Baronesa aún no ha escrito. Escribe cuando gobierna con un modelo y echa algo en falta.' : 'Marca como idea las cartas que valga la pena guardar: siguen aquí aunque empieces otra partida.'}
+              {tab === 'game' ? `${RULER.Title} aún no ha escrito. Escribe cuando gobierna con un modelo y echa algo en falta.` : 'Marca como idea las cartas que valga la pena guardar: siguen aquí aunque empieces otra partida.'}
             </p>
           )}
         </div>

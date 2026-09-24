@@ -5,7 +5,7 @@ import { DIFFICULTIES, DIFFICULTY } from '../../../core/realm/difficulty'
 import { ranking, type DuelResult, type ReignSummary } from '../../../core/realm/duel'
 import type { DayRecord } from '../../../core/realm/reign'
 import { buildReport, reportText } from '../../../core/realm/report'
-import { RULER_SYSTEM } from '../../../core/realm/ruler'
+import { rulerSystem } from '../../../core/realm/ruler'
 import { usd } from '../../../core/format'
 import { missingKey, PRESETS, type ProviderKind } from '../../../providers/llm/config'
 import { estimateCost, priceInfo, roughTokens } from '../../../providers/llm/pricing'
@@ -14,6 +14,7 @@ import { useTown } from '../../store'
 import { town } from '../../town'
 import { download } from '../experiment/export'
 import { DuelChart, type DuelSeries } from './DuelChart'
+import { RULER } from '../../ruler'
 import { DUEL_DAYS, duelModelId, useDuel, type DuelModel } from './duelStore'
 
 const MODEL_KINDS: Exclude<ProviderKind, 'mock'>[] = ['anthropic', 'openai', 'shellm', 'custom']
@@ -40,7 +41,7 @@ function Setup() {
   const promptTokens = useMemo(() => {
     const e = startEconomy(town.content.economy!, town.content.residents.map((r) => r.id), 6 * 60)
     const report = buildReport({ content: town.content, economy: e, memory: new TownMemory(), chronicle: [], minutes: 6 * 60 + 30, season: 'spring', weather: 'clear', day: 0, seed })
-    return roughTokens(RULER_SYSTEM) + roughTokens(reportText(report))
+    return roughTokens(rulerSystem(town.content)) + roughTokens(reportText(report))
   }, [seed])
   const update = (i: number, patch: Partial<DuelModel>) => set({ models: models.map((m, j) => (j === i ? { ...m, ...patch } : m)) })
   const named = models.filter((m) => m.model.trim())
@@ -80,7 +81,7 @@ function Setup() {
         </label>
         <label className="check">
           <input type="checkbox" checked={rules} onChange={(e) => set({ rules: e.target.checked })} />
-          <span>Reglas (la Baronesa sin modelo)</span>
+          <span>Reglas ({RULER.title} sin modelo)</span>
         </label>
         <ul className="duel-models">
           {models.map((m, i) => (
@@ -103,12 +104,12 @@ function Setup() {
           ))}
         </ul>
         <button className="btn-link small" onClick={() => set({ models: [...models, { kind: llm.active === 'mock' ? 'anthropic' : llm.active, model: llm.active === 'mock' ? llm.connections.anthropic.model : llm.connections[llm.active].model }] })}>
-          + Añadir una Baronesa con modelo
+          + Añadir un modelo que gobierne
         </button>
       </div>
       <footer className="bench-start">
         <p>
-          <b className="mono">{DUEL_DAYS}</b> días, una consulta por día y Baronesa con modelo{named.length ? <>: <b className="mono">{DUEL_DAYS * named.length}</b> consultas</> : ''}.
+          <b className="mono">{DUEL_DAYS}</b> días, una consulta por día y por modelo{named.length ? <>: <b className="mono">{DUEL_DAYS * named.length}</b> consultas</> : ''}.
           {named.length > 0 && <span className="is-warning"> Con tu API key esto cuesta dinero real.</span>}
         </p>
         {problem && <p className="field-error">{problem}</p>}

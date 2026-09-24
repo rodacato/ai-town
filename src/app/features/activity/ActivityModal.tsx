@@ -7,6 +7,7 @@ import type { Activity, ActivityKind } from '../../store/reign'
 import { Close } from '../../shared/icons'
 import { useDialog } from '../../shared/useDialog'
 import { town } from '../../town'
+import { RULER } from '../../ruler'
 import './activity.css'
 
 export function ActivityModal() {
@@ -139,7 +140,7 @@ function ActivityLog() {
               ))}
             </ol>
           ) : (
-            <p className="field-hint">Nada todavía. Deja correr el tiempo, haz un pregón o consulta a la Baronesa.</p>
+            <p className="field-hint">Nada todavía. Deja correr el tiempo, haz un pregón o consulta {RULER.to}.</p>
           )}
         </div>
       </div>

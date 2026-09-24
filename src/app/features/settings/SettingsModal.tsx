@@ -9,6 +9,7 @@ import { Alert, Check, Close, Eye, EyeOff, Refresh } from '../../shared/icons'
 import { NewGame } from '../../shared/NewGame'
 import { VaultUnlock } from '../../shared/VaultUnlock'
 import { useDialog } from '../../shared/useDialog'
+import { chooseWorld, WORLDS } from '../../../worlds'
 import './settings.css'
 
 const KINDS: ProviderKind[] = ['mock', 'anthropic', 'openai', 'shellm', 'custom']
@@ -242,10 +243,11 @@ function Dialog({ onClose }: { onClose: () => void }) {
               El modo simulado decide con reglas: confianza en quien habla, relaciones, rasgos y señales sospechosas del mensaje. Sirve para probar sin gastar nada.
             </div>
           )}
+          <WorldPicker />
           <section className="game-reset">
             <div>
               <span className="field-label">Partida</span>
-              <p className="field-hint">Empieza de cero: pueblo, memoria, crónica, Baronesa y calendario del destino. Tus modelos y keys se quedan.</p>
+              <p className="field-hint">Empieza de cero: pueblo, memoria, crónica, trono y calendario del destino. Tus modelos y keys se quedan.</p>
             </div>
             <NewGame onDone={onClose} />
           </section>
@@ -357,5 +359,40 @@ function PriceFields({ conn, onChange }: { conn: Connection; onChange: (patch: P
           : `Sin precio, el costo sale como «sin precio», no como gratis. Lo que escribas vale solo para ${conn.model || 'este modelo'}.`}
       </span>
     </fieldset>
+  )
+}
+
+/** Switches to another world; each keeps its own game, memory and chronicle, and the switch reloads the page. */
+function WorldPicker() {
+  const [id, setId] = useState(town.content.id)
+  if (WORLDS.length < 2) return null
+  const picked = WORLDS.find((w) => w.content.id === id)!.content
+  return (
+    <section className="game-reset">
+      <div>
+        <span className="field-label">Mundo</span>
+        <p className="field-hint">{picked.tagline} Cada mundo guarda su propia partida.</p>
+      </div>
+      <div className="world-pick">
+        <select className="input" value={id} onChange={(e) => setId(e.target.value)} aria-label="Mundo">
+          {WORLDS.map((w) => (
+            <option key={w.content.id} value={w.content.id}>
+              {w.content.name}
+            </option>
+          ))}
+        </select>
+        <button
+          className="btn-secondary compact"
+          disabled={id === town.content.id}
+          onClick={() => {
+            town.save()
+            chooseWorld(id)
+            location.reload()
+          }}
+        >
+          Ir a {picked.name}
+        </button>
+      </div>
+    </section>
   )
 }

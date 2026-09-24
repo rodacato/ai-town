@@ -36,7 +36,7 @@ describe('difficulty', () => {
     const lossCruel = applyImpact(startEconomy({ ...rules, harm: 1.5 }, ids, 0), 'flood', 5).food
     expect(lossCruel).toBeLessThan(lossNormal)
     e.treasury = 500
-    enact(e, { kind: 'buyFood', rations: 10 })
+    enact(e, { kind: 'buyFood', rations: 10 }, content.realm!)
     expect(e.treasury).toBe(450)
   })
 

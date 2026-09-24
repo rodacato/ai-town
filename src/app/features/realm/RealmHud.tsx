@@ -1,6 +1,7 @@
 import { useTown } from '../../store'
 import { town } from '../../town'
 import { GOALS, guildWord } from '../../../core/realm/standing'
+import { RULER } from '../../ruler'
 import './realm.css'
 
 const pct = (x: number) => `${Math.round(x * 100)}%`
@@ -19,10 +20,10 @@ export function RealmHud() {
   const low = (x: number, bad: number) => (x < bad ? 'is-low' : '')
   return (
     <section className="realm-hud panel" aria-label="Estado del reino">
-      <button className="realm-ruler" onClick={() => useTown.getState().setThroneOpen(true)} data-tip="Quién decide cada amanecer: tú, las reglas o un modelo. Cámbialo en el Trono, pestaña Baronesa IA.">
-        {rulerBusy ? 'La Baronesa piensa…' : `Gobierna: ${rulerMode === 'manual' ? 'tú' : rulerMode === 'rules' || llm.active === 'mock' ? 'reglas' : llm.connections[llm.active].model}`}
+      <button className="realm-ruler" onClick={() => useTown.getState().setThroneOpen(true)} data-tip={`Quién decide cada amanecer: tú, las reglas o un modelo. Cámbialo en el Trono, pestaña ${RULER.short} IA.`}>
+        {rulerBusy ? `${RULER.Title} piensa…` : `Gobierna: ${rulerMode === 'manual' ? 'tú' : rulerMode === 'rules' || llm.active === 'mock' ? 'reglas' : llm.connections[llm.active].model}`}
       </button>
-      <div className={`realm-stat ${low(trust, 0.35)}`} data-tip="Confianza en la Baronesa. Sube cuando sus pregones resultan ciertos y baja con cada mentira descubierta. Si cae mucho, hay revuelta.">
+      <div className={`realm-stat ${low(trust, 0.35)}`} data-tip={`Confianza en ${RULER.title}. Sube cuando sus pregones resultan ciertos y baja con cada mentira descubierta. Si cae mucho, hay revuelta.`}>
         <span aria-hidden>👑</span>
         <b className="mono">{pct(trust)}</b>
       </div>

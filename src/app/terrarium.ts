@@ -126,6 +126,7 @@ export class Terrarium {
       trust: this.host.memory.reputation({ kind: 'authority' }).trust,
       news: this.host.chronicle.entries.slice(-4).map((c) => c.text),
       minutes: this.host.sim.minutes,
+      world: this.host.sim.content,
     })
     const via = this.host.residentsVia()
     const name = firstName(resident.name)

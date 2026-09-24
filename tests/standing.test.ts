@@ -13,7 +13,7 @@ describe('the thieves guild', () => {
     open.treasury = 600
     const s = freshStanding()
     let day = 1
-    while (!s.heists && day < 30) dawnStanding(s, open, 0.5, day++)
+    while (!s.heists && day < 30) dawnStanding(s, open, 0.5, day++, content)
     expect(s.heists).toBe(1)
     expect(open.treasury).toBeLessThan(600)
     expect(guildWord(s)).toBe('nada')
@@ -22,7 +22,7 @@ describe('the thieves guild', () => {
     guarded.treasury = 600
     guarded.laws.levy = true
     const g = freshStanding()
-    for (let d = 1; d < 30; d++) dawnStanding(g, guarded, 0.5, d)
+    for (let d = 1; d < 30; d++) dawnStanding(g, guarded, 0.5, d, content)
     expect(g.heists).toBe(0)
   })
 
@@ -30,7 +30,7 @@ describe('the thieves guild', () => {
     const e = town()
     e.treasury = 600
     const s = { ...freshStanding(), plot: 0.7 }
-    const lines = dawnStanding(s, e, 0.5, 1)
+    const lines = dawnStanding(s, e, 0.5, 1, content)
     expect(guildWord(s)).toBe('inminente')
     expect(lines.join(' ')).toMatch(/encapuchados/)
   })
@@ -39,7 +39,7 @@ describe('the thieves guild', () => {
     const e = town()
     e.purses.bartolo = 100
     const s = freshStanding()
-    dawnStanding(s, e, 0.5, 1)
+    dawnStanding(s, e, 0.5, 1, content)
     expect(s.debt).toBe(87)
     expect(e.purses.bartolo).toBe(97)
   })
@@ -50,25 +50,25 @@ describe('the end of a reign', () => {
     const e = town()
     for (const id of ids) e.needs[id].mood = 0.1
     const s = freshStanding()
-    expect(dawnStanding(s, e, 0.5, 8).join(' ')).toMatch(/murmullos/)
+    expect(dawnStanding(s, e, 0.5, 8, content).join(' ')).toMatch(/murmullos/)
     expect(s.end).toBeNull()
-    dawnStanding(s, e, 0.5, 9)
-    dawnStanding(s, e, 0.5, 10)
+    dawnStanding(s, e, 0.5, 9, content)
+    dawnStanding(s, e, 0.5, 10, content)
     expect(s.end?.title).toBe('Revuelta')
-    expect(dawnStanding(s, e, 0.5, 11)).toEqual([])
+    expect(dawnStanding(s, e, 0.5, 11, content)).toEqual([])
   })
 
   it('ends when half the town is gone', () => {
     const e = town()
     ids.slice(0, 11).forEach((id) => (e.needs[id].status = 'gone'))
     const s = freshStanding()
-    dawnStanding(s, e, 0.5, 3)
+    dawnStanding(s, e, 0.5, 3, content)
     expect(s.end).toMatchObject({ won: false, title: 'Pueblo desierto' })
   })
 
   it('crowns a full, happy year', () => {
     const s = freshStanding()
-    dawnStanding(s, town(), 0.6, 40)
+    dawnStanding(s, town(), 0.6, 40, content)
     expect(s.end).toMatchObject({ won: true, title: 'Año de prosperidad' })
   })
 

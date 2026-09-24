@@ -1,5 +1,5 @@
 import type { TokenUsage } from '../core/decisions/types'
-import { MUSING_SYSTEM, musingPrompt, parseMusing, rulesMusing, type Musing, type MusingInput } from '../core/realm/musing'
+import { musingPrompt, musingSystem, parseMusing, rulesMusing, type Musing, type MusingInput } from '../core/realm/musing'
 import { streamChat, type ChatStream } from './llm/client'
 import type { Connection } from './llm/config'
 import { firstName } from '../core/lang'
@@ -17,7 +17,7 @@ export async function modelMusing(connection: Connection, input: MusingInput, si
   const t0 = performance.now()
   let text = ''
   let usage: TokenUsage | undefined
-  for await (const e of stream(connection, MUSING_SYSTEM, musingPrompt(input), signal, { tag: firstName(input.resident.name), timeoutMs: 60_000, maxTokens: 600 })) {
+  for await (const e of stream(connection, musingSystem(input.world.name), musingPrompt(input), signal, { tag: firstName(input.resident.name), timeoutMs: 60_000, maxTokens: 600 })) {
     if (e.type === 'delta') text += e.text
     else usage = withCost(connection, e.usage)
   }

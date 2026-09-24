@@ -50,7 +50,7 @@ function Dialog() {
     ...(current ? [['result', 'Resultado'] as [typeof view, string]] : []),
     ['history', `Historial${runs.length ? ` (${runs.length})` : ''}`],
     ...(runs.length ? [['compare', 'Comparar'] as [typeof view, string]] : []),
-    ['duel', duelRunning ? 'Duelo…' : 'Duelo de Baronesas'],
+    ['duel', duelRunning ? 'Duelo…' : 'Duelo de gobernantes'],
   ]
   return (
     <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && close()}>

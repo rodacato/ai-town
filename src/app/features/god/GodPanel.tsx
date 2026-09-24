@@ -15,6 +15,7 @@ import { DIFFICULTY } from '../../../core/realm/difficulty'
 import { NewGame } from '../../shared/NewGame'
 import { GOALS } from '../../../core/realm/standing'
 import { describeEffect } from '../../../core/economy/impact'
+import { RULER } from '../../ruler'
 import './god.css'
 
 type Tab = 'terrarium' | 'world' | 'events' | 'town' | 'memory'
@@ -275,7 +276,7 @@ function TownActions() {
           🗡️ Azuzar al gremio de ladrones
         </button>
       </div>
-      <p className="field-hint">El pregón sorpresa usa un ejemplo al azar y deja al azar si es verdad. El gremio azuzado asalta el castillo al próximo amanecer; la leva de guardias reduce el botín.</p>
+      <p className="field-hint">El pregón sorpresa usa un ejemplo al azar y deja al azar si es verdad. El gremio azuzado asalta {RULER.seat} al próximo amanecer; la leva de guardias reduce el botín.</p>
     </>
   )
 }

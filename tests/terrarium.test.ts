@@ -71,7 +71,7 @@ describe('a resident thinking out loud', () => {
     const { startEconomy } = await import('../src/core/economy/economy')
     const e = startEconomy(content.economy!, content.residents.map((r) => r.id), 6 * 60)
     const resident = content.residents[0]
-    return { resident, needs: e.needs[resident.id], coins: 10, foodPrice: 2, taxRate: 0.2, laws: [], trust: 0.5, news: ['Llegó una caravana.'], hour: 11 }
+    return { resident, needs: e.needs[resident.id], coins: 10, foodPrice: 2, taxRate: 0.2, laws: [], trust: 0.5, news: ['Llegó una caravana.'], hour: 11, world: { name: content.name, ruler: 'la Baronesa', address: 'mi señora' } }
   }
 
   it('reads a model answer and keeps it within bounds', async () => {

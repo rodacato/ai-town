@@ -10,6 +10,7 @@ import { TrustMeter } from '../../shared/TrustMeter'
 import { town } from '../../town'
 import '../god/god.css'
 import { seconds, usd } from '../../../core/format'
+import { RULER } from '../../ruler'
 import './throne.css'
 
 const TAXES = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
@@ -41,13 +42,13 @@ function Drawer() {
   }, [setOpen])
   const tabs: [Tab, string][] = [
     ['govern', 'Gobernar'],
-    ['baroness', `Baronesa IA${unread ? ' •' : ''}`],
+    ['baroness', `${RULER.short} IA${unread ? ' •' : ''}`],
   ]
   return (
     <aside className="god-panel panel throne" ref={ref} aria-label="Trono">
       <header className="god-head">
         <h2>
-          <span aria-hidden>👑</span> Trono de la Baronesa
+          <span aria-hidden>👑</span> Trono {RULER.of}
         </h2>
         <button className="icon-btn" onClick={() => setOpen(false)} aria-label="Cerrar el trono">
           <Close />
@@ -66,7 +67,7 @@ function Drawer() {
   )
 }
 
-/** Rule Chismeroble by hand: the same decrees a model will use when it governs. */
+/** Rule the town by hand: the same decrees a model will use when it governs. */
 function Govern() {
   const realm = useTown((s) => s.realm)
   const chronicle = useTown((s) => s.chronicle)
@@ -159,7 +160,7 @@ function BaronessRoom() {
         <Choice label="Quién gobierna" options={MODES.map(([m]) => m)} value={rulerMode} onPick={(m) => town.throne.setRulerMode(m)} render={(m) => MODES.find(([k]) => k === m)![1]} />
         <span className="field-hint">
           {rulerMode === 'manual'
-            ? 'Gobiernas tú desde la pestaña Gobernar. La Baronesa solo actúa si se lo pides.'
+            ? `Gobiernas tú desde la pestaña Gobernar. ${RULER.Title} solo actúa si se lo pides.`
             : rulerMode === 'rules'
               ? 'Cada amanecer decide con reglas sencillas, sin gastar nada.'
               : model
@@ -168,7 +169,7 @@ function BaronessRoom() {
         </span>
       </div>
       <button className="btn-secondary compact" onClick={() => void town.throne.reign(true)} disabled={rulerBusy}>
-        {rulerBusy ? 'La Baronesa está pensando…' : '🗝️ Consultar a la Baronesa ahora'}
+        {rulerBusy ? `${RULER.Title} está pensando…` : `🗝️ Consultar ${RULER.to} ahora`}
       </button>
 
       {lastTurn && (
@@ -226,7 +227,7 @@ function BaronessRoom() {
           </>
         ) : (
           <>
-            <p className="field-hint">Peticiones de la Baronesa a quien creó este mundo. Nada se aplica solo; puedes contestarle.</p>
+            <p className="field-hint">Peticiones {RULER.of} a quien creó este mundo. Nada se aplica solo; puedes contestarle.</p>
             {ideas > 0 && (
               <button className="btn-link" onClick={() => useTown.setState({ mailboxOpen: true })}>
                 Ver las {ideas} ideas guardadas

@@ -46,10 +46,10 @@ createServer(async (req, res) => {
     emoji: action === 'go' ? '🏃' : action === 'stay_home' ? '🏠' : action === 'investigate' ? '🔍' : '🤷',
     confidence: Math.round(Math.random() * 100) / 100,
   }
-  // It answers in the shape each caller asks for: a resident, the Baroness, the judge of character or a petitioner.
+  // It answers in the shape each caller asks for: a resident, the ruler, the judge of character or a petitioner.
   const text = system.startsWith('Evalúas personajes')
     ? JSON.stringify({ puntaje: 1 + Math.floor(Math.random() * 5), razon: 'Suena más o menos como el personaje.' })
-    : system.startsWith('Eres la Baronesa')
+    : system.includes(' y gobiernas ')
       ? JSON.stringify({ pensamiento: 'Hoy compro un poco de grano, por si acaso.', acciones: [{ tipo: 'comprar_comida', raciones: 10 }] })
       : system.includes('pedirle algo')
         ? JSON.stringify({ peticion: `Soy ${/^Eres ([^,]+),/m.exec(prompt)?.[1] ?? name}, mi señora, y vengo a pediros ayuda con lo mío.` })
