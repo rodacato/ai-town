@@ -1,4 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { DecisionScheduler } from '../src/core/decisions/scheduler'
+import type { DecisionProvider } from '../src/core/decisions/types'
+import { ReactionEngine } from '../src/core/reactions/engine'
 import { buildContext } from '../src/core/reactions/context'
 import { eventAt, react } from '../src/core/reactions/outcome'
 import { Simulation } from '../src/core/sim/simulation'
@@ -73,5 +76,55 @@ describe('god panel', () => {
     const goingClear = decide('clear').filter((x) => x === 'go').length
     const goingSnow = decide('snow').filter((x) => x === 'go').length
     expect(goingSnow).toBeLessThan(goingClear)
+  })
+})
+
+describe('events people see', () => {
+  const instant: DecisionProvider = {
+    id: 'instant',
+    label: 'instant',
+    async *decide(ctx) {
+      yield { type: 'final', decision: mockDecision(ctx, content.vocabulary) }
+    },
+  }
+
+  async function watch(reach: number, at: { x: number; y: number }) {
+    const sim = new Simulation(content, 5)
+    const engine = new ReactionEngine(sim, new DecisionScheduler(instant, 16))
+    const e = eventAt(content, sim.world.places, 'undead', 'cemetery')
+    engine.start({ id: 'e', text: e.sighting!, speaker: { kind: 'sight' }, place: e.place, minutes: sim.minutes, origin: at, reach })
+    for (let t = 0; t < 40; t += 0.05) {
+      sim.update(0.05)
+      await new Promise((r) => setTimeout(r, 0))
+    }
+    return { sim, engine, e }
+  }
+
+  it('reaches only those close enough to see it, and word of mouth does the rest', async () => {
+    const { sim, engine } = await watch(8, { x: 7, y: 36 })
+    const seen = [...engine.reactions.values()].filter((r) => r.heardVia === 'broadcast')
+    const told = [...engine.reactions.values()].filter((r) => r.heardVia && r.heardVia !== 'broadcast')
+    expect(seen.length).toBeLessThan(sim.residents.length)
+    expect(seen.length + told.length).toBeGreaterThan(0)
+    expect(engine.settled).toBe(true)
+  })
+
+  it('believes its own eyes', async () => {
+    const { engine } = await watch(40, { x: 7, y: 36 })
+    const decided = [...engine.reactions.values()].filter((r) => r.decision)
+    expect(decided.filter((r) => r.decision!.believes).length).toBeGreaterThan(decided.length * 0.8)
+  })
+
+  it('finishes even when nobody is near enough to see it', async () => {
+    const { engine } = await watch(0.1, { x: 0.5, y: 0.5 })
+    expect(engine.settled).toBe(true)
+  })
+
+  it('describes what the witnesses see, never how it ends', () => {
+    const sim = new Simulation(content)
+    const e = eventAt(content, sim.world.places, 'undead', 'cemetery')
+    expect(e.sighting).toMatch(/^¡Esqueletos/)
+    const ctx = buildContext(sim, { id: 'e', text: e.sighting!, speaker: { kind: 'sight' }, place: e.place, minutes: sim.minutes }, sim.residents[0], [], null)
+    expect(buildPrompt(ctx)).toContain('con tus propios ojos')
   })
 })

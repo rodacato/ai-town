@@ -32,6 +32,14 @@ const WEATHER_ICON: Record<Weather, string> = { clear: '☀️', rain: '🌧️'
 const EVENTS: { visual: OutcomeVisual; icon: string; label: string; place: string }[] = [
   { visual: 'fire', icon: '🐉', label: 'Dragón', place: 'forest' },
   { visual: 'monster', icon: '👹', label: 'Bestia', place: 'bridge' },
+  { visual: 'undead', icon: '💀', label: 'Esqueletos', place: 'cemetery' },
+  { visual: 'wolves', icon: '🐺', label: 'Lobos', place: 'forest' },
+  { visual: 'ghost', icon: '👻', label: 'Fantasma', place: 'crypt' },
+  { visual: 'blaze', icon: '🔥', label: 'Incendio', place: 'tavern' },
+  { visual: 'flood', icon: '🌊', label: 'Crecida', place: 'riverbank' },
+  { visual: 'meteor', icon: '☄️', label: 'Meteorito', place: 'field' },
+  { visual: 'thief', icon: '🥷', label: 'Ladrón', place: 'market' },
+  { visual: 'caravan', icon: '🐫', label: 'Caravana', place: 'gate' },
   { visual: 'feast', icon: '🍖', label: 'Festín', place: 'plaza' },
   { visual: 'treasure', icon: '💰', label: 'Tesoro', place: 'crypt' },
 ]
@@ -153,13 +161,17 @@ function Events() {
           ))}
         </select>
       </label>
-      <div className="god-grid">
+      <div className="god-grid three">
         {EVENTS.map((e) => (
           <button key={e.visual} className="btn-secondary compact" onClick={() => town.unleash(e.visual, place === 'auto' ? e.place : place)}>
             <span aria-hidden>{e.icon}</span> {e.label}
           </button>
         ))}
       </div>
+      <button className="btn-primary compact" onClick={() => town.unleashRandom()}>
+        🎲 Algo inesperado
+      </button>
+      <p className="field-hint">Quien lo ve decide qué hacer y puede correr la voz. De noche, lo inesperado suele ser más tenebroso.</p>
       {godEvent && (
         <button className="btn-link" onClick={() => town.clearEvent()}>
           Quitar «{godEvent.summary.replace(/\.$/, '')}»

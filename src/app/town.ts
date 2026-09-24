@@ -2,6 +2,7 @@ import { DecisionScheduler } from '../core/decisions/scheduler'
 import { detectPlace, type Announcement } from '../core/reactions/announcement'
 import { ReactionEngine, type LogEntry, type Reaction } from '../core/reactions/engine'
 import { eventAt, react, type OutcomeVisual } from '../core/reactions/outcome'
+import { isNight } from '../core/sim/rhythm'
 import type { Season } from '../core/sim/season'
 import type { Weather } from '../core/sim/weather'
 import { Simulation } from '../core/sim/simulation'
@@ -18,6 +19,8 @@ export const LAYOUT = { panelWidth: 380, gutter: 24, timelineHeight: 92 }
 const MAP_INSETS = { right: LAYOUT.panelWidth + LAYOUT.gutter + 16, bottom: LAYOUT.timelineHeight + LAYOUT.gutter + 12 }
 const REASONING_FLUSH_MS = 120
 const LOG_LIMIT = 400
+/** Tiles within which people see an event happen with their own eyes. */
+const SIGHT_RADIUS = 10
 
 /** The one place the UI goes through to change the town: it owns the simulation, the engine and the map. */
 class TownController {
@@ -110,10 +113,13 @@ class TownController {
     const text = draft.text.trim()
     if (text.length < 3) return
     const truth = draft.truth === 'random' ? Math.random() < 0.5 : draft.truth === 'true'
-    const announcement: Announcement = { id: crypto.randomUUID(), text, speaker: draft.speaker, place: this.detectPlace(text), minutes: Math.floor(this.sim.minutes), truth }
+    this.begin({ id: crypto.randomUUID(), text, speaker: draft.speaker, place: this.detectPlace(text), minutes: Math.floor(this.sim.minutes), truth })
+  }
+
+  private begin(announcement: Announcement, fit = true) {
     this.renderer?.markPlace(announcement.place)
     this.renderer?.select(null)
-    this.renderer?.camera.fit()
+    if (fit) this.renderer?.camera.fit()
     this.pendingLog = []
     useTown.setState({ announcement, complete: false, reasoning: {}, log: [], startedAt: performance.now(), interacted: true, outcome: null })
     this.engine.start(announcement)
@@ -192,13 +198,49 @@ class TownController {
     useTown.setState({ season })
   }
 
+  /** Makes something happen. Whoever sees it decides what to do and may spread the word; mid-announcement it only scares or draws people nearby. */
   unleash(visual: OutcomeVisual, placeId: string) {
     const event = eventAt(this.content, this.sim.world.places, visual, placeId)
-    // Residents mid-reaction to an announcement keep doing what they decided.
-    react(this.sim, event, (r) => r.frozen || r.tasks.length > 0)
     this.renderer?.showEvent(event)
     useTown.setState({ godEvent: event })
     useTown.getState().toast(event.summary)
+    const busy = this.engine.active && !this.engine.settled
+    if (busy) return react(this.sim, event, (r) => r.frozen || r.tasks.length > 0)
+    this.begin(
+      {
+        id: crypto.randomUUID(),
+        text: event.sighting ?? event.summary,
+        speaker: { kind: 'sight' },
+        place: event.place,
+        minutes: Math.floor(this.sim.minutes),
+        origin: event.at,
+        reach: SIGHT_RADIUS,
+      },
+      false,
+    )
+  }
+
+  /** Something unexpected, favouring the eerie after dark. */
+  unleashRandom() {
+    const night = isNight(this.sim.minutes)
+    const pool: [OutcomeVisual, string, number][] = [
+      ['fire', 'forest', 1],
+      ['monster', 'bridge', 1],
+      ['undead', 'cemetery', night ? 4 : 0.3],
+      ['wolves', 'forest', night ? 3 : 1],
+      ['ghost', 'crypt', night ? 3 : 0.3],
+      ['blaze', 'tavern', 1],
+      ['flood', 'riverbank', this.sim.weather === 'storm' || this.sim.weather === 'rain' ? 3 : 0.5],
+      ['meteor', 'field', 0.6],
+      ['thief', 'market', night ? 0.5 : 1.5],
+      ['caravan', 'gate', night ? 0.2 : 1.5],
+      ['feast', 'plaza', night ? 0.3 : 1],
+      ['treasure', 'crypt', 0.5],
+    ]
+    const total = pool.reduce((n, [, , w]) => n + w, 0)
+    let r = Math.random() * total
+    const [visual, place] = pool.find(([, , w]) => (r -= w) < 0) ?? pool[0]
+    this.unleash(visual, place)
   }
 
   clearEvent() {

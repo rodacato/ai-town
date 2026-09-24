@@ -5,15 +5,17 @@ import type { Place, Point } from '../world/types'
 import { detectPlace, normalize, placeLabel, type Announcement } from './announcement'
 
 /** How the art draws what actually happened; 'fire' and 'monster' are threats people run from. */
-export type OutcomeVisual = 'fire' | 'monster' | 'feast' | 'treasure' | 'sparkle'
+export type OutcomeVisual = 'fire' | 'monster' | 'feast' | 'treasure' | 'sparkle' | 'undead' | 'wolves' | 'blaze' | 'flood' | 'caravan' | 'thief' | 'ghost' | 'meteor'
 
-export const THREATS: OutcomeVisual[] = ['fire', 'monster']
+export const THREATS: OutcomeVisual[] = ['fire', 'monster', 'undead', 'wolves', 'blaze', 'flood', 'ghost', 'meteor']
 
 export interface OutcomeDef {
   keywords: string[]
   visual: OutcomeVisual
   /** Finishes "Era verdad: …", e.g. "un dragón incendió". The place name follows. */
   label: string
+  /** What someone sees when it happens in front of them, with {place} for where. */
+  witness?: string
 }
 
 export interface Outcome {
@@ -23,6 +25,8 @@ export interface Outcome {
   summary: string
   place: string | null
   at: Point
+  /** For an event seen happening: what the witnesses see, in their words. */
+  sighting?: string
 }
 
 /** Picks what happens and where, from the announcement's own words; the truth is decided elsewhere. */
@@ -57,7 +61,8 @@ export function eventAt(content: WorldContent, places: Place[], visual: OutcomeV
   const name = placeLabel(content, place.id) ?? 'el pueblo'
   const what = content.outcomes?.find((d) => d.visual === visual)?.label ?? (THREATS.includes(visual) ? 'algo terrible pasó en' : 'algo maravilloso pasó en')
   const summary = `${what.charAt(0).toUpperCase()}${what.slice(1)} ${name}.`
-  return { truth: true, visual, summary, place: place.id, at: centerOf(place) }
+  const sighting = content.outcomes?.find((d) => d.visual === visual)?.witness?.replace('{place}', name)
+  return { truth: true, visual, summary, place: place.id, at: centerOf(place), sighting: sighting ?? summary }
 }
 
 /** Tiles around an event within which people notice it. */

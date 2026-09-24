@@ -27,6 +27,10 @@ Son 20 residentes, entre ellos un mentiroso compulsivo, un paranoico, una recié
 
 Al pregonar eliges si el anuncio es **verdad**, **mentira** o **al azar**. Los residentes nunca lo saben (no llega al prompt): deciden solo con lo que oyen. Cuando todos han decidido, el mapa lo revela: si era verdad, el dragón incendia el bosque, aparece el troll en el puente, se sirve el festín o brilla el oro; si era mentira, no hay nada y quien fue vuelve a casa decepcionado. Quien está cerca de un peligro real huye. El panel dice cuántos acertaron (creyeron lo verdadero o dudaron de lo falso) y el inspector lo marca en cada residente. Qué ocurre con cada tipo de anuncio se define por palabras clave en `outcomes` del mundo.
 
+## El ritmo del pueblo
+
+La rutina de cada residente depende de la hora, el clima y la estación: de 22:00 a 6:00 casi todos duermen en casa, salvo los que tienen rutina nocturna (Rowan canta en la taberna, Kael caza, Mortimer ronda el cementerio, Sir Aldric patrulla); al atardecer vuelven a casa o a la taberna; con lluvia, tormenta o nieve buscan techo, y en invierno salen menos.
+
 ## Modo dios
 
 El botón ⚡ **Dios** de la barra superior (o la tecla `G`) abre un cajón para cambiar el mundo al instante, sin tapar el mapa:
@@ -34,7 +38,7 @@ El botón ⚡ **Dios** de la barra superior (o la tecla `G`) abre un cajón para
 - **Tiempo:** saltar a amanecer, mediodía, atardecer o noche, y correr el pueblo a ×1, ×2, ×4 o pausarlo (los modelos siguen a su ritmo).
 - **Estación:** primavera (árboles en flor y pétalos), verano, otoño (copas naranjas, pasto dorado y hojas cayendo) o invierno (todo nevado). También entra en el prompt.
 - **Clima:** despejado, lluvia, tormenta con relámpagos, nieve o niebla. Los residentes lo notan: el clima entra en el prompt, y en el modo simulado los que no son valientes ni codiciosos no salen con mal tiempo.
-- **Desatar:** un dragón que incendia, una bestia, un festín o un tesoro, donde tenga sentido o en el lugar que elijas. Quien está cerca huye de lo peligroso o se acerca a curiosear lo bueno.
+- **Eventos:** dragón, bestia, esqueletos, lobos, fantasma, incendio, crecida, meteorito, ladrón, caravana, festín o tesoro, donde tenga sentido o en el lugar que elijas, o 🎲 algo inesperado (de noche, más tenebroso). Un evento es un pregón sin pregonero: quienes están cerca **lo ven con sus propios ojos** y deciden qué hacer (con el modelo o las reglas), y los que corren a avisar llevan la noticia al resto de boca en boca.
 - **Pueblo:** reunir a todos en un lugar, toque de queda y un pregón sorpresa (ejemplo al azar con verdad al azar).
 
 ## Modelo de decisiones
