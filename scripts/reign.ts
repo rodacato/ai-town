@@ -1,10 +1,8 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { parseArgs } from 'node:util'
-import { ranking, summarize, type ReignSummary } from '../src/core/realm/duel'
-import { fateCalendar, runReign } from '../src/core/realm/reign'
-import { rulesRuler, type RulerTurn } from '../src/core/realm/ruler'
-import type { RoyalReport } from '../src/core/realm/report'
+import { absentDuelist, ranking, rulesDuelist, runDuel, type Duelist, type ReignSummary } from '../src/core/realm/duel'
+import { fateCalendar } from '../src/core/realm/reign'
 import { GOALS } from '../src/core/realm/standing'
 import { SEASON_DAYS } from '../src/core/realm/terrarium'
 import { DIFFICULTIES, DIFFICULTY, type Difficulty } from '../src/core/realm/difficulty'
@@ -68,37 +66,14 @@ if (!DIFFICULTIES.includes(difficulty)) fail(`--dificultad va como ${DIFFICULTIE
 const content = activeWorld.content
 const fate = fateCalendar(seed, days, difficulty)
 
-interface Contender {
-  id: string
-  label: string
-  rule: () => (report: RoyalReport) => Promise<RulerTurn>
-  usage: { costUsd: number; errors: number }
-}
-
-const contenders: Contender[] = []
-const plain = (label: string, pick: (r: RoyalReport) => RulerTurn): Contender => ({ id: label, label, usage: { costUsd: 0, errors: 0 }, rule: () => async (r) => pick(r) })
-if (!args['skip-absent']) contenders.push(plain('Trono vacío', () => ({ thought: '', actions: [], problems: [] })))
-if (!args['skip-rules']) contenders.push(plain('Reglas', rulesRuler))
+const contenders: Duelist[] = []
+if (!args['skip-absent']) contenders.push(absentDuelist)
+if (!args['skip-rules']) contenders.push(rulesDuelist)
 for (const spec of args.model) {
   const connection = connectionForSpec(spec, { price })
   if (contenders.some((c) => c.id === spec)) fail(`«${spec}» está repetido.`)
-  const usage = { costUsd: 0, errors: 0 }
   const ruler = createModelRuler(connection, nodeStream)
-  contenders.push({
-    id: spec,
-    label: `${connection.model} (${connection.kind})`,
-    usage,
-    rule: () => async (report) => {
-      try {
-        const reply = await ruler(report, AbortSignal.timeout(timeoutMs))
-        usage.costUsd += reply.usage?.costUsd ?? 0
-        return reply
-      } catch (err) {
-        usage.errors++
-        return { thought: '', actions: [], problems: [`No respondió: ${err instanceof Error ? err.message : err}`] }
-      }
-    },
-  })
+  contenders.push({ id: spec, label: `${connection.model} (${connection.kind})`, decide: (report, signal) => ruler(report, AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)])) })
 }
 if (contenders.length < 2) fail('Hace falta al menos dos gobernantes. Añade alguno con -m proveedor:modelo.')
 
@@ -120,35 +95,27 @@ const draw = () => {
   process.stdout.write(`\r\x1b[2K${line}`)
 }
 
-const results = await Promise.all(
-  contenders.map(async (c) => {
-    const rule = c.rule()
-    const result = await runReign({
-      content,
-      days,
-      seed,
-      seasonLength: SEASON_DAYS,
-      fate,
-      difficulty,
-      goals: { yearDays: days - 1 },
-      rule: async (report) => {
-        progress.set(c.id, report.day + 1)
-        draw()
-        return rule(report)
-      },
-    })
-    return { c, result }
-  }),
-)
+const duel = await runDuel({
+  content,
+  seed,
+  days,
+  difficulty,
+  seasonLength: SEASON_DAYS,
+  rulers: contenders,
+  onDay: (id, day) => {
+    progress.set(id, day + 1)
+    draw()
+  },
+})
 if (tty) process.stdout.write('\n')
 
-const summaries = results.map(({ c, result }) => summarize(c.label, result, c.usage))
+const summaries = duel.rulers.map((r) => r.summary)
 printTable(ranking(summaries))
 printLetters(summaries)
 
 const out = args.out ?? `reign-results/duelo-${new Date().toISOString().replace(/[:.]/g, '-')}.json`
 mkdirSync(dirname(out), { recursive: true })
-writeFileSync(out, JSON.stringify({ format: 'ai-town-reign/1', world: content.id, seed, days, difficulty, fate, rulers: results.map(({ c, result }) => ({ id: c.id, summary: summaries.find((s) => s.ruler === c.label), days: result.days, chronicle: result.chronicle.entries })) } satisfies Record<string, unknown>, null, 2))
+writeFileSync(out, JSON.stringify({ format: 'ai-town-reign/1', world: content.id, ...duel }, null, 2))
 console.log(dim(`\nGuardado en ${out}`))
 
 function printTable(list: ReignSummary[]) {

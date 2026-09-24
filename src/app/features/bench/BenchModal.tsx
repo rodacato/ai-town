@@ -19,6 +19,8 @@ import { CompareRuns } from './CompareRuns'
 import './bench.css'
 import { estimateRunCost, promptTokens } from './estimate'
 import { TYPICAL_REPLY_TOKENS } from '../../../providers/llm/pricing'
+import { Duel } from './Duel'
+import { useDuel } from './duelStore'
 import { nameOf } from '../../../core/lang'
 
 const KINDS: ContenderKind[] = ['rules', 'anthropic', 'openai', 'shellm', 'custom']
@@ -38,11 +40,13 @@ function Dialog() {
   const current = useBench((s) => s.current)
   const runs = useBench((s) => s.runs)
   const setView = useBench((s) => s.setView)
+  const duelRunning = useDuel((s) => !!s.running)
   const tabs: [typeof view, string][] = [
     ['new', 'Nueva prueba'],
     ...(current ? [['result', 'Resultado'] as [typeof view, string]] : []),
     ['history', `Historial${runs.length ? ` (${runs.length})` : ''}`],
     ...(runs.length ? [['compare', 'Comparar'] as [typeof view, string]] : []),
+    ['duel', duelRunning ? 'Duelo…' : 'Duelo de Baronesas'],
   ]
   return (
     <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && close()}>
@@ -68,6 +72,7 @@ function Dialog() {
           {view === 'result' && current && <Result run={current} />}
           {view === 'history' && <History />}
           {view === 'compare' && <CompareRuns />}
+          {view === 'duel' && <Duel />}
         </div>
       </div>
     </div>

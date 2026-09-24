@@ -63,3 +63,22 @@ describe('difficulty', () => {
     expect(m.reputation({ kind: 'authority' }).trust).toBeCloseTo(1.5 / 2.5)
   })
 })
+
+describe('a duel of rulers', () => {
+  it('gives every ruler the same year, counts the days a model fails, and can be cancelled', async () => {
+    const { absentDuelist, rulesDuelist, runDuel } = await import('../src/core/realm/duel')
+    const broken = { id: 'roto', label: 'Roto', decide: async () => Promise.reject(new Error('sin red')) }
+    const days: Record<string, number> = {}
+    const duel = await runDuel({ content, seed: 5, days: 12, difficulty: 'dura', seasonLength: 10, rulers: [absentDuelist, rulesDuelist, broken], onDay: (id, d) => (days[id] = d + 1) })
+    expect(duel.fate).toEqual(fateCalendar(5, 12, 'dura'))
+    expect(duel.rulers.map((r) => r.label)).toEqual(['Trono vacío', 'Reglas', 'Roto'])
+    const roto = duel.rulers.find((r) => r.id === 'roto')!
+    // The last dawn ends the year, and nobody governs after it.
+    expect(roto.summary.errors).toBe(roto.days.length - 1)
+    expect(days.rules).toBe(duel.rulers[1].days.length - 1)
+
+    const controller = new AbortController()
+    controller.abort()
+    await expect(runDuel({ content, seed: 5, days: 12, difficulty: 'normal', seasonLength: 10, rulers: [rulesDuelist], signal: controller.signal })).rejects.toThrow()
+  })
+})

@@ -9,6 +9,8 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 ### Añadido
 - Dificultad al empezar una partida y en el duelo (`--dificultad`): **normal**, **dura** o **cruel**. Cambia la frecuencia y el tipo de los golpes del destino, las reservas iniciales, la cosecha, cuánto duelen los golpes y el precio del grano de los mercaderes; la Baronesa lo ve en su informe.
 
+- Duelo de Baronesas en el navegador, dentro del banco de pruebas: el trono vacío, las reglas y los modelos que elijas gobiernan el mismo año; tabla de resultados, gráficas de vecinos, confianza, ánimo y tesoro con el cursor sincronizado, cartas al creador, costo estimado y exportación en JSON. La terminal y el navegador corren el mismo código (`runDuel`).
+
 ### Cambiado
 - Lo que hace la guardia pesa la mitad que lo que dice la Baronesa en la confianza del pueblo, para que en años de muchos golpes la confianza no se infle sola.
 

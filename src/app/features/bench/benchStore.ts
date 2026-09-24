@@ -24,7 +24,7 @@ interface Prefs {
 
 interface BenchState extends Prefs {
   open: boolean
-  view: 'new' | 'history' | 'result' | 'compare'
+  view: 'new' | 'history' | 'result' | 'compare' | 'duel'
   running: { startedAt: number; progress: Record<string, BenchProgress>; lastError: Record<string, string>; controller: AbortController } | null
   current: BenchRun | null
   runs: BenchRun[]
