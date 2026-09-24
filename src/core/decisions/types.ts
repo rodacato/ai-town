@@ -23,6 +23,9 @@ export interface Rumor {
   fromName: string
   relation: string | null
   message: string
+  /** What this resident remembers of the teller: lies passed on that they believed, and true warnings. */
+  misled?: number
+  warned?: number
 }
 
 export interface DecisionContext {

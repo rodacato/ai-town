@@ -27,11 +27,18 @@ export function buildContext(sim: Simulation, a: Announcement, r: Resident, rumo
       placeLabel: placeLabel(content, a.place),
     },
     situation: { activity: statusOf(sim, r), time: `${clock.day} ${clock.time}`, season: SEASON_TEXT[sim.season].sentence, weather: WEATHER_TEXT[sim.weather].sentence, ...needsOf(sim, p.id) },
-    rumors,
+    rumors: memory ? withBonds(rumors, memory.bondsOf(p.id)) : rumors,
     previous,
     townsfolk: content.residents.filter((x) => x.id !== p.id).map((x) => ({ id: x.id, name: x.name })),
-    ...(memory ? { memory: recallFor(memory, a, p.id, speakerName(content, a.speaker)) } : {}),
+    ...(memory ? { memory: recallFor(memory, a, p.id, speakerName(content, a.speaker), nameOf) } : {}),
   }
+}
+
+function withBonds(rumors: Rumor[], bonds: ReturnType<TownMemory['bondsOf']>): Rumor[] {
+  return rumors.map((r) => {
+    const b = bonds.get(r.fromId)
+    return b ? { ...r, ...(b.misled ? { misled: b.misled } : {}), ...(b.warned ? { warned: b.warned } : {}) } : r
+  })
 }
 
 /** A resident's hunger and purse, only when they are worth mentioning, so a fresh town reads as before. */

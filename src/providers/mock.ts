@@ -60,7 +60,9 @@ export function mockDecision(ctx: DecisionContext, vocab: Vocabulary): Decision 
 
   const rumor = ctx.rumors[ctx.rumors.length - 1]
   if (rumor) {
-    const weight = (rumor.relation && isPositiveRelation(rumor.relation) ? 0.6 : 0.3) * (0.6 + sc.credulity * 0.6)
+    // Whoever passed on a lie before is heard with half an ear; whoever warned rightly, with both.
+    const history = rumor.misled ? 0.4 : rumor.warned ? 1.4 : 1
+    const weight = Math.min(0.9, (rumor.relation && isPositiveRelation(rumor.relation) ? 0.6 : 0.3) * (0.6 + sc.credulity * 0.6) * history)
     const endorses = !/estafa|no te fies|cuidado con|mentira|trampa/.test(normalize(rumor.message))
     trust = trust * (1 - weight) + (endorses ? 0.9 : 0.1) * weight
   }
@@ -101,17 +103,22 @@ export function mockDecision(ctx: DecisionContext, vocab: Vocabulary): Decision 
   }
 
   const friends = ctx.relationships.filter((rel) => isPositiveRelation(rel.label) && rel.id !== ctx.resident.id)
-  let tell: string[] = []
-  if (action === 'warn') tell = pickSome(rng, friends, rng.chance(0.5) ? 2 : 1).map((f) => f.id)
+  // A warning goes first to whoever once warned this resident: that debt is paid before anyone else hears.
+  const owed = action === 'warn' ? (ctx.memory?.debts ?? []).filter((d) => d.id !== ctx.resident.id && ctx.townsfolk.some((t) => t.id === d.id)).slice(0, 1) : []
+  let tell: string[] = owed.map((d) => d.id)
+  const others = friends.filter((f) => !tell.includes(f.id))
+  if (action === 'warn') tell = [...tell, ...pickSome(rng, others, (rng.chance(0.5) ? 2 : 1) - tell.length).map((f) => f.id)]
   else if (action === 'go' && social && rng.chance(0.45)) tell = pickSome(rng, friends, 1).map((f) => f.id)
   if (action === 'warn' && !tell.length) action = believes && r.home ? 'stay_home' : 'ignore'
-  const tellNames = tell.map((id) => first(ctx.relationships.find((f) => f.id === id)!.name))
+  const nameOf = (id: string) => (ctx.relationships.find((f) => f.id === id) ?? ctx.townsfolk.find((t) => t.id === id))!.name
+  const tellNames = tell.map((id) => first(nameOf(id)))
 
   const place = a.placeLabel ?? 'allí'
   const reasoning = [
     rumor ? rumorLine(rumor, ctx.previous, action) : null,
     sourceLine(ctx, trust, rng),
     memoryLine(ctx),
+    owed.length ? `Le debo a ${first(owed[0].name)} que me avisara aquella vez.` : null,
     contentLine(r, trust, greedy, rng),
     excuse ?? traitLine(traits, r, action),
     actionLine(action, place, tellNames, believes, r),
@@ -140,7 +147,8 @@ function pickSome<T>(rng: Rng, items: T[], n: number) {
 function rumorLine(rumor: DecisionContext['rumors'][number], previous: Decision | null, action: Action) {
   const who = first(rumor.fromName)
   const changed = previous && previous.action !== action
-  return `${who} vino a decirme: «${rumor.message}». ${changed ? 'Eso me hace cambiar de idea.' : 'Aun así, no cambio de opinión.'}`
+  const past = rumor.misled ? ` Aunque ${who} ya me pasó una mentira.` : rumor.warned ? ` ${who} ya me avisó bien otra vez.` : ''
+  return `${who} vino a decirme: «${rumor.message}».${past} ${changed ? 'Eso me hace cambiar de idea.' : 'Aun así, no cambio de opinión.'}`
 }
 
 function memoryLine(ctx: DecisionContext) {

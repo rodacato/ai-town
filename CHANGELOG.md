@@ -17,6 +17,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 - Las corridas guardan el razonamiento de cada decisión (recortado).
 - El LLM falso responde también como Baronesa y como juez.
 - Caché de prompts de Anthropic: las instrucciones y el anuncio, iguales para todo el pueblo, se marcan para la caché. El inspector muestra los tokens leídos y escritos, el costo los cobra a su precio y el banco añade la columna **Caché** (parte del prompt servida y ahorro) y la variante **Sin caché** del mismo modelo (`~sin-cache` en la terminal) para medirlo.
+- Memoria de cada vecino: recuerda quién le pasó mentiras que se creyó y quién le avisó a tiempo de algo cierto. Entra en su prompt (también junto a cada rumor que le llega), en las reglas locales (desconfía de quien le mintió y avisa primero a quien le debe) y en su ficha del inspector.
 
 ### Cambiado
 - El prompt de cada residente empieza por lo común (anuncio y vecinos) y sigue con lo suyo; las pruebas nuevas no reciben el mismo texto que las guardadas antes de este cambio.

@@ -26,6 +26,8 @@ Cada residente tiene oficio, bio, rasgos, alineamiento, relaciones y una **perso
 
 Escribes un pregón en nombre de la Baronesa, de un vecino o de un forastero, y eliges si es **verdad**, **mentira** o **al azar**. Los residentes no lo saben: deciden con lo que oyen y la noticia corre de boca en boca. Cuando todos han decidido, el mapa lo revela: si era verdad, el dragón incendia el bosque o se sirve el festín; si era mentira, no hay nada. El panel dice cuántos acertaron, el inspector muestra cada decisión con su prompt, respuesta, tiempos, tokens y costo, y el pueblo **recuerda** quién dijo la verdad: la reputación de cada pregonero entra en el prompt.
 
+Cada vecino también tiene **memoria propia**: quién le pasó una mentira que se creyó (aunque lo hiciera de buena fe) y quién le avisó a tiempo de algo cierto. Lo tiene en cuenta en su prompt, en las reglas locales se fía menos del chismoso y avisa primero a quien le debe un favor, y aparece en su ficha, en «Lo que recuerda».
+
 ### El ritmo del pueblo
 
 De 22:00 a 6:00 casi todos duermen, salvo quienes tienen rutina nocturna; con lluvia, tormenta o nieve buscan techo, y en invierno salen menos. El día del reino empieza al amanecer (06:00) y las estaciones cambian cada 10 días. En el centro de la barra superior pausas el pueblo o lo aceleras (×1, ×2, ×4, ×16).

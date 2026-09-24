@@ -495,6 +495,7 @@ class TownController implements TerrariumHost, ThroneHost {
       summary: sight ? outcome.summary.replace(/\.$/, '').replace(/^./, (c) => c.toLowerCase()) : `${this.speakerShort(a.speaker)} anunció «${said}» y ${outcome.truth ? 'era verdad' : 'era mentira'}`,
       believers: decided.filter((r) => r.decision!.believes).map((r) => r.id),
       doubters: decided.filter((r) => !r.decision!.believes).map((r) => r.id),
+      told: [...this.engine.reactions.values()].flatMap((r) => r.told.map((to) => ({ from: r.id, to }))),
     })
     saveMemory(this.content.id, this.memory)
     useTown.setState({ memoryEntries: [...this.memory.entries] })
