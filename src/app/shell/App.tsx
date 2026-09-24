@@ -14,6 +14,7 @@ import { TopBar } from '../features/topbar/TopBar'
 import { TownCanvas } from '../features/map/TownCanvas'
 import { GodPanel } from '../features/god/GodPanel'
 import { RealmHud } from '../features/realm/RealmHud'
+import { ThronePanel } from '../features/throne/ThronePanel'
 import './shell.css'
 
 const SettingsModal = lazy(() => import('../features/settings/SettingsModal').then((m) => ({ default: m.SettingsModal })))
@@ -61,6 +62,7 @@ export function App() {
       <Timeline />
       <RightPanel />
       <GodPanel />
+      <ThronePanel />
       <Toasts />
       <ResetVeil />
       <LazySettings />
@@ -82,6 +84,7 @@ function useKeyboardShortcuts() {
       if (e.key === '-') town.zoomBy(0.8)
       if (e.key === '0') town.fit()
       if (e.key === 'g' || e.key === 'G') useTown.getState().setGodOpen(!useTown.getState().godOpen)
+      if (e.key === 't' || e.key === 'T') useTown.getState().setThroneOpen(!useTown.getState().throneOpen)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)

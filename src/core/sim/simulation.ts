@@ -263,7 +263,7 @@ export class Simulation {
     if (r.tasks.length) return this.runTask(r, dt)
     r.timer -= dt
     if (r.timer > 0) return
-    if (r.mode === 'inside' && staysIn(r.profile, this.minutes)) {
+    if (r.mode === 'inside' && staysIn(r.profile, this.minutes, this.economy?.laws.curfew)) {
       r.timer = this.rng.range(10, 20)
       return
     }
@@ -407,7 +407,7 @@ export class Simulation {
   }
 
   private pickDestination(r: Resident, initial: boolean): { kind: string; tile: Point } | null {
-    const options = Object.entries(routineNow(r.profile, this.minutes, this.weather, this.season))
+    const options = Object.entries(routineNow(r.profile, this.minutes, this.weather, this.season, this.economy?.laws.curfew))
       .filter(([kind]) => !(initial && kind === 'home'))
       .filter(([kind]) => kind !== r.destination || kind === 'street' || kind === 'visit')
       .map(([kind, weight]) => ({ item: kind, weight }))

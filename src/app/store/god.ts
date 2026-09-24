@@ -1,6 +1,7 @@
 import type { StateCreator } from 'zustand'
 import type { TownState } from '.'
 import type { MemoryEntry } from '../../core/memory/memory'
+import type { ChronicleEntry } from '../../core/realm/chronicle'
 import type { Outcome } from '../../core/reactions/outcome'
 import type { Season } from '../../core/sim/season'
 import type { Weather } from '../../core/sim/weather'
@@ -29,11 +30,14 @@ export interface GodSlice {
   season: Season
   /** An event unleashed from the panel, independent of any announcement. */
   godEvent: Outcome | null
-  curfew: boolean
   /** The realm at a glance, refreshed at every dawn and after anything that moves it. */
   realm: Realm | null
   /** Snapshot of the town's memory, refreshed whenever it records something. */
   memoryEntries: MemoryEntry[]
+  /** The latest chronicle lines, oldest first. */
+  chronicle: ChronicleEntry[]
+  throneOpen: boolean
+  setThroneOpen: (open: boolean) => void
   setGodOpen: (open: boolean) => void
 }
 
@@ -43,8 +47,10 @@ export const createGodSlice: StateCreator<TownState, [], [], GodSlice> = (set) =
   weather: 'clear',
   season: 'summer',
   godEvent: null,
-  curfew: false,
   realm: null,
   memoryEntries: [],
-  setGodOpen: (godOpen) => set({ godOpen }),
+  chronicle: [],
+  throneOpen: false,
+  setThroneOpen: (throneOpen) => set(throneOpen ? { throneOpen, godOpen: false } : { throneOpen }),
+  setGodOpen: (godOpen) => set(godOpen ? { godOpen, throneOpen: false } : { godOpen }),
 })

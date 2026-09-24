@@ -33,6 +33,10 @@ Cada amanecer corre el libro de cuentas: la cosecha llena el granero (Godric, Ot
 
 El pueblo entero (hora, clima, estación, economía, tumbas y dónde está cada quien) y su memoria se guardan en el navegador hasta que pulses **Reiniciar**, que empieza una partida nueva.
 
+## El trono
+
+El botón 👑 **Trono** (o la tecla `T`) te deja gobernar como la Baronesa, con los mismos decretos que usará un modelo cuando gobierne: impuesto (0–60%), precio de la ración (gratis a 6 monedas), repartir comida a quien pasa hambre, comprar raciones a mercaderes, una paga extra, una fiesta en la plaza y tres leyes (toque de queda, racionamiento y leva de guardias), cada una con su costo en ánimo. Cada decreto se valida contra el tesoro y el granero, queda en la crónica y, si quieres, se pregona: un pregón cierto suma confianza.
+
 ## El ritmo del pueblo
 
 La rutina de cada residente depende de la hora, el clima y la estación: de 22:00 a 6:00 casi todos duermen en casa, salvo los que tienen rutina nocturna (Rowan canta en la taberna, Kael caza, Mortimer ronda el cementerio, Sir Aldric patrulla); al atardecer vuelven a casa o a la taberna; con lluvia, tormenta o nieve buscan techo, y en invierno salen menos.

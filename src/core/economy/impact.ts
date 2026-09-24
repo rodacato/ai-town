@@ -18,7 +18,7 @@ export function applyImpact(e: Economy, visual: OutcomeVisual): string | null {
       mood(-0.05)
       return `El incendio se llevó ${lose(0.15, 'granary')} raciones y ${lose(0.1, 'treasury')} monedas.`
     case 'thief':
-      return `El ladrón robó ${lose(0.25, 'treasury')} monedas del tesoro.`
+      return `El ladrón robó ${lose(e.laws.levy ? 0.1 : 0.25, 'treasury')} monedas del tesoro${e.laws.levy ? ' (la guardia lo espantó a tiempo)' : ''}.`
     case 'meteor':
       mood(-0.05)
       return `El meteorito arrasó ${lose(0.1, 'granary')} raciones del huerto.`
@@ -40,7 +40,7 @@ export function applyImpact(e: Economy, visual: OutcomeVisual): string | null {
     case 'ghost':
     case 'wolves':
     case 'monster':
-      mood(-0.08)
+      mood(e.laws.levy ? -0.04 : -0.08)
       return null
     default:
       return null

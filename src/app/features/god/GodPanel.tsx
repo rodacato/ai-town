@@ -8,6 +8,7 @@ import { TrustMeter } from '../../shared/TrustMeter'
 import { ago } from '../../../core/memory/memory'
 import type { Speaker } from '../../../core/reactions/announcement'
 import { Bolt, Close } from '../../shared/icons'
+import { Choice } from '../../shared/Choice'
 import { town } from '../../town'
 import './god.css'
 
@@ -100,20 +101,6 @@ function Drawer() {
   )
 }
 
-function Choice<T>({ label, options, value, onPick, render }: { label: string; options: T[]; value: T; onPick: (v: T) => void; render: (v: T) => React.ReactNode }) {
-  const active = options.indexOf(value)
-  return (
-    <div className="segmented" role="radiogroup" aria-label={label} style={{ ['--cols' as string]: options.length, ['--active' as string]: active }}>
-      {active >= 0 && <span className="segmented-thumb" aria-hidden />}
-      {options.map((o, i) => (
-        <button key={i} role="radio" aria-checked={i === active} className={i === active ? 'is-active' : ''} onClick={() => onPick(o)}>
-          {render(o)}
-        </button>
-      ))}
-    </div>
-  )
-}
-
 function World() {
   const { minutes, speed, weather, season } = useTown()
   const { day, time } = formatClock(minutes)
@@ -187,15 +174,11 @@ function Events() {
 }
 
 function TownActions() {
-  const curfew = useTown((s) => s.curfew)
   return (
     <>
       <div className="god-stack">
         <button className="btn-secondary compact" onClick={() => town.gather(town.content.gatheringPlace)}>
           Reunir a todos en la plaza
-        </button>
-        <button className="btn-secondary compact" aria-pressed={curfew} onClick={() => town.setCurfew(!curfew)}>
-          {curfew ? 'Levantar el toque de queda' : 'Toque de queda'}
         </button>
         <button className="btn-secondary compact" onClick={() => town.surprise()}>
           Pregón sorpresa

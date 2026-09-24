@@ -40,6 +40,17 @@ export interface Economy {
   needs: Record<string, Needs>
   /** Tax rate and food price the town is used to, so a hike can sour the mood. */
   wontedTax: number
+  laws: Laws
+}
+
+/** Standing decrees: each has a daily cost in spirits and a benefit elsewhere. */
+export interface Laws {
+  /** Everyone indoors from dusk, night owls included; safer, but chafing. */
+  curfew: boolean
+  /** Half rations: the granary lasts twice as long, at a cost to health and mood. */
+  rationing: boolean
+  /** Two more guards on the payroll; thieves and beasts do less harm. */
+  levy: boolean
 }
 
 export interface Ledger {
@@ -73,6 +84,7 @@ export function startEconomy(rules: EconomyRules, residents: string[], minutes: 
     purses: Object.fromEntries(residents.map((id) => [id, rules.startPurse])),
     needs: Object.fromEntries(residents.map((id) => [id, { daysHungry: 0, health: 1, mood: 0.65, status: 'ok' } satisfies Needs])),
     wontedTax: rules.taxRate,
+    laws: { curfew: false, rationing: false, levy: false },
   }
 }
 
@@ -101,12 +113,14 @@ export function runDay(e: Economy, rules: EconomyRules, season: Season, day: num
     ledger.taxes += tax
   }
 
+  const ration = e.laws.rationing ? 0.5 : 1
+  const price = Math.ceil(e.foodPrice * ration)
   for (const id of [...living].sort((a, b) => (e.purses[b] ?? 0) - (e.purses[a] ?? 0))) {
     const n = e.needs[id]
-    if (e.granary >= 1 && (e.purses[id] ?? 0) >= e.foodPrice) {
-      e.granary -= 1
-      e.purses[id] -= e.foodPrice
-      e.treasury += e.foodPrice
+    if (e.granary >= ration && (e.purses[id] ?? 0) >= price) {
+      e.granary = Math.round((e.granary - ration) * 10) / 10
+      e.purses[id] -= price
+      e.treasury += price
       ledger.sold++
       n.daysHungry = 0
       n.health = clamp(n.health + 0.15)
@@ -116,7 +130,7 @@ export function runDay(e: Economy, rules: EconomyRules, season: Season, day: num
     }
   }
 
-  const due = rules.guardWage * rules.guards
+  const due = rules.guardWage * (rules.guards + (e.laws.levy ? 2 : 0))
   const paid = Math.min(due, Math.max(0, e.treasury))
   e.treasury -= paid
   ledger.wages = paid
@@ -128,7 +142,9 @@ export function runDay(e: Economy, rules: EconomyRules, season: Season, day: num
   for (const id of living) {
     const n = e.needs[id]
     if (n.daysHungry >= 3) n.health = clamp(n.health - 0.35)
-    const target = 0.65 - n.daysHungry * 0.15 - hike * 1.2 - (ledger.unpaid > 0 ? 0.05 : 0) - (1 - n.health) * 0.3
+    if (e.laws.rationing) n.health = clamp(n.health - 0.03)
+    const lawToll = (e.laws.curfew ? 0.04 : 0) + (e.laws.rationing ? 0.08 : 0) + (e.laws.levy ? 0.03 : 0)
+    const target = 0.65 - n.daysHungry * 0.15 - hike * 1.2 - (ledger.unpaid > 0 ? 0.05 : 0) - (1 - n.health) * 0.3 - lawToll
     n.mood = clamp(n.mood + (target - n.mood) * 0.5)
     n.status = n.daysHungry >= 3 ? 'sick' : n.daysHungry >= 1 ? 'hungry' : 'ok'
     if (n.health <= 0) {
@@ -155,7 +171,7 @@ export function catchUp(e: Economy, rules: EconomyRules, season: Season, minutes
 /** Days the granary lasts at today's appetite. */
 export const foodDays = (e: Economy) => {
   const mouths = Object.keys(e.needs).filter((id) => alive(e, id)).length
-  return mouths ? e.granary / mouths : Infinity
+  return mouths ? e.granary / (mouths * (e.laws.rationing ? 0.5 : 1)) : Infinity
 }
 
 export const averageMood = (e: Economy) => {

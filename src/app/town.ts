@@ -5,6 +5,8 @@ import { eventAt, react, type OutcomeVisual } from '../core/reactions/outcome'
 import { isNight } from '../core/sim/rhythm'
 import { averageMood, foodDays, type Ledger } from '../core/economy/economy'
 import { applyImpact } from '../core/economy/impact'
+import { Chronicle, type ChronicleKind } from '../core/realm/chronicle'
+import { enact, type Decree, type DecreeResult } from '../core/realm/decrees'
 import type { Season } from '../core/sim/season'
 import type { Weather } from '../core/sim/weather'
 import { Simulation } from '../core/sim/simulation'
@@ -35,6 +37,7 @@ class TownController {
   readonly sim = new Simulation(activeWorld.content)
   readonly engine: ReactionEngine
   readonly memory = loadMemory(activeWorld.content.id)
+  readonly chronicle = new Chronicle()
   private remembered = new Set<string>()
   private renderer: TownRenderer | null = null
   private toastedFor = new Set<string>()
@@ -46,7 +49,11 @@ class TownController {
     const { provider, concurrency, timeoutMs } = createProvider(useTown.getState().llm, this.content)
     this.engine = new ReactionEngine(this.sim, new DecisionScheduler(provider, concurrency, timeoutMs))
     const restored = restoreTown(this.content.id, this.sim)
-    if (restored) useTown.setState({ weather: this.sim.weather, season: this.sim.season })
+    if (restored) {
+      this.chronicle.entries = restored
+      useTown.setState({ chronicle: restored.slice(-80) })
+      useTown.setState({ weather: this.sim.weather, season: this.sim.season })
+    }
     this.sim.onLedger((l) => this.onLedger(l))
     this.engine.memory = this.memory
     useTown.setState({ memoryEntries: [...this.memory.entries] })
@@ -87,7 +94,7 @@ class TownController {
       useTown.getState().toast('Por seguridad, tus keys ya no se guardan sin cifrar. Siguen activas en esta pestaña.')
     }
     const clock = window.setInterval(() => this.syncClock(), 1000)
-    const save = () => saveTown(this.content.id, this.sim)
+    const save = () => saveTown(this.content.id, this.sim, this.chronicle.entries)
     const autosave = window.setInterval(save, 5000)
     window.addEventListener('pagehide', save)
     return () => {
@@ -156,6 +163,7 @@ class TownController {
       this.sim.reset()
       forgetTown(this.content.id)
       this.forgetMemory()
+      this.chronicle.clear()
       this.syncRealm()
       this.renderer?.showEvent(null)
       this.renderer?.setSpeed(1)
@@ -163,7 +171,7 @@ class TownController {
       this.renderer?.markPlace(null)
       this.renderer?.camera.fit(false)
       this.pendingLog = []
-      useTown.setState({ announcement: null, reactions: {}, reasoning: {}, log: [], complete: false, draft: EMPTY_DRAFT, outcome: null, godEvent: null, weather: 'clear', season: 'summer', speed: 1, curfew: false })
+      useTown.setState({ announcement: null, reactions: {}, reasoning: {}, log: [], complete: false, draft: EMPTY_DRAFT, outcome: null, godEvent: null, weather: 'clear', season: 'summer', speed: 1 })
       this.syncClock()
       window.setTimeout(() => {
         useTown.setState({ resetting: false })
@@ -207,17 +215,54 @@ class TownController {
     if (!this.sim.economy) return
     const line = applyImpact(this.sim.economy, visual)
     this.syncRealm()
-    if (line) window.setTimeout(() => useTown.getState().toast(line), 2600)
+    if (line) {
+      this.log('event', line)
+      window.setTimeout(() => useTown.getState().toast(line), 2600)
+    }
   }
 
   /** Dawn: the day's accounts in one line, and who is gone. */
   private onLedger(l: Ledger) {
     const { toast } = useTown.getState()
     const name = (id: string) => this.content.residents.find((r) => r.id === id)?.name.split(' ')[0] ?? id
-    toast(`Amanece el día ${l.day + 1}: cosecha +${l.harvest}, ${l.sold} raciones vendidas${l.unfed.length ? `, ${l.unfed.length} sin comer` : ''}.`)
-    for (const id of l.died) window.setTimeout(() => toast(`${name(id)} murió de hambre. Hay una tumba nueva en el cementerio.`), 1500)
-    for (const id of l.left) window.setTimeout(() => toast(`${name(id)} no aguantó más y se marcha del pueblo.`), 1500)
+    const dawn = `Amanece el día ${l.day + 1}: cosecha +${l.harvest}, ${l.sold} raciones vendidas${l.unfed.length ? `, ${l.unfed.length} sin comer` : ''}.`
+    toast(dawn)
+    this.log('dawn', dawn)
+    for (const id of l.died) {
+      const line = `${name(id)} murió de hambre. Hay una tumba nueva en el cementerio.`
+      this.log('death', line)
+      window.setTimeout(() => toast(line), 1500)
+    }
+    for (const id of l.left) {
+      const line = `${name(id)} no aguantó más y se marcha del pueblo.`
+      this.log('leave', line)
+      window.setTimeout(() => toast(line), 1500)
+    }
     this.syncRealm()
+  }
+
+  log(kind: ChronicleKind, text: string) {
+    this.chronicle.add(this.sim.minutes, kind, text)
+    useTown.setState({ chronicle: this.chronicle.entries.slice(-80) })
+  }
+
+  /** A ruler's decree: checked, applied, told to the town if it asks, and written in the chronicle. */
+  decree(d: Decree, proclaim = true): DecreeResult {
+    const e = this.sim.economy
+    if (!e) return { ok: false, reason: 'Este mundo no tiene economía.', summary: '' }
+    const result = enact(e, d)
+    const { toast } = useTown.getState()
+    if (!result.ok) {
+      toast(result.reason!)
+      return result
+    }
+    this.log('decree', result.summary)
+    toast(result.summary)
+    this.syncRealm()
+    const busy = this.engine.active && !this.engine.settled
+    if (proclaim && result.proclamation && !busy)
+      this.begin({ id: crypto.randomUUID(), text: result.proclamation, speaker: { kind: 'authority' }, place: this.detectPlace(result.proclamation), minutes: Math.floor(this.sim.minutes), truth: true })
+    return result
   }
 
   syncRealm() {
@@ -265,6 +310,7 @@ class TownController {
     })
     saveMemory(this.content.id, this.memory)
     useTown.setState({ memoryEntries: [...this.memory.entries] })
+    this.log(sight ? 'event' : 'reveal', `${this.memory.entries.at(-1)!.summary}.`)
     if (sight) return
     const after = this.memory.reputation(a.speaker)
     const pct = (x: number) => `${Math.round(x * 100)}%`
@@ -363,13 +409,8 @@ class TownController {
       const spot = this.sim.spotAt(placeId)
       if (spot) this.sim.assign(r, [{ kind: 'walk', to: spot, label: 'Convocado por una fuerza misteriosa' }, { kind: 'wait', seconds: 25, label: 'Esperando a ver qué pasa' }])
     }
-    useTown.setState({ curfew: false })
   }
 
-  setCurfew(on: boolean) {
-    for (const r of this.sim.residents) if (!r.frozen) this.sim.assign(r, on ? [{ kind: 'enterHome', label: 'Toque de queda' }] : [])
-    useTown.setState({ curfew: on })
-  }
 
   /** One of the example announcements, with its truth left to chance. */
   surprise() {

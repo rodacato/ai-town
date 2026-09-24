@@ -15,6 +15,8 @@ export function TopBar() {
   const openSettings = () => useTown.getState().setSettingsOpen(true)
   const godOpen = useTown((s) => s.godOpen)
   const setGodOpen = useTown((s) => s.setGodOpen)
+  const throneOpen = useTown((s) => s.throneOpen)
+  const setThroneOpen = useTown((s) => s.setThroneOpen)
   const { day, time } = formatClock(minutes)
 
   return (
@@ -44,14 +46,20 @@ export function TopBar() {
         <button className="pill panel btn-pill icon-only" onClick={openSettings} aria-label="Configurar modelo de decisiones" title="Configurar modelo de decisiones">
           <Gear className="pill-icon gear" />
         </button>
+        <button className={`pill panel btn-pill tool ${throneOpen ? 'is-active' : ''}`} onClick={() => setThroneOpen(!throneOpen)} aria-pressed={throneOpen} title="Gobierna como la Baronesa (T)" aria-label="Trono">
+          <span className="pill-icon" aria-hidden>
+            👑
+          </span>
+          <span className="pill-label">Trono</span>
+        </button>
         <button className={`pill panel btn-pill tool ${godOpen ? 'is-active' : ''}`} onClick={() => setGodOpen(!godOpen)} aria-pressed={godOpen} title="Modo dios: tiempo, clima y eventos (G)" aria-label="Modo dios">
           <Bolt className="pill-icon" />
           <span className="pill-label">Dios</span>
         </button>
         <BenchButton />
-        <button className="pill panel btn-pill" onClick={() => town.reset()} title="Partida nueva: el pueblo vuelve a empezar, sin memoria ni historia">
+        <button className="pill panel btn-pill tool" onClick={() => town.reset()} aria-label="Reiniciar" title="Partida nueva: el pueblo vuelve a empezar, sin memoria ni historia">
           <Reset className="pill-icon reset" />
-          Reiniciar
+          <span className="pill-label">Reiniciar</span>
         </button>
       </div>
     </header>
@@ -63,7 +71,7 @@ function BenchButton() {
   const done = running ? Object.values(running.progress).reduce((n, p) => n + p.done, 0) : 0
   const total = running ? Object.values(running.progress).reduce((n, p) => n + p.total, 0) : 0
   return (
-    <button className={`pill panel btn-pill bench ${running ? 'is-running' : ''}`} onClick={() => useBench.getState().setOpen(true)} title="Compara modelos con los mismos pregones" aria-label="Banco de pruebas">
+    <button className={`pill panel btn-pill tool bench ${running ? 'is-running' : ''}`} onClick={() => useBench.getState().setOpen(true)} title="Compara modelos con los mismos pregones" aria-label="Banco de pruebas">
       <Gauge className="pill-icon gauge" />
       <span className="pill-label">{running ? <span className="mono">{Math.round((done / Math.max(1, total)) * 100)}%</span> : 'Pruebas'}</span>
     </button>

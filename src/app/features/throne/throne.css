@@ -1,0 +1,30 @@
+.throne .trust-meter {
+  margin-top: -4px;
+}
+
+.throne-coffers {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.throne-laws {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.throne .btn-secondary.compact:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.throne .god-grid .btn-secondary.compact {
+  height: 36px;
+  font-size: 12.5px;
+}
+
+.throne .god-grid .btn-secondary.compact {
+  white-space: nowrap;
+}
