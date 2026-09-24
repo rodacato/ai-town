@@ -6,13 +6,13 @@ import { ChevronDown, Castle, Stranger, User } from '../../shared/icons'
 import { town } from '../../town'
 
 const ICONS = { authority: Castle, neighbor: User, stranger: Stranger }
-const KINDS: SpeakerKind[] = ['authority', 'neighbor', 'stranger']
+const KINDS: Exclude<SpeakerKind, 'sight'>[] = ['authority', 'neighbor', 'stranger']
 
 export function SpeakerPicker() {
   const speaker = useTown((s) => s.draft.speaker)
   const setDraft = useTown((s) => s.setDraft)
   const setSpeaker = (speaker: Speaker) => setDraft({ speaker })
-  const active = KINDS.indexOf(speaker.kind)
+  const active = KINDS.findIndex((k) => k === speaker.kind)
 
   return (
     <div className="speaker-picker">

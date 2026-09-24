@@ -1,5 +1,5 @@
 import type { SpeakerKind, WorldContent } from '../world/content'
-import type { Place } from '../world/types'
+import type { Place, Point } from '../world/types'
 
 export type { SpeakerKind }
 
@@ -17,6 +17,10 @@ export interface Announcement {
   minutes: number
   /** Whether it turns out to be true; residents never see it, the engine reveals it once they have decided. */
   truth?: boolean
+  /** Where the news starts, when it is not the speaker: the spot where something is happening. */
+  origin?: Point
+  /** How far the news carries on its own, in tiles; beyond it people only learn by word of mouth. */
+  reach?: number
 }
 
 export const normalize = (text: string) =>

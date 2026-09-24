@@ -59,8 +59,9 @@ export class OriginBeacon {
   update(dt: number) {
     const e = this.engine
     const a = e.announcement
-    const neighbor = a?.speaker.kind === 'neighbor'
-    const target = a && !neighbor && e.waveActive ? 1 : 0
+    // A neighbour speaks from their own sprite and a sighting has no speaker, so neither gets the megaphone.
+    const noBeacon = a?.speaker.kind === 'neighbor' || a?.speaker.kind === 'sight'
+    const target = a && !noBeacon && e.waveActive ? 1 : 0
     this.shown += (target - this.shown) * Math.min(1, dt * (target ? 6 : 1.2))
     this.view.visible = this.shown > 0.01
     if (!this.view.visible || !a) return

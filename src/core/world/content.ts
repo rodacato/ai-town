@@ -67,7 +67,8 @@ export interface ResidentProfile {
   look: Look
 }
 
-export type SpeakerKind = 'authority' | 'neighbor' | 'stranger'
+/** 'sight' is no speaker at all: residents see the thing happen with their own eyes. */
+export type SpeakerKind = 'authority' | 'neighbor' | 'stranger' | 'sight'
 
 export interface SpeakerDef {
   label: string

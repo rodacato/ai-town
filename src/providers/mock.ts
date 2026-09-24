@@ -44,7 +44,7 @@ export function mockDecision(ctx: DecisionContext, vocab: Vocabulary): Decision 
   const a = ctx.announcement
 
   const sc = ctx.resident.personality.scales
-  let trust = { authority: 0.72, neighbor: 0.55, stranger: 0.22 }[a.speakerKind]
+  let trust = { authority: 0.72, neighbor: 0.55, stranger: 0.22, sight: 0.97 }[a.speakerKind]
   if (a.relationToSpeaker) trust += isPositiveRelation(a.relationToSpeaker) ? 0.3 : -0.3
   trust += (sc.credulity - 0.5) * 0.6
   if (a.speakerKind === 'stranger' && has('forastero')) trust -= 0.25

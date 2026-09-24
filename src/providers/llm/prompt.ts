@@ -59,7 +59,7 @@ export function buildPrompt(ctx: DecisionContext) {
     `Es ${ctx.situation.time}. ${ctx.situation.season} ${ctx.situation.weather} En este momento: ${ctx.situation.activity}.`,
     ``,
     `## Anuncio`,
-    `Lo dice: ${a.speakerName}${a.relationToSpeaker ? ` (para ti: ${a.relationToSpeaker})` : ''}.`,
+    a.speakerKind === 'sight' ? 'Nadie te lo ha contado: lo estás viendo con tus propios ojos.' : `Lo dice: ${a.speakerName}${a.relationToSpeaker ? ` (para ti: ${a.relationToSpeaker})` : ''}.`,
     `Mensaje: «${a.text}»`,
     a.placeLabel ? `Lugar mencionado: ${a.placeLabel}.` : 'No menciona un lugar concreto.',
   ]
