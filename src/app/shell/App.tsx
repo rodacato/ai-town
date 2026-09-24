@@ -47,6 +47,19 @@ function LazySettings() {
 
 const relayout = () => town.relayout()
 
+/** For keyboard users: straight to writing an announcement, past the map and the top bar. */
+function SkipLink() {
+  const go = () => {
+    useTown.getState().setPanelOpen(true)
+    window.setTimeout(() => document.getElementById('announcement')?.focus(), 50)
+  }
+  return (
+    <button className="skip-link" onClick={go}>
+      Ir a escribir un pregón
+    </button>
+  )
+}
+
 export function App() {
   useKeyboardShortcuts()
   useLayoutVars(relayout)
@@ -55,12 +68,15 @@ export function App() {
   }, [])
   return (
     <div className="app">
-      <TownCanvas />
+      <SkipLink />
+      <main aria-label="Mapa del pueblo">
+        <TownCanvas />
+        <MapControls />
+        <MapHint />
+        <HoverTag />
+      </main>
       <TopBar />
       <RealmHud />
-      <MapControls />
-      <MapHint />
-      <HoverTag />
       <Timeline />
       <div className="right-column">
         <GodPanel />

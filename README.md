@@ -144,6 +144,12 @@ npm run reign -- --dry-run --seed 12
 | `+` / `-` / `0` | Acerca, aleja o encuadra el mapa |
 | `Esc` | Cierra la ficha del residente, o el cajón o diálogo en el que estás |
 | `⌘ ↵` / `Ctrl ↵` | Pregona lo escrito |
+| Flechas (con el mapa enfocado) | Mueven el mapa |
+| `N` / `P` (con el mapa enfocado) | Van al vecino siguiente o anterior: abren su ficha, lo siguen con la cámara y dicen dónde está y qué hace |
+
+### Accesibilidad
+
+Todo se puede usar con teclado. El primer `Tab` ofrece **ir a escribir un pregón** y el siguiente enfoca el mapa, que se recorre con las teclas de arriba. Para lectores de pantalla, el mapa es una región con instrucciones y anuncia a cada vecino al recorrerlo; las decisiones y el desenlace se anuncian en una región viva, y mientras hay un diálogo abierto lo de detrás queda inerte. Los colores de texto pasan el contraste AA (4.5:1) y, con «reducir movimiento», la cámara salta en vez de volar.
 
 ## Estructura
 

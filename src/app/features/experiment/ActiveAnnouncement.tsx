@@ -54,7 +54,7 @@ export function ActiveAnnouncement({ announcement }: { announcement: Announcemen
             {stats.decided.length} / {total}
           </span>
         </div>
-        <div className="progress-track segmented-bar" role="progressbar" aria-valuenow={stats.decided.length} aria-valuemax={total}>
+        <div className="progress-track segmented-bar" role="progressbar" aria-label="Vecinos que ya decidieron" aria-valuenow={stats.decided.length} aria-valuemin={0} aria-valuemax={total}>
           {ACTIONS.map((a) =>
             stats.counts[a] ? <span key={a} className="bar-seg" style={{ width: `${(stats.counts[a] / Math.max(1, total)) * 100}%`, background: ACTION_META[a].css }} /> : null,
           )}

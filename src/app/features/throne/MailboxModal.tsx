@@ -31,7 +31,7 @@ function Mailbox() {
   return (
     <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && close()}>
       <div className="modal panel mailbox" role="dialog" aria-modal="true" aria-labelledby="mailbox-title" ref={dialog}>
-        <header className="modal-header">
+        <div className="modal-header">
           <div>
             <h2 id="mailbox-title">Buzón de la Baronesa</h2>
             <p>Lo que le pide a quien creó este mundo. Nada se aplica solo; si le contestas, lo lee en su próximo informe.</p>
@@ -39,7 +39,7 @@ function Mailbox() {
           <button className="icon-btn" onClick={close} aria-label="Cerrar">
             <Close />
           </button>
-        </header>
+        </div>
         <div className="modal-body">
           <div className="mailbox-bar">
             <div className="segmented" role="tablist" aria-label="Qué cartas ver" style={{ ['--cols' as string]: 2, ['--active' as string]: tab === 'game' ? 0 : 1 }}>

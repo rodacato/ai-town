@@ -33,6 +33,7 @@ import { DIFFICULTY, withDifficulty, type Difficulty } from '../core/realm/diffi
 import { Throne, type ThroneHost } from './throne'
 import { roundSummary } from '../core/reactions/round'
 import { COMPACT } from './shell/layout'
+import { statusOf } from '../core/sim/status'
 import { clip } from '../core/format'
 
 /** The map's free area: beside the panel on wide screens, between the top bar and the bottom sheet on narrow ones. */
@@ -162,6 +163,22 @@ class TownController implements TerrariumHost, ThroneHost {
 
   zoomBy(factor: number) {
     this.renderer?.camera.zoomBy(factor)
+  }
+
+  /** Moves the map by a distance on screen, for the keyboard. */
+  panBy(dx: number, dy: number) {
+    this.renderer?.camera.panBy(dx, dy)
+  }
+
+  /** Selects the next or previous resident still in town, for the keyboard, and says where they are and what they are doing. */
+  cycleResident(step: 1 | -1): string | null {
+    const e = this.sim.economy
+    const here = this.sim.residents.filter((r) => !e || alive(e, r.profile.id))
+    if (!here.length) return null
+    const at = here.findIndex((r) => r.profile.id === useTown.getState().selectedId)
+    const next = here[at < 0 ? (step > 0 ? 0 : here.length - 1) : (at + step + here.length) % here.length]
+    this.select(next.profile.id)
+    return `${next.profile.name}, ${next.profile.occupation.toLowerCase()}: ${statusOf(this.sim, next)}`
   }
 
   /** The free area around the panels changed: the map re-frames itself unless someone moved it. */

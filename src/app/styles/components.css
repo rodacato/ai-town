@@ -123,7 +123,7 @@
   padding: 3px 9px 3px 8px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--c) 16%, white);
-  color: color-mix(in srgb, var(--c) 70%, black);
+  color: color-mix(in srgb, var(--c) 60%, black);
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
