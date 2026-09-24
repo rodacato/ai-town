@@ -6,6 +6,7 @@ import { thinkingStage } from '../experiment/stages'
 import { computeStats, seconds } from '../experiment/summary'
 import { town } from '../../town'
 import './timeline.css'
+import { firstName } from '../../../core/lang'
 
 const PHASE_TIP = { unaware: 'sin enterarse', heard: 'escuchó', thinking: 'pensando…', error: 'error' }
 
@@ -75,7 +76,7 @@ export function Timeline() {
                 onMouseEnter={() => town.highlight(r.id)}
                 onMouseLeave={() => town.highlight(null)}
                 aria-label={`${r.name}${tip ? `: ${tip}` : ''}`}
-                data-name={`${r.name.split(' ')[0]}${tip ? ` · ${tip}` : ''}`}
+                data-name={`${firstName(r.name)}${tip ? ` · ${tip}` : ''}`}
               >
                 <Avatar look={r.look} size={30} />
                 {rx?.decision && <span className="tl-emoji">{rx.decision.emoji}</span>}

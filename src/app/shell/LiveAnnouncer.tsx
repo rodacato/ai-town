@@ -3,6 +3,7 @@ import { ACTION_META } from '../../theme/actions'
 import { summarize } from '../features/experiment/summary'
 import { useTown } from '../store'
 import { town } from '../town'
+import { firstName } from '../../core/lang'
 
 const FLUSH_MS = 2500
 
@@ -23,7 +24,7 @@ export function LiveAnnouncer() {
     for (const r of Object.values(reactions)) {
       if (r.phase !== 'decided' || !r.decision || told.current.has(r.id + r.decision.action)) continue
       told.current.add(r.id + r.decision.action)
-      const name = town.content.residents.find((p) => p.id === r.id)?.name.split(' ')[0]
+      const name = firstName(town.content.residents.find((p) => p.id === r.id)?.name ?? '')
       queue.current.push(`${name}: ${ACTION_META[r.decision.action].label.toLowerCase()}`)
     }
   }, [reactions])

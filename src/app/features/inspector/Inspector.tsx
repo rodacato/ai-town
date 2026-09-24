@@ -7,6 +7,7 @@ import { Brain, Close } from '../../shared/icons'
 import { statusOf } from '../../../core/sim/status'
 import { town } from '../../town'
 import './inspector.css'
+import { firstName } from '../../../core/lang'
 
 export function Inspector({ id }: { id: string }) {
   const reaction = useTown((s) => s.reactions[id])
@@ -48,7 +49,7 @@ export function Inspector({ id }: { id: string }) {
       </section>
 
       <section>
-        <h3 className="section-label">Sobre {profile.name.split(' ')[0]}</h3>
+        <h3 className="section-label">Sobre {firstName(profile.name)}</h3>
         <p className="rc-bio">{profile.bio}</p>
         <div className="chips">
           {profile.traits.map((t) => (
@@ -59,7 +60,7 @@ export function Inspector({ id }: { id: string }) {
         </div>
       </section>
 
-      <PersonalityCard personality={profile.personality} name={profile.name.split(' ')[0]} />
+      <PersonalityCard personality={profile.personality} name={firstName(profile.name)} />
 
       <section>
         <h3 className="section-label">Relaciones</h3>

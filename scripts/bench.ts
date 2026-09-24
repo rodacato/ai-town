@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { parseArgs } from 'node:util'
 import { errorSummary, type ContenderReport } from '../src/core/bench/analysis'
+import { RULE_LABEL } from '../src/core/bench/coherence'
 import { executeRun, trialsPerContender, type BenchRun, type RunSetup } from '../src/core/bench/run'
 import { FAIL_FAST_AFTER, type BenchProgress } from '../src/core/bench/runner'
 import { MAX_CONCURRENCY } from '../src/providers'
@@ -11,6 +12,7 @@ import { createLlmProvider } from '../src/providers/llm/provider'
 import { completionEvents } from '../src/providers/llm/transport'
 import { createRulesProvider, mockDecision } from '../src/providers/mock'
 import { activeWorld } from '../src/worlds'
+import { firstName } from '../src/core/lang'
 
 const HELP = `Banco de pruebas de AI Town desde la terminal.
 
@@ -212,6 +214,7 @@ function printReport(run: BenchRun) {
       label(r.contender),
       r.format.checked ? pct(r.format.ok / r.format.checked) : '—',
       pct(r.consistency),
+      pct(r.persona ?? null),
       rules ? '—' : pct(r.referenceAgreement),
       r.errors ? `${r.errors}/${r.trials}` : '0',
       m.total && !rules ? `${s(m.total.p50)} / ${s(m.total.p95)}` : '—',
@@ -221,7 +224,7 @@ function printReport(run: BenchRun) {
       m.costUsd === null ? '—' : `${m.costEstimated ? '≈' : ''}$${m.costUsd.toFixed(m.costUsd < 0.01 ? 4 : 2)}`,
     ]
   }
-  const head = ['Contendiente', 'Formato', 'Consist.', 'Reglas', 'Errores', 'p50 / p95', 'Pet/s', 'Tok/s', 'Tokens', 'Costo']
+  const head = ['Contendiente', 'Formato', 'Consist.', 'Personaje', 'Reglas', 'Errores', 'p50 / p95', 'Pet/s', 'Tok/s', 'Tokens', 'Costo']
   const rows = run.report.contenders.map(row)
   const widths = head.map((h, i) => Math.max(h.length, ...rows.map((r) => r[i].length)))
   const fmt = (cells: string[]) => cells.map((c, i) => (i ? c.padStart(widths[i]) : c.padEnd(widths[i]))).join('  ')
@@ -234,6 +237,17 @@ function printReport(run: BenchRun) {
     for (const [id, list] of errors) {
       console.log(`  ${label(id)}${run.stopped?.includes(id) ? red(` · se detuvo: sus primeras ${FAIL_FAST_AFTER} peticiones fallaron`) : ''}`)
       for (const [message, n] of list) console.log(`    ${red(`${n}×`)} ${message}`)
+    }
+  }
+
+  const offCharacter = run.report.contenders.filter((r) => r.personaBroken && Object.keys(r.personaBroken).length)
+  if (offCharacter.length) {
+    const name = (id: string) => firstName(content.residents.find((p) => p.id === id)?.name ?? id)
+    console.log(bold('\nFuera de personaje'))
+    for (const r of offCharacter) {
+      console.log(`  ${label(r.contender)}`)
+      for (const [rule, e] of Object.entries(r.personaBroken!).sort((a, b) => b[1].count - a[1].count))
+        console.log(`    ${red(`${e.count}×`)} ${RULE_LABEL[rule] ?? rule}: ${e.residents.map(name).join(', ')}`)
     }
   }
 

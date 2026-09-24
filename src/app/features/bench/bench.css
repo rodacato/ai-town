@@ -1,5 +1,7 @@
 .bench-modal {
   width: min(920px, 100%);
+  /* Wide tables scroll inside their box instead of stretching the dialog past the screen. */
+  min-width: 0;
 }
 
 .bench-tabs {
@@ -409,4 +411,16 @@
 
 .bench-progress-row .field-error {
   margin-top: 6px;
+}
+
+.persona-list {
+  margin: 4px 0 8px;
+  padding: 0 0 0 4px;
+  list-style: none;
+  font-size: 12.5px;
+}
+
+.persona-list .mono {
+  margin-right: 4px;
+  color: var(--accent-ink);
 }

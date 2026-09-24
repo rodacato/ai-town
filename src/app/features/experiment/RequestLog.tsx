@@ -3,8 +3,9 @@ import { ACTION_META } from '../../../theme/actions'
 import type { Action } from '../../../core/decisions/types'
 import { useTown } from '../../store'
 import { town } from '../../town'
+import { firstName } from '../../../core/lang'
 
-const nameOf = (id: string) => town.content.residents.find((r) => r.id === id)?.name.split(' ')[0] ?? id
+const nameOf = (id: string) => firstName(town.content.residents.find((r) => r.id === id)?.name ?? id)
 
 function describe(e: LogEntry) {
   switch (e.kind) {

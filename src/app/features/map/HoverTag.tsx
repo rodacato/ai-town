@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useTown } from '../../store'
 import { town } from '../../town'
+import { firstName } from '../../../core/lang'
 
 export function HoverTag() {
   const hoveredId = useTown((s) => s.hoveredId)
@@ -27,7 +28,7 @@ export function HoverTag() {
     <div ref={ref} className={`hover-tag ${profile ? 'is-visible' : ''}`}>
       {profile && (
         <>
-          <strong>{profile.name.split(' ')[0]}</strong>
+          <strong>{firstName(profile.name)}</strong>
           <span>{profile.occupation}</span>
         </>
       )}
