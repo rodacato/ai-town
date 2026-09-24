@@ -1,4 +1,5 @@
 import type { Decision, DecisionContext } from '../../core/decisions/types'
+import { firstName } from '../../core/lang'
 
 /** Reads the value of a JSON string field from a possibly incomplete JSON document, so reasoning can stream. */
 export function partialStringField(json: string, key: string) {
@@ -39,7 +40,7 @@ export function parseDecision(text: string, ctx: DecisionContext): Decision {
   }
   const byName = (value: string) => {
     const v = value.toLowerCase().trim()
-    return ctx.townsfolk.find((p) => p.id === v || p.name.toLowerCase() === v || p.name.split(' ')[0].toLowerCase() === v)?.id
+    return ctx.townsfolk.find((p) => p.id === v || p.name.toLowerCase() === v || p.name.split(' ')[0].toLowerCase() === v || firstName(p.name).toLowerCase() === v)?.id
   }
   return {
     action: raw.action as Decision['action'],

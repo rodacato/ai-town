@@ -5,6 +5,7 @@ import type { Resident, Simulation, Task } from '../sim/simulation'
 import type { Point } from '../world/types'
 import type { Announcement } from './announcement'
 import { buildContext } from './context'
+import { firstName as first } from '../lang'
 
 export type Phase = 'unaware' | 'heard' | 'thinking' | 'decided' | 'error'
 
@@ -69,7 +70,6 @@ const HEAR_PAUSE = 0.7
 const SPEECH_PAUSE = 1.4
 const INDOOR_DELAY = 0.6
 
-const first = (name: string) => name.split(' ')[0]
 
 export class ReactionEngine {
   announcement: Announcement | null = null

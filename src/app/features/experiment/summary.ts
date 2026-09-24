@@ -3,8 +3,9 @@ import { ACTIONS, type Action } from '../../../core/decisions/types'
 import { toPlace } from '../../../core/lang'
 import { placeLabel, type Announcement } from '../../../core/reactions/announcement'
 import { town } from '../../town'
+import { firstName as shortName } from '../../../core/lang'
 
-export const firstName = (id: string) => town.content.residents.find((r) => r.id === id)?.name.split(' ')[0] ?? id
+export const firstName = (id: string) => shortName(town.content.residents.find((r) => r.id === id)?.name ?? id)
 const list = (names: string[]) => (names.length > 1 ? `${names.slice(0, -1).join(', ')} y ${names[names.length - 1]}` : (names[0] ?? ''))
 export const seconds = (ms: number) => `${(ms / 1000).toFixed(1)} s`
 export const tokens = (n: number) => (n >= 10000 ? `${(n / 1000).toFixed(0)}k` : n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(Math.round(n)))

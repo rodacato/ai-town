@@ -6,11 +6,12 @@ import { firstName, seconds } from '../experiment/summary'
 import { Exchange } from './Exchange'
 import { useNow } from '../../shared/useNow'
 import { town } from '../../town'
+import { firstName as shortName } from '../../../core/lang'
 
 export function ReactionDetail({ reaction, name }: { reaction: Reaction | undefined; name: string }) {
   const now = useNow(reaction?.phase === 'thinking')
   const streamed = useTown((s) => (reaction ? s.reasoning[reaction.id] : undefined))
-  const first = name.split(' ')[0]
+  const first = shortName(name)
   const noun = town.content.copy.noun
 
   if (!reaction) return <div className="reaction-body is-empty">Todavía no hay {noun}. Cuando haya uno, aquí verás qué decide {first} y por qué.</div>
@@ -98,7 +99,7 @@ export function ReactionDetail({ reaction, name }: { reaction: Reaction | undefi
                 (antes: «{reaction.previous.speech}»).
               </li>
             )}
-            {!reaction.revisedBy && reaction.previous && <li>{town.content.residents.find((p) => p.id === reaction.rumors.at(-1)?.fromId)?.name.split(' ')[0]} intentó convencerle, pero no cambió de idea.</li>}
+            {!reaction.revisedBy && reaction.previous && <li>{shortName(town.content.residents.find((p) => p.id === reaction.rumors.at(-1)?.fromId)?.name ?? '')} intentó convencerle, pero no cambió de idea.</li>}
           </ul>
           <Exchange reaction={reaction} />
         </div>
