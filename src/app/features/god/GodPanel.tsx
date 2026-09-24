@@ -4,15 +4,19 @@ import { formatClock } from '../../../core/sim/clock'
 import { SEASONS, SEASON_TEXT, type Season } from '../../../core/sim/season'
 import { WEATHERS, WEATHER_TEXT, type Weather } from '../../../core/sim/weather'
 import { useTown } from '../../store'
+import { TrustMeter } from '../../shared/TrustMeter'
+import { ago } from '../../../core/memory/memory'
+import type { Speaker } from '../../../core/reactions/announcement'
 import { Bolt, Close } from '../../shared/icons'
 import { town } from '../../town'
 import './god.css'
 
-type Tab = 'world' | 'events' | 'town'
+type Tab = 'world' | 'events' | 'town' | 'memory'
 const TABS: [Tab, string][] = [
   ['world', 'Mundo'],
   ['events', 'Eventos'],
   ['town', 'Pueblo'],
+  ['memory', 'Memoria'],
 ]
 const HOURS: [string, number][] = [
   ['Amanecer', 6.5],
@@ -90,6 +94,7 @@ function Drawer() {
         {tab === 'world' && <World />}
         {tab === 'events' && <Events />}
         {tab === 'town' && <TownActions />}
+        {tab === 'memory' && <TownMemoryView />}
       </div>
     </aside>
   )
@@ -198,5 +203,45 @@ function TownActions() {
       </div>
       <p className="field-hint">El pregón sorpresa usa un ejemplo al azar y deja al azar si es verdad.</p>
     </>
+  )
+}
+
+/** Who the town trusts and what it remembers, with a way to forget it all. */
+function TownMemoryView() {
+  const entries = useTown((s) => s.memoryEntries)
+  const [confirm, setConfirm] = useState(false)
+  const speakers: Speaker[] = [{ kind: 'authority' }, { kind: 'stranger' }, ...town.content.residents.map((r) => ({ kind: 'neighbor' as const, residentId: r.id }))]
+  const known = speakers.filter((s) => {
+    const rep = town.memory.reputation(s)
+    return s.kind !== 'neighbor' || rep.truths + rep.lies > 0
+  })
+  return (
+    <section className="god-memory">
+      <p className="field-hint">El pueblo recuerda quién dijo la verdad y quién mintió; eso cambia a quién le creen.</p>
+      {known.map((s) => (
+        <div key={s.kind === 'neighbor' ? s.residentId : s.kind} className="god-memory-row">
+          <TrustMeter speaker={s} label={town.speakerShort(s)} />
+        </div>
+      ))}
+      {entries.length > 0 && (
+        <ul className="god-memory-log">
+          {entries.slice(-4).reverse().map((e) => (
+            <li key={e.id}>
+              <span className="mono">{ago(useTown.getState().minutes, e.minutes)}</span> {e.summary}
+            </li>
+          ))}
+        </ul>
+      )}
+      {entries.length > 0 &&
+        (confirm ? (
+          <button className="btn-link" onClick={() => (town.forgetMemory(), setConfirm(false))}>
+            Sí, que el pueblo lo olvide todo
+          </button>
+        ) : (
+          <button className="btn-link" onClick={() => setConfirm(true)}>
+            Borrar la memoria del pueblo
+          </button>
+        ))}
+    </section>
   )
 }
