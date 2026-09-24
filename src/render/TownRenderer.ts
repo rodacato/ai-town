@@ -17,6 +17,7 @@ import { SeasonFx, WEATHER_GRADE, WeatherFx } from './weather'
 import type { Season } from '../core/sim/season'
 import type { Outcome } from '../core/reactions/outcome'
 import { drawTerrain, islandMask } from './terrain'
+import { watchFrames, type FrameStats } from './frameStats'
 
 export interface RendererEvents {
   onHover: (id: string | null) => void
@@ -71,6 +72,7 @@ export class TownRenderer {
   private announcementAt = -1
   private offEngine: () => void
   private selected: string | null = null
+  private stats: ReturnType<typeof watchFrames> | null = null
 
   static async create(host: HTMLElement, sim: Simulation, engine: ReactionEngine, art: WorldArt, events: RendererEvents, options: RendererOptions) {
     const app = new Application()
@@ -178,7 +180,11 @@ export class TownRenderer {
     this.camera.fit(false)
     app.renderer.on('resize', () => this.camera.handleResize())
 
-    app.ticker.add((t) => this.tick(Math.min(t.deltaMS / 1000, 0.05)))
+    app.ticker.add((t) => {
+      const t0 = this.stats ? performance.now() : 0
+      this.tick(Math.min(t.deltaMS / 1000, 0.05))
+      this.stats?.logged(performance.now() - t0)
+    })
   }
 
   select(id: string | null) {
@@ -217,7 +223,14 @@ export class TownRenderer {
     return { x: g.x, y: g.y, visible: r.mode !== 'inside' && r.mode !== 'gone' }
   }
 
+  /** Starts timing frames, for the performance meter; costs nothing until asked for. */
+  frameStats(): FrameStats {
+    this.stats ??= watchFrames(this.app)
+    return this.stats.read()
+  }
+
   destroy() {
+    this.stats?.stop()
     this.calmQuery.removeEventListener('change', this.onCalmChange)
     this.offEngine()
     this.camera.destroy()

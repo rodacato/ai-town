@@ -190,7 +190,10 @@ docs/          diseño del terrario y revisión de la 1.0
 - `npm run typecheck` y `npm run build`.
 - `npm run map`: imprime el mapa generado en ASCII.
 - `npm run sim:smoke`: corre 3 minutos de simulación sin interfaz.
+- `npm run perf -- [--mundo aguamansa] [--dias 3] [--velocidad 16]`: simula días enteros a la velocidad que digas, con un pregón cada medio día, y da cuánto cuesta la lógica por cuadro (p50, p95, p99 y máximo). Añadir `?perf` a la dirección de la app muestra un medidor con cuadros por segundo, lógica, dibujo, objetos y memoria, para probar en un teléfono o a ×16.
 - `npx tsx scripts/reaction-smoke.ts [banquet|troll|crypt|dragon]`: pasa los pregones de ejemplo por el motor en modo simulado.
-- `npm run fake-llm`: un LLM falso compatible con OpenAI en `http://127.0.0.1:6199` para probar el flujo de un modelo sin gastar; responde como vecino, como Baronesa o como juez según el prompt. Con `FAKE_KEY=…` exige esa key, para ensayar errores de autenticación.
+- `npm run fake-llm`: un LLM falso compatible con OpenAI en `http://127.0.0.1:6199` para probar el flujo de un modelo sin gastar; responde como vecino, como gobernante, como juez o con una petición según el prompt. Con `FAKE_KEY=…` exige esa key, para ensayar errores de autenticación.
+
+**Rendimiento medido** (portátil, 120 Hz, Chismeroble): a ×16, con el terrario en automático, cuatro eventos a la vez y un pregón con todo el pueblo reaccionando, cada cuadro gasta unos 0,4 ms en la lógica y 2,4 ms en dibujar, de 8,3 ms disponibles. En una partida larga los objetos del escenario se mantienen en unos 2.230, la memoria no crece y las texturas de texto de los globos se reutilizan (se estabilizan en torno a 115). Sin navegador, la lógica cuesta 0,11 ms en el 1 % de cuadros más lentos a ×16 y 0,22 ms a ×64.
 
 Cada PR corre en GitHub Actions el typecheck, los tests con cobertura y el build. Cada push a `main` publica en GitHub Pages (`.github/workflows/deploy.yml`; en el repo, **Settings → Pages → Source: GitHub Actions**). Cómo proponer cambios y publicar una versión está en [CONTRIBUTING.md](CONTRIBUTING.md).

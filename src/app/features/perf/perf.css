@@ -1,0 +1,30 @@
+.perf-meter {
+  position: absolute;
+  top: calc(var(--hud-h) + 12px);
+  left: var(--gutter);
+  z-index: 6;
+  padding: 8px 12px;
+  border-radius: var(--r-md, 12px);
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.perf-meter dl {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+}
+
+.perf-meter div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.perf-meter dt {
+  color: var(--ink-3);
+}
+
+.perf-meter dd {
+  margin: 0;
+}

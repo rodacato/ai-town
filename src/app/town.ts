@@ -166,6 +166,11 @@ class TownController implements TerrariumHost, ThroneHost {
     this.renderer?.camera.zoomBy(factor)
   }
 
+  /** How the last frames went, for the performance meter; null until the map is up. */
+  frameStats() {
+    return this.renderer?.frameStats() ?? null
+  }
+
   /** Moves the map by a distance on screen, for the keyboard. */
   panBy(dx: number, dy: number) {
     this.renderer?.camera.panBy(dx, dy)
