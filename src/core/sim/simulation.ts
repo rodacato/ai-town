@@ -4,10 +4,12 @@ import { createRng, type Rng } from '../world/rng'
 import type { Point } from '../world/types'
 import { createWorld, isWalkable, type World } from '../world/world'
 import { routineNow, staysIn } from './rhythm'
+import { catchUp, startEconomy, type Economy, type Ledger } from '../economy/economy'
 import type { Season } from './season'
 import type { Weather } from './weather'
 
-export type ResidentMode = 'walking' | 'idle' | 'inside'
+/** 'gone' means off the map for good: moved away or dead. */
+export type ResidentMode = 'walking' | 'idle' | 'inside' | 'gone'
 
 /** Scripted behaviour that overrides the daily routine, e.g. a reaction to an announcement. */
 export type Task =
@@ -16,6 +18,7 @@ export type Task =
   | { kind: 'enterHome'; label: string }
   | { kind: 'stay'; label: string }
   | { kind: 'meet'; who: string; seconds: number; label: string; onMeet: () => void; met?: boolean }
+  | { kind: 'vanish'; label: string }
 
 export interface Resident {
   profile: ResidentProfile
@@ -56,6 +59,11 @@ export class Simulation {
   minutes = START_MINUTES
   weather: Weather = 'clear'
   season: Season = 'summer'
+  /** The town's purse, granary and people's needs; null for worlds without an economy. */
+  economy: Economy | null
+  /** Graves dug for residents who died, so a reset can clear them. */
+  graves: Point[] = []
+  private ledgerListeners = new Set<(l: Ledger) => void>()
   private rng: Rng
   private chatCheck = 0
   private tickers = new Set<(dt: number) => void>()
@@ -67,6 +75,7 @@ export class Simulation {
     this.world = createWorld(content)
     this.rng = createRng(seed)
     for (const profile of content.residents) this.residents.push(this.spawn(profile))
+    this.economy = content.economy ? startEconomy(content.economy, content.residents.map((r) => r.id), this.minutes) : null
   }
 
   /** Respawns everyone in place so renderer sprites keep pointing at the same Resident objects. */
@@ -77,6 +86,14 @@ export class Simulation {
     this.season = 'summer'
     const fresh = this.residents.map((r) => this.spawn(r.profile))
     fresh.forEach((f, i) => Object.assign(this.residents[i], f))
+    this.economy = this.content.economy ? startEconomy(this.content.economy, this.content.residents.map((r) => r.id), this.minutes) : null
+    const cemetery = this.world.places.find((p) => p.id === 'cemetery')
+    for (const g of this.graves) {
+      this.world.tiles[g.y][g.x] = { ...this.world.tiles[g.y][g.x], prop: undefined, blocked: false }
+      cemetery?.spots.push(g)
+    }
+    this.graves = []
+    this.world.version++
   }
 
   /** Jumps to an hour of the current day; the day does not change. */
@@ -94,6 +111,65 @@ export class Simulation {
 
   homeDoor(r: Resident) {
     return this.world.buildings.find((b) => b.id === r.profile.home)!.door
+  }
+
+  /** Called with each dawn's accounts, after departures are applied. */
+  onLedger(fn: (l: Ledger) => void) {
+    this.ledgerListeners.add(fn)
+    return () => this.ledgerListeners.delete(fn)
+  }
+
+  /** Runs the dawn ledger for any day that has begun, and sends the dead and the departed off the map. */
+  private settleDays() {
+    if (!this.economy || !this.content.economy) return
+    for (const ledger of catchUp(this.economy, this.content.economy, this.season, this.minutes)) {
+      for (const id of ledger.died) {
+        const r = this.get(id)!
+        r.mode = 'gone'
+        r.tasks = []
+        r.path = []
+        this.digGrave()
+      }
+      for (const id of ledger.left) {
+        const r = this.get(id)!
+        const exit = this.spotAt('gate')
+        this.assign(r, exit ? [{ kind: 'walk', to: exit, label: 'Se marcha del pueblo' }, { kind: 'vanish', label: 'Se fue del pueblo' }] : [{ kind: 'vanish', label: 'Se fue del pueblo' }])
+        r.frozen = false
+      }
+      for (const fn of this.ledgerListeners) fn(ledger)
+    }
+  }
+
+  /** Puts back graves dug in an earlier session. */
+  restoreGraves(graves: Point[]) {
+    const cemetery = this.world.places.find((p) => p.id === 'cemetery')
+    for (const g of graves) {
+      this.world.tiles[g.y][g.x] = { ...this.world.tiles[g.y][g.x], prop: 'grave', blocked: true }
+      if (cemetery) cemetery.spots = cemetery.spots.filter((s) => s.x !== g.x || s.y !== g.y)
+    }
+    this.graves = [...graves]
+    this.world.version++
+  }
+
+  /** A new grave in the cemetery, on a free tile that leaves the rest of it reachable. */
+  private digGrave() {
+    const cemetery = this.world.places.find((p) => p.id === 'cemetery')
+    if (!cemetery) return
+    const occupied = (s: Point) => this.residents.some((r) => r.mode !== 'gone' && Math.floor(r.x) === s.x && Math.floor(r.y) === s.y)
+    const outside = this.spotAt('street') ?? this.homeDoor(this.residents[0])
+    const keepsItOpen = (s: Point) => {
+      const tile = this.world.tiles[s.y][s.x]
+      tile.blocked = true
+      const ok = cemetery.spots.every((o) => (o.x === s.x && o.y === s.y) || findPath(this.world, o, outside) !== null)
+      tile.blocked = false
+      return ok
+    }
+    const spot = [...cemetery.spots].reverse().find((s) => !this.world.tiles[s.y][s.x].prop && !occupied(s) && keepsItOpen(s))
+    if (!spot) return
+    this.world.tiles[spot.y][spot.x] = { ...this.world.tiles[spot.y][spot.x], prop: 'grave', blocked: true }
+    cemetery.spots.splice(cemetery.spots.indexOf(spot), 1)
+    this.graves.push(spot)
+    this.world.version++
   }
 
   onTick(fn: (dt: number) => void) {
@@ -137,6 +213,7 @@ export class Simulation {
 
   update(dt: number) {
     this.minutes += dt * GAME_MINUTES_PER_SECOND
+    this.settleDays()
     for (const r of this.residents) this.step(r, dt)
     this.chatCheck -= dt
     if (this.chatCheck <= 0) {
@@ -173,7 +250,7 @@ export class Simulation {
   }
 
   private step(r: Resident, dt: number) {
-    if (r.frozen) return
+    if (r.frozen || r.mode === 'gone') return
     if (r.mode === 'walking') {
       this.move(r, dt)
       if (r.path.length) {
@@ -186,7 +263,7 @@ export class Simulation {
     if (r.tasks.length) return this.runTask(r, dt)
     r.timer -= dt
     if (r.timer > 0) return
-    if (r.mode === 'inside' && staysIn(r.profile, this.minutes)) {
+    if (r.mode === 'inside' && staysIn(r.profile, this.minutes, this.economy?.laws.curfew)) {
       r.timer = this.rng.range(10, 20)
       return
     }
@@ -246,6 +323,10 @@ export class Simulation {
         return
       }
       case 'stay':
+        return
+      case 'vanish':
+        r.mode = 'gone'
+        r.tasks = []
         return
       case 'meet': {
         const other = this.get(task.who)!
@@ -326,7 +407,7 @@ export class Simulation {
   }
 
   private pickDestination(r: Resident, initial: boolean): { kind: string; tile: Point } | null {
-    const options = Object.entries(routineNow(r.profile, this.minutes, this.weather, this.season))
+    const options = Object.entries(routineNow(r.profile, this.minutes, this.weather, this.season, this.economy?.laws.curfew))
       .filter(([kind]) => !(initial && kind === 'home'))
       .filter(([kind]) => kind !== r.destination || kind === 'street' || kind === 'visit')
       .map(([kind, weight]) => ({ item: kind, weight }))

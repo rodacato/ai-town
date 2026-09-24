@@ -100,11 +100,12 @@ export class ResidentSprite {
     this.view.position.set(p.x, p.y)
     this.view.zIndex = r.x + r.y
 
-    const target = r.mode === 'inside' ? 0 : 1
+    const hidden = r.mode === 'inside' || r.mode === 'gone'
+    const target = hidden ? 0 : 1
     this.alpha += (target - this.alpha) * Math.min(1, dt * 8)
     this.view.alpha = this.alpha
     this.view.visible = this.alpha > 0.02
-    this.view.eventMode = r.mode === 'inside' ? 'none' : 'static'
+    this.view.eventMode = hidden ? 'none' : 'static'
 
     this.body.scale.x = Math.abs(this.body.scale.x) * r.facing
     const walking = r.mode === 'walking'
@@ -115,7 +116,7 @@ export class ResidentSprite {
     this.armR.rotation = walking ? -s * 0.5 : -Math.sin(time * 1.3 + r.walkPhase) * 0.04
     this.body.y = walking ? -Math.abs(Math.cos(r.walkPhase)) * 1.4 : Math.sin(time * 2 + r.walkPhase) * 0.3
 
-    const showReaction = reaction.bubble.kind !== 'none' && r.mode !== 'inside'
+    const showReaction = reaction.bubble.kind !== 'none' && !hidden
     this.reactionBubble.update(showReaction ? reaction.bubble : { kind: 'none' }, p.x, p.y + this.bubbleOffset + 4, time, dt, zoom)
     this.stateRing.visible = reaction.ring !== null
     if (reaction.ring !== null) {

@@ -49,6 +49,7 @@ export class TownRenderer {
   private glows: Glow[] = []
   private scenery: Container[] = []
   private season: Season = 'summer'
+  private worldVersion = 0
   private ambience: Ambience = { night: 0 }
   /** Honors prefers-reduced-motion: decorative motion freezes and the camera jumps instead of flying. */
   private calm = false
@@ -212,7 +213,7 @@ export class TownRenderer {
     if (!r) return null
     const p = iso(r.x, r.y)
     const g = this.world.toGlobal({ x: p.x, y: p.y - this.sprites.get(id)!.headHeight - 4 })
-    return { x: g.x, y: g.y, visible: r.mode !== 'inside' }
+    return { x: g.x, y: g.y, visible: r.mode !== 'inside' && r.mode !== 'gone' }
   }
 
   destroy() {
@@ -318,6 +319,7 @@ export class TownRenderer {
     this.glows = []
     this.lights.clear()
     this.season = season
+    this.worldVersion = this.sim.world.version
     const terrain = drawTerrain(W, art.terrain(season))
     this.world.addChildAt(terrain, 0)
     this.scenery.push(terrain)
@@ -400,7 +402,7 @@ export class TownRenderer {
     const zoom = this.camera.scale
     for (const [id, s] of this.sprites) s.update(t, dt, this.reactionVisual(id), zoom)
     if (!this.calm) for (const s of this.sentries) s.update(t)
-    if (this.sim.season !== this.season) this.buildScenery(this.sim.season)
+    if (this.sim.season !== this.season || this.sim.world.version !== this.worldVersion) this.buildScenery(this.sim.season)
     this.butterflies.view.visible = this.season === 'spring' || this.season === 'summer'
     this.syncOutcomes(t, dt)
     this.weather.set(this.sim.weather)

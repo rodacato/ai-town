@@ -27,6 +27,22 @@ Son 20 residentes, entre ellos un mentiroso compulsivo, un paranoico, una recié
 
 Al pregonar eliges si el anuncio es **verdad**, **mentira** o **al azar**. Los residentes nunca lo saben (no llega al prompt): deciden solo con lo que oyen. Cuando todos han decidido, el mapa lo revela: si era verdad, el dragón incendia el bosque, aparece el troll en el puente, se sirve el festín o brilla el oro; si era mentira, no hay nada y quien fue vuelve a casa decepcionado. Quien está cerca de un peligro real huye. El panel dice cuántos acertaron (creyeron lo verdadero o dudaron de lo falso) y el inspector lo marca en cada residente. Qué ocurre con cada tipo de anuncio se define por palabras clave en `outcomes` del mundo.
 
+## Economía y necesidades
+
+Cada amanecer corre el libro de cuentas: la cosecha llena el granero (Godric, Ottokar, Kael y Elowen; mucho en otoño, casi nada en invierno), cada oficio cobra y paga el impuesto al tesoro, cada quien compra su ración (primero los que tienen más oro, así que los pobres pasan hambre antes) y el tesoro paga a los guardias. Quien pasa un día sin comer tiene hambre; al segundo, si anda desanimado, se va por la puerta sur; al tercero enferma y, si no vuelve a comer, muere y aparece una tumba nueva en el cementerio. Los eventos reales pesan: la crecida arruina el granero, el ladrón vacía el tesoro, la caravana trae comida. El tablero de arriba a la izquierda resume el reino, el inspector muestra cómo está cada residente, y el hambre y el bolsillo vacío llegan al prompt.
+
+El pueblo entero (hora, clima, estación, economía, tumbas y dónde está cada quien) y su memoria se guardan en el navegador hasta que pulses **Reiniciar**, que empieza una partida nueva.
+
+## El trono
+
+El botón 👑 **Trono** (o la tecla `T`) te deja gobernar como la Baronesa, con los mismos decretos que usará un modelo cuando gobierne: impuesto (0–60%), precio de la ración (gratis a 6 monedas), repartir comida a quien pasa hambre, comprar raciones a mercaderes, una paga extra, una fiesta en la plaza y tres leyes (toque de queda, racionamiento y leva de guardias), cada una con su costo en ánimo. Cada decreto se valida contra el tesoro y el granero, queda en la crónica y, si quieres, se pregona: un pregón cierto suma confianza.
+
+En la pestaña **Baronesa IA** eliges quién gobierna: tú, las reglas o un modelo. Cada amanecer la Baronesa recibe un informe del castillo con cifras exactas de las arcas, pero con noticias atrasadas y rumores exagerados, y peticiones de los vecinos; responde en JSON con hasta tres acciones (decretos, pregones que ella misma marca como ciertos o falsos, y cartas al creador). Se ve su razonamiento, el informe y la respuesta cruda, cuántas veces mintió, y un tope de consultas por partida. Las cartas llegan al **Buzón** con aviso en la barra; nada de lo que pide se aplica solo.
+
+### Poder y conflicto
+
+Bartolo le debe una fortuna a un gremio de ladrones de la capital. El gremio conspira más cuanto más triste está el pueblo y más gordo el tesoro, avisa con rumores (🗡️ en el tablero) y acaba asaltando el castillo de noche; la leva de guardias lo frena. Si la confianza en la Baronesa cae o el pueblo sufre tres amaneceres seguidos (✊), se alza en revuelta. Perder a más de la mitad de los vecinos también es derrota; gobernar un año (40 días) es victoria, y **Año de prosperidad** si el pueblo sigue lleno y contento. La partida termina con una pantalla de balance; puedes seguir mirando o empezar otra.
+
 ## El ritmo del pueblo
 
 La rutina de cada residente depende de la hora, el clima y la estación: de 22:00 a 6:00 casi todos duermen en casa, salvo los que tienen rutina nocturna (Rowan canta en la taberna, Kael caza, Mortimer ronda el cementerio, Sir Aldric patrulla); al atardecer vuelven a casa o a la taberna; con lluvia, tormenta o nieve buscan techo, y en invierno salen menos.
@@ -35,11 +51,12 @@ La rutina de cada residente depende de la hora, el clima y la estación: de 22:0
 
 El botón ⚡ **Dios** de la barra superior (o la tecla `G`) abre un cajón para cambiar el mundo al instante, sin tapar el mapa:
 
-- **Tiempo:** saltar a amanecer, mediodía, atardecer o noche, y correr el pueblo a ×1, ×2, ×4 o pausarlo (los modelos siguen a su ritmo).
+- **Tiempo:** saltar a amanecer, mediodía, atardecer o noche, y correr el pueblo a ×1, ×2, ×4, ×16 o pausarlo (los modelos siguen a su ritmo).
 - **Estación:** primavera (árboles en flor y pétalos), verano, otoño (copas naranjas, pasto dorado y hojas cayendo) o invierno (todo nevado). También entra en el prompt.
 - **Clima:** despejado, lluvia, tormenta con relámpagos, nieve o niebla. Los residentes lo notan: el clima entra en el prompt, y en el modo simulado los que no son valientes ni codiciosos no salen con mal tiempo.
 - **Eventos:** dragón, bestia, esqueletos, lobos, fantasma, incendio, crecida, meteorito, ladrón, caravana, festín o tesoro, donde tenga sentido o en el lugar que elijas, o 🎲 algo inesperado (de noche, más tenebroso). Un evento es un pregón sin pregonero: quienes están cerca **lo ven con sus propios ojos** y deciden qué hacer (con el modelo o las reglas), y los que corren a avisar llevan la noticia al resto de boca en boca.
-- **Pueblo:** reunir a todos en un lugar, toque de queda y un pregón sorpresa (ejemplo al azar con verdad al azar).
+- **Pueblo:** reunir a todos en un lugar, un pregón sorpresa (ejemplo al azar con verdad al azar) y azuzar al gremio de ladrones.
+- **Terrario:** pon el pueblo en marcha solo, a ×16: las estaciones cambian cada 10 días, el destino golpea según un calendario con semilla (ves los próximos golpes), la Baronesa gobierna cada amanecer y los vecinos deciden con reglas (o con el modelo, si lo activas, gastando mucho más). La **Crónica** (también desde el día en el tablero) cuenta el reinado día a día con gráficas de vecinos, ánimo, confianza y tesoro. La partida se puede guardar en un archivo y cargar después.
 
 ## Modelo de decisiones
 
@@ -99,6 +116,15 @@ npm run bench -- --compare bench-results/antes.json bench-results/despues.json
 ```
 
 Muestra el progreso en vivo, imprime la misma tabla que el navegador (más peticiones por segundo) y guarda la corrida en `bench-results/`. Ese JSON se importa en el historial del Banco de pruebas. Ctrl+C cancela y guarda lo que alcanzó a correr.
+
+### Duelo de gobernantes
+
+`npm run reign` pone a varias Baronesas a gobernar el mismo año sin navegador, con la misma semilla y el mismo calendario del destino: el trono vacío y las reglas como referencia, más los modelos que pases. Al final muestra quién terminó el año, vecinos, muertos, asaltos, confianza, ánimo, tesoro, mentiras, fallos de formato, costo y un puntaje, y las cartas que cada una escribió al creador. Cada Baronesa con modelo hace una consulta por día.
+
+```
+npm run reign -- -m anthropic:claude-sonnet-5 -m shellm:codex --seed 12
+npm run reign -- --dry-run --seed 12
+```
 
 ## Publicar en GitHub Pages
 

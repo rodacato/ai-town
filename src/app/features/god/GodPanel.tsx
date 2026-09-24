@@ -8,11 +8,14 @@ import { TrustMeter } from '../../shared/TrustMeter'
 import { ago } from '../../../core/memory/memory'
 import type { Speaker } from '../../../core/reactions/announcement'
 import { Bolt, Close } from '../../shared/icons'
+import { Choice } from '../../shared/Choice'
 import { town } from '../../town'
+import { GOALS } from '../../../core/realm/standing'
 import './god.css'
 
-type Tab = 'world' | 'events' | 'town' | 'memory'
+type Tab = 'terrarium' | 'world' | 'events' | 'town' | 'memory'
 const TABS: [Tab, string][] = [
+  ['terrarium', 'Terrario'],
   ['world', 'Mundo'],
   ['events', 'Eventos'],
   ['town', 'Pueblo'],
@@ -29,6 +32,7 @@ const SPEEDS: [string, number][] = [
   ['×1', 1],
   ['×2', 2],
   ['×4', 4],
+  ['×16', 16],
 ]
 const SEASON_ICON: Record<Season, string> = { spring: '🌸', summer: '☀️', autumn: '🍂', winter: '❄️' }
 const WEATHER_ICON: Record<Weather, string> = { clear: '☀️', rain: '🌧️', storm: '⛈️', snow: '❄️', fog: '🌫️' }
@@ -62,7 +66,7 @@ export function GodPanel() {
 
 function Drawer() {
   const setGodOpen = useTown((s) => s.setGodOpen)
-  const [tab, setTab] = useState<Tab>('world')
+  const [tab, setTab] = useState<Tab>('terrarium')
   const ref = useRef<HTMLElement>(null)
 
   useEffect(() => {
@@ -91,6 +95,7 @@ function Drawer() {
         ))}
       </div>
       <div role="tabpanel" className="god-body">
+        {tab === 'terrarium' && <Terrarium />}
         {tab === 'world' && <World />}
         {tab === 'events' && <Events />}
         {tab === 'town' && <TownActions />}
@@ -100,17 +105,80 @@ function Drawer() {
   )
 }
 
-function Choice<T>({ label, options, value, onPick, render }: { label: string; options: T[]; value: T; onPick: (v: T) => void; render: (v: T) => React.ReactNode }) {
-  const active = options.indexOf(value)
+const foretell = (visual: OutcomeVisual, place: string) => {
+  const e = EVENTS.find((x) => x.visual === visual)
+  const where = town.sim.world.places.find((p) => p.id === place)?.name
+  return `${e?.icon ?? '❔'} ${e?.label ?? visual}${where ? ` · ${where}` : ''}`
+}
+
+/** The town running on its own: start or stop it, see what fate has in store, keep the game in a file. */
+function Terrarium() {
+  const { autoplay, seed, fateDone, residentsOnModel, realm, season, standing, llm } = useTown()
+  const file = useRef<HTMLInputElement>(null)
+  const day = realm?.day ?? 0
+  const coming = town.fateCalendar().filter((f) => f.day > fateDone && f.day >= day).slice(0, 3)
+  const save = () => {
+    const { name, text } = town.exportGame()
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' }))
+    a.download = name
+    a.click()
+    URL.revokeObjectURL(a.href)
+  }
   return (
-    <div className="segmented" role="radiogroup" aria-label={label} style={{ ['--cols' as string]: options.length, ['--active' as string]: active }}>
-      {active >= 0 && <span className="segmented-thumb" aria-hidden />}
-      {options.map((o, i) => (
-        <button key={i} role="radio" aria-checked={i === active} className={i === active ? 'is-active' : ''} onClick={() => onPick(o)}>
-          {render(o)}
+    <>
+      <button className={autoplay ? 'btn-secondary' : 'btn-primary'} onClick={() => town.setAutoplay(!autoplay)} disabled={!!standing.end && !autoplay}>
+        {autoplay ? '⏸ Detener el terrario' : '▶ Poner en marcha el terrario'}
+      </button>
+      <p className="field-hint">
+        {standing.end
+          ? `Partida terminada: ${standing.end.title}. Reinicia para empezar otra.`
+          : `Día ${day + 1} de ${GOALS.yearDays} · ${SEASON_ICON[season]} ${SEASON_TEXT[season].label} · semilla ${seed}. Las estaciones cambian cada 10 días y el destino golpea en su día.`}
+      </p>
+      <label className="check">
+        <input type="checkbox" checked={residentsOnModel} disabled={llm.active === 'mock'} onChange={(e) => town.setResidentsOnModel(e.target.checked)} />
+        <span>Los vecinos también piensan con el modelo (gasta muchas más consultas)</span>
+      </label>
+      <div className="field">
+        <span className="field-label">Próximos golpes del destino</span>
+        <ul className="god-fate">
+          {coming.length ? (
+            coming.map((f) => (
+              <li key={f.day}>
+                <span className="mono">
+                  Día {f.day + 1} · {String(f.hour).padStart(2, '0')}:00
+                </span>{' '}
+                {foretell(f.visual, f.place)}
+              </li>
+            ))
+          ) : (
+            <li className="muted">Nada más en el calendario.</li>
+          )}
+        </ul>
+      </div>
+      <div className="god-grid three">
+        <button className="btn-secondary compact" onClick={() => useTown.setState({ chronicleOpen: true })}>
+          📜 Crónica
         </button>
-      ))}
-    </div>
+        <button className="btn-secondary compact" onClick={save}>
+          💾 Guardar
+        </button>
+        <button className="btn-secondary compact" onClick={() => file.current?.click()}>
+          📂 Cargar
+        </button>
+      </div>
+      <input
+        ref={file}
+        type="file"
+        accept="application/json,.json"
+        hidden
+        onChange={(e) => {
+          const f = e.target.files?.[0]
+          if (f) void f.text().then((t) => town.importGame(t))
+          e.target.value = ''
+        }}
+      />
+    </>
   )
 }
 
@@ -187,21 +255,20 @@ function Events() {
 }
 
 function TownActions() {
-  const curfew = useTown((s) => s.curfew)
   return (
     <>
       <div className="god-stack">
         <button className="btn-secondary compact" onClick={() => town.gather(town.content.gatheringPlace)}>
           Reunir a todos en la plaza
         </button>
-        <button className="btn-secondary compact" aria-pressed={curfew} onClick={() => town.setCurfew(!curfew)}>
-          {curfew ? 'Levantar el toque de queda' : 'Toque de queda'}
-        </button>
         <button className="btn-secondary compact" onClick={() => town.surprise()}>
           Pregón sorpresa
         </button>
+        <button className="btn-secondary compact" onClick={() => town.stirGuild()}>
+          🗡️ Azuzar al gremio de ladrones
+        </button>
       </div>
-      <p className="field-hint">El pregón sorpresa usa un ejemplo al azar y deja al azar si es verdad.</p>
+      <p className="field-hint">El pregón sorpresa usa un ejemplo al azar y deja al azar si es verdad. El gremio azuzado asalta el castillo al próximo amanecer; la leva de guardias reduce el botín.</p>
     </>
   )
 }

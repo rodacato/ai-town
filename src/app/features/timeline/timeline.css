@@ -175,3 +175,8 @@
   opacity: 1;
   transform: translate(-50%, 0);
 }
+
+.tl-person.is-away {
+  opacity: 0.3;
+  filter: grayscale(1);
+}

@@ -9,6 +9,8 @@ export interface World {
   landmarks: Landmark[]
   sentries: Sentry[]
   places: Place[]
+  /** Bumped whenever tiles change after generation (a new grave), so the renderer knows to redraw. */
+  version: number
 }
 
 const PAVED = new Set<TileKind>(['path', 'plaza', 'bridge'])
@@ -102,7 +104,7 @@ export function createWorld(content: WorldContent): World {
   }
   L.decorate?.(tools)
 
-  const world: World = { size: N, tiles, buildings, landmarks: L.landmarks, sentries: L.sentries ?? [], places: [] }
+  const world: World = { size: N, tiles, buildings, landmarks: L.landmarks, sentries: L.sentries ?? [], places: [], version: 0 }
   world.places = buildPlaces(world, content)
   return world
 }

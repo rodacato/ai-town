@@ -1,3 +1,4 @@
+import type { EconomyRules } from '../economy/economy'
 import type { OutcomeDef } from '../reactions/outcome'
 import type { Rng } from './rng'
 import type { Building, Point, Tile, TileKind } from './types'
@@ -161,6 +162,8 @@ export interface WorldContent {
     danger: string[]
     cues: [needle: string, label: string][]
   }
+  /** How the town earns, eats and pays; without it the world has no economy. */
+  economy?: EconomyRules
   /** What announcements turn into when they come true, matched by keyword. */
   outcomes?: OutcomeDef[]
   /** One paragraph that sets the scene for an LLM playing a resident. */

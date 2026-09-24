@@ -1,0 +1,122 @@
+.chronicle {
+  width: min(680px, 100%);
+}
+
+.sparks {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.spark {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: 2px 6px;
+  padding: 10px 12px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md, 12px);
+}
+
+.spark-label {
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.spark b {
+  font-size: 13px;
+}
+
+.spark svg {
+  grid-column: 1 / -1;
+  width: 100%;
+  height: 34px;
+}
+
+.spark-base {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.spark-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.chapters {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chapters summary {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  list-style: none;
+}
+
+.chapters summary::-webkit-details-marker {
+  display: none;
+}
+
+.chapter-day {
+  flex: none;
+  width: 72px;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.chapter-head {
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+.chapters ul {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 8px 0 10px 82px;
+  padding: 0;
+  list-style: none;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+.chapters ul li {
+  display: grid;
+  grid-template-columns: 40px 18px 1fr;
+  gap: 4px;
+}
+
+.chapters ul .mono {
+  color: var(--ink-3);
+  font-size: 11.5px;
+}
+
+.chapters .is-end,
+.chapters .is-death,
+.chapters .is-plot {
+  color: #9a4a42;
+}
+
+@media (max-width: 560px) {
+  .sparks {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .chapters ul {
+    margin-left: 0;
+  }
+}

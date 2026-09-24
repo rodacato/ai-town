@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTown } from '../../store'
 import { Avatar } from '../../shared/Avatar'
+import { NeedsCard } from './NeedsCard'
 import { PersonalityCard } from './PersonalityCard'
 import { ReactionDetail } from './ReactionDetail'
 import { Brain, Close } from '../../shared/icons'
@@ -59,6 +60,8 @@ export function Inspector({ id }: { id: string }) {
           ))}
         </div>
       </section>
+
+      <NeedsCard id={id} />
 
       <PersonalityCard personality={profile.personality} name={firstName(profile.name)} />
 
