@@ -27,5 +27,6 @@ function contentSecurityPolicy(): Plugin {
 export default defineConfig(({ mode, command }) => ({
   base: command === 'build' ? './' : '/',
   plugins: [react(), llmProxy(loadEnv(mode, process.cwd(), '')), contentSecurityPolicy()],
-  server: { port: 5173 },
+  // A preview host may assign PORT when 5173 is taken.
+  server: { port: Number(process.env.PORT) || 5173 },
 }))

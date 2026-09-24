@@ -5,6 +5,7 @@ import type { Resident, Simulation, Task } from '../sim/simulation'
 import type { Point } from '../world/types'
 import type { Announcement } from './announcement'
 import { buildContext } from './context'
+import { judge, planOutcome, THREATS, type Outcome } from './outcome'
 import { firstName as first } from '../lang'
 
 export type Phase = 'unaware' | 'heard' | 'thinking' | 'decided' | 'error'
@@ -34,6 +35,8 @@ export interface Reaction {
   told: string[]
   error: string | null
   calls: CallRecord[]
+  /** Set once the truth is revealed: whether their belief matched it. */
+  verdict: { right: boolean; note: string } | null
 }
 
 /** One round trip to the decision provider; a resident who reconsiders makes several. */
@@ -64,11 +67,16 @@ export type EngineEvent =
   | { type: 'reasoning'; id: string }
   | { type: 'told'; from: string; to: string }
   | { type: 'complete' }
+  | { type: 'outcome'; outcome: Outcome }
 
 const WAVE_SPEED = 6
 const HEAR_PAUSE = 0.7
 const SPEECH_PAUSE = 1.4
 const INDOOR_DELAY = 0.6
+/** Seconds after the last decision before the truth shows, so people have time to get where they were going. */
+const REVEAL_DELAY = 7
+/** Tiles around a real threat from which people run home. */
+const FLEE_RADIUS = 7
 
 
 export class ReactionEngine {
@@ -82,6 +90,8 @@ export class ReactionEngine {
   private listeners = new Set<(e: EngineEvent) => void>()
   private clock = 0
   private completed = false
+  private revealing = false
+  outcome: Outcome | null = null
   startedAt = 0
 
   constructor(
@@ -108,6 +118,8 @@ export class ReactionEngine {
     this.stop()
     this.announcement = a
     this.completed = false
+    this.revealing = false
+    this.outcome = null
     this.startedAt = performance.now()
     this.origin = this.originFor(a)
     this.waveRadius = 0
@@ -130,6 +142,7 @@ export class ReactionEngine {
         response: null,
         usage: null,
         calls: [],
+        verdict: null,
         decidedBy: null,
         reasoning: '',
         decision: null,
@@ -154,6 +167,7 @@ export class ReactionEngine {
     for (const r of this.sim.residents) r.frozen = false
     this.reactions.clear()
     this.announcement = null
+    this.outcome = null
     this.waveRadius = 0
   }
 
@@ -307,6 +321,7 @@ export class ReactionEngine {
     }
     reaction.decision = decision
     reaction.reasoning = decision.reasoning
+    if (this.outcome) reaction.verdict = judge(decision, this.outcome.truth)
     reaction.phase = 'decided'
     reaction.decidedAt = performance.now()
     reaction.latencyMs = reaction.decidedAt - (reaction.startedAt ?? reaction.decidedAt)
@@ -386,6 +401,33 @@ export class ReactionEngine {
     if (this.settled) {
       this.completed = true
       this.emit({ type: 'complete' })
+      if (this.announcement?.truth !== undefined && !this.revealing) {
+        this.revealing = true
+        this.later('outcome', REVEAL_DELAY, () => this.reveal())
+      }
     }
+  }
+
+  private reveal() {
+    const a = this.announcement!
+    const outcome = planOutcome(this.sim.content, this.sim.world.places, { ...a, truth: a.truth! })
+    this.outcome = outcome
+    for (const reaction of this.reactions.values()) {
+      if (reaction.isSpeaker || !reaction.decision) continue
+      reaction.verdict = judge(reaction.decision, outcome.truth)
+      this.emit({ type: 'change', id: reaction.id })
+    }
+    for (const r of this.sim.residents) {
+      if (r.mode === 'inside') continue
+      const near = Math.hypot(r.x - outcome.at.x, r.y - outcome.at.y) <= FLEE_RADIUS
+      const action = this.reactions.get(r.profile.id)?.decision?.action
+      if (outcome.truth && THREATS.includes(outcome.visual) && near) this.sim.assign(r, [{ kind: 'enterHome', label: 'Huye despavorido' }])
+      else if (!outcome.truth && (action === 'go' || action === 'investigate'))
+        this.sim.assign(r, [
+          { kind: 'wait', seconds: 2.5, label: 'Aquí no hay nada…' },
+          { kind: 'enterHome', label: 'Vuelve a casa decepcionado' },
+        ])
+    }
+    this.emit({ type: 'outcome', outcome })
   }
 }

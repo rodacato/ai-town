@@ -11,7 +11,7 @@ import { PlaceChip } from '../../shared/PlaceChip'
 import { SpeakerBadge } from '../../shared/SpeakerBadge'
 import { RequestLog } from './RequestLog'
 import { STAGE_LABEL, queuePosition, thinkingStage } from './stages'
-import { computeStats, seconds, summarize, tokens, usd } from './summary'
+import { computeStats, firstName, seconds, summarize, tokens, usd } from './summary'
 import { allCalls, runMetrics } from '../../../core/reactions/metrics'
 import { callsCsv, download, runReport, stamp } from './export'
 import { town } from '../../town'
@@ -44,6 +44,7 @@ export function ActiveAnnouncement({ announcement }: { announcement: Announcemen
       <PlaceChip place={announcement.place} />
 
       <FailureBanner reactions={stats.listeners} />
+      {complete && <OutcomeCard reactions={stats.listeners} truthKnown={announcement.truth !== undefined} />}
       {complete && <Summary announcement={announcement} reactions={reactions} />}
 
       <div className="progress-card">
@@ -141,6 +142,32 @@ function ExportRun({ announcement, reactions }: { announcement: Announcement; re
         <Download width={14} height={14} /> CSV
       </button>
     </div>
+  )
+}
+
+/** Waits for the reveal, then says what was true and who read it right. */
+function OutcomeCard({ reactions, truthKnown }: { reactions: Reaction[]; truthKnown: boolean }) {
+  const outcome = useTown((s) => s.outcome)
+  if (!truthKnown) return null
+  if (!outcome)
+    return (
+      <section className="outcome-card is-pending" aria-live="polite">
+        <span className="summary-eyebrow">Desenlace</span>
+        <p>Todos decidieron. En unos segundos se verá en el mapa si era verdad…</p>
+      </section>
+    )
+  const judged = reactions.filter((r) => r.verdict)
+  const right = judged.filter((r) => r.verdict!.right)
+  const wrong = judged.filter((r) => !r.verdict!.right).map((r) => firstName(r.id))
+  return (
+    <section className={`outcome-card ${outcome.truth ? 'is-true' : 'is-false'}`} aria-live="polite">
+      <span className="summary-eyebrow">Desenlace · {outcome.truth ? 'era verdad' : 'era mentira'}</span>
+      <h3>{outcome.summary}</h3>
+      <p>
+        <b className="mono">{right.length}</b> de <b className="mono">{judged.length}</b> acertaron.
+        {wrong.length > 0 && ` ${outcome.truth ? 'No le creyeron' : 'Se dejaron engañar'}: ${wrong.slice(0, 6).join(', ')}${wrong.length > 6 ? ` y ${wrong.length - 6} más` : ''}.`}
+      </p>
+    </section>
   )
 }
 
@@ -243,6 +270,11 @@ function Feed({ reactions }: { reactions: Reaction[] }) {
                 <span className="feed-end">
                   {r.decision ? <ActionPill action={r.decision.action} short /> : <span className="feed-state">{r.phase === 'thinking' ? STAGE_LABEL[thinkingStage(r)] : PHASE_LABEL[r.phase]}</span>}
                   {r.latencyMs !== null && <span className="mono feed-latency">{seconds(r.latencyMs)}</span>}
+                  {r.verdict && (
+                    <span className={`verdict-mark ${r.verdict.right ? 'is-right' : 'is-wrong'}`} title={r.verdict.note}>
+                      {r.verdict.right ? '✓' : '✗'}
+                    </span>
+                  )}
                 </span>
               </button>
             </li>

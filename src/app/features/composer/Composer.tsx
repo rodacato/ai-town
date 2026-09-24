@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { speakerName } from '../../../core/reactions/announcement'
 import type { Example } from '../../../core/world/content'
 import { useTown } from '../../store'
-import { MAX_ANNOUNCEMENT_LENGTH } from '../../store/composer'
+import { MAX_ANNOUNCEMENT_LENGTH, type TruthChoice } from '../../store/composer'
 import { town } from '../../town'
 import { Megaphone } from '../../shared/icons'
 import { PlaceChip } from '../../shared/PlaceChip'
@@ -76,6 +76,8 @@ export function Composer() {
         </div>
       </div>
 
+      <TruthPicker />
+
       <button className="btn-primary" disabled={!canSend} onClick={() => town.transmit()}>
         <Megaphone width={17} height={17} />
         {town.content.copy.broadcast}
@@ -102,6 +104,32 @@ export function Composer() {
           })}
         </ul>
       </div>
+    </div>
+  )
+}
+
+const TRUTHS: [TruthChoice, string][] = [
+  ['true', 'Verdad'],
+  ['false', 'Mentira'],
+  ['random', 'Al azar'],
+]
+
+/** Decides, out of the residents' sight, whether the announcement comes true. */
+function TruthPicker() {
+  const truth = useTown((s) => s.draft.truth)
+  const setDraft = useTown((s) => s.setDraft)
+  return (
+    <div className="field">
+      <span className="field-label">¿Es verdad?</span>
+      <div className="segmented" role="radiogroup" aria-label="Si el anuncio resulta cierto" style={{ ['--active' as string]: TRUTHS.findIndex(([k]) => k === truth) }}>
+        <span className="segmented-thumb" aria-hidden />
+        {TRUTHS.map(([k, label]) => (
+          <button key={k} role="radio" aria-checked={truth === k} className={truth === k ? 'is-active' : ''} onClick={() => setDraft({ truth: k })}>
+            {label}
+          </button>
+        ))}
+      </div>
+      <span className="field-hint">Los residentes no lo saben: se revela en el mapa cuando todos hayan decidido.</span>
     </div>
   )
 }

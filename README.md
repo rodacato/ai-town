@@ -23,6 +23,10 @@ Cada residente tiene oficio, bio, rasgos, alineamiento y relaciones, y además u
 
 Son 20 residentes, entre ellos un mentiroso compulsivo, un paranoico, una recién llegada que no conoce a nadie y el sepulturero, pensados para poner a prueba a los modelos. Los soldados de la empalizada y del torreón solo montan guardia: no escuchan pregones ni deciden nada.
 
+## Verdad y desenlace
+
+Al pregonar eliges si el anuncio es **verdad**, **mentira** o **al azar**. Los residentes nunca lo saben (no llega al prompt): deciden solo con lo que oyen. Cuando todos han decidido, el mapa lo revela: si era verdad, el dragón incendia el bosque, aparece el troll en el puente, se sirve el festín o brilla el oro; si era mentira, no hay nada y quien fue vuelve a casa decepcionado. Quien está cerca de un peligro real huye. El panel dice cuántos acertaron (creyeron lo verdadero o dudaron de lo falso) y el inspector lo marca en cada residente. Qué ocurre con cada tipo de anuncio se define por palabras clave en `outcomes` del mundo.
+
 ## Modelo de decisiones
 
 El engrane de la barra superior abre la configuración. Opciones:

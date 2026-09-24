@@ -15,6 +15,8 @@ export interface Announcement {
   /** A place id, 'home' when it asks people to stay in, or null when it names no place. */
   place: string | null
   minutes: number
+  /** Whether it turns out to be true; residents never see it, the engine reveals it once they have decided. */
+  truth?: boolean
 }
 
 export const normalize = (text: string) =>

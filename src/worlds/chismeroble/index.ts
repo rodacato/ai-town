@@ -110,6 +110,12 @@ export const chismeroble: WorldContent = {
       ['sangre', 'firmar con sangre'],
     ],
   },
+  outcomes: [
+    { keywords: ['dragon', 'incendio', 'fuego'], visual: 'fire', label: 'el dragón incendió' },
+    { keywords: ['troll', 'orco', 'ogro', 'lobo', 'bandido'], visual: 'monster', label: 'apareció una bestia en' },
+    { keywords: ['banquete', 'festin', 'fiesta', 'aguamiel', 'comida'], visual: 'feast', label: 'hubo festín en' },
+    { keywords: ['oro', 'moneda', 'tesoro', 'recompensa'], visual: 'treasure', label: 'el oro era real en' },
+  ],
   promptSetting:
     'Chismeroble es una aldea de fantasía al estilo de Dragones y Mazmorras, gobernada por la Baronesa Isolda desde su torreón. En ella conviven humanos, elfos, enanos, medianos, gnomos, semiorcos y tiflins. La magia es real, los dragones y los trolls existen, en el Bosque Susurrante hay una cripta antigua, al sur está el cementerio y una empalizada con un puesto de guardia vigila la entrada del camino. Todos se conocen, el Roble Chismoso de la plaza es el centro de todos los rumores, y los chismes corren más rápido que los caballos.',
   copy: {
