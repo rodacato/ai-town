@@ -11,7 +11,7 @@ const STEP = 1 / 30
 export interface Scenario {
   id: string
   text: string
-  tone: string
+  tone: Example['tone']
   /** One context per resident who is not the speaker: the first reaction, without word of mouth. */
   contexts: DecisionContext[]
 }

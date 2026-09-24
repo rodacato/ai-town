@@ -13,6 +13,10 @@ export interface ContenderReport {
   beliefConsistency: number | null
   /** Share of residents whose most common action matches the rule-based reference. */
   referenceAgreement: number | null
+  /** Share of applicable personality rules the decisions kept; null when none applied. */
+  persona?: number | null
+  /** Broken personality rules by id, with the residents who broke them. */
+  personaBroken?: Record<string, { count: number; residents: string[] }>
   metrics: RunMetrics
   byScenario: Record<string, { actions: Record<Action, number>; believed: number; decided: number }>
 }
@@ -78,6 +82,18 @@ export function analyze(trials: Trial[], contenders: string[], reference?: Refer
       s.decided++
       if (t.believes) s.believed++
     }
+    let checked = 0
+    const personaBroken: NonNullable<ContenderReport['personaBroken']> = {}
+    for (const t of mine) {
+      if (!t.persona) continue
+      checked += t.persona.checked
+      for (const id of t.persona.broken) {
+        const entry = (personaBroken[id] ??= { count: 0, residents: [] })
+        entry.count++
+        if (!entry.residents.includes(t.resident)) entry.residents.push(t.resident)
+      }
+    }
+    const brokenTotal = Object.values(personaBroken).reduce((n, e) => n + e.count, 0)
     const compared = reference ? [...modes.get(c)!].filter(([k]) => reference.has(k)) : []
     return {
       contender: c,
@@ -86,6 +102,8 @@ export function analyze(trials: Trial[], contenders: string[], reference?: Refer
       format,
       consistency: mean(repeated.map((cell) => cell.trials.filter((t) => t.action === cell.action).length / cell.trials.length)),
       beliefConsistency: mean(repeated.map((cell) => cell.trials.filter((t) => t.believes === cell.believes).length / cell.trials.length)),
+      persona: checked ? 1 - brokenTotal / checked : null,
+      personaBroken,
       referenceAgreement: compared.length ? compared.filter(([k, cell]) => reference!.get(k)!.action === cell.action).length / compared.length : null,
       metrics: runMetrics(mine),
       byScenario,

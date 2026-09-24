@@ -3,6 +3,7 @@ import { ACTIONS } from '../../../core/decisions/types'
 import { trialsPerContender } from '../../../core/bench/run'
 import { errorSummary, type ContenderReport } from '../../../core/bench/analysis'
 import { FAIL_FAST_AFTER } from '../../../core/bench/runner'
+import { RULE_LABEL } from '../../../core/bench/coherence'
 import { PRESETS } from '../../../providers/llm/config'
 import { ACTION_META } from '../../../theme/actions'
 import { useTown } from '../../store'
@@ -15,6 +16,7 @@ import { MAX_REPETITIONS, specId, specLabel, useBench, type ContenderKind, type 
 import type { BenchRun } from './history'
 import { trialsCsv } from './exportRun'
 import './bench.css'
+import { firstName } from '../../../core/lang'
 
 const KINDS: ContenderKind[] = ['rules', 'anthropic', 'openai', 'shellm', 'custom']
 const PAID: ContenderKind[] = ['anthropic', 'openai']
@@ -247,6 +249,7 @@ function Result({ run }: { run: BenchRun }) {
               <th scope="col">Contendiente</th>
               <th scope="col" title="Respuestas con el JSON pedido, sin arreglos">Formato</th>
               <th scope="col" title="Cuántas repeticiones coinciden con la acción más común del residente">Consistencia</th>
+              <th scope="col" title="Decisiones que no contradicen la personalidad del residente (miedosos que no van al peligro, escépticos que no se tragan lo sospechoso…)">Personaje</th>
               {hasRef && <th scope="col" title="Acción más común igual a la de las reglas locales; una referencia, no la verdad">Como las reglas</th>}
               <th scope="col">Errores</th>
               <th scope="col" title="Mediana y percentil 95 de la respuesta completa">Respuesta</th>
@@ -265,6 +268,7 @@ function Result({ run }: { run: BenchRun }) {
       </div>
 
       <Errors run={run} label={label} />
+      <OutOfCharacter reports={reports} label={label} />
 
       {Object.keys(run.report.agreement).length > 0 && (
         <section>
@@ -361,6 +365,7 @@ function Row({ r, label, hasRef, ms }: { r: ContenderReport; label: string; hasR
       <th scope="row">{label}</th>
       <td className="mono">{r.format.checked ? pct(r.format.ok / r.format.checked) : '—'}</td>
       <td className="mono">{pct(r.consistency)}</td>
+      <td className="mono">{pct(r.persona ?? null)}</td>
       {hasRef && <td className="mono">{r.contender === 'rules' ? '—' : pct(r.referenceAgreement)}</td>}
       <td className={`mono ${r.errors ? 'is-bad' : ''}`}>{r.errors ? `${r.errors}/${r.trials}` : '0'}</td>
       <td className="mono">{m.total && r.contender !== 'rules' ? `${seconds(m.total.p50)} · ${seconds(m.total.p95)}` : '—'}</td>
@@ -448,6 +453,35 @@ function Errors({ run, label }: { run: BenchRun; label: (id: string) => string }
           </div>
         ))}
       </div>
+    </section>
+  )
+}
+
+const shortName = (id: string) => firstName(town.content.residents.find((r) => r.id === id)?.name ?? id)
+
+function OutOfCharacter({ reports, label }: { reports: ContenderReport[]; label: (id: string) => string }) {
+  const broken = reports.filter((r) => r.personaBroken && Object.keys(r.personaBroken).length)
+  if (!broken.length) return null
+  return (
+    <section>
+      <h3 className="section-label">Fuera de personaje</h3>
+      <ul className="issues">
+        {broken.map((r) => (
+          <li key={r.contender}>
+            <b>{label(r.contender)}</b>
+            <ul className="persona-list">
+              {Object.entries(r.personaBroken!)
+                .sort((a, b) => b[1].count - a[1].count)
+                .map(([rule, e]) => (
+                  <li key={rule}>
+                    <span className="mono">{e.count}×</span> {RULE_LABEL[rule] ?? rule}: {e.residents.map(shortName).join(', ')}
+                  </li>
+                ))}
+            </ul>
+          </li>
+        ))}
+      </ul>
+      <p className="field-hint">Solo cuenta contradicciones claras con las escalas de personalidad; no hay una única respuesta correcta.</p>
     </section>
   )
 }

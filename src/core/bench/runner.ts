@@ -1,5 +1,6 @@
 import { DecisionScheduler } from '../decisions/scheduler'
 import type { Action, Decision, DecisionContext, DecisionProvider, TokenUsage } from '../decisions/types'
+import { checkCoherence } from './coherence'
 import { checkFormat, type FormatCheck } from './format'
 import type { Scenario } from './scenarios'
 
@@ -23,6 +24,8 @@ export interface Trial {
   error: string | null
   /** Null when the provider does not answer in text (the rule-based mode). */
   format: FormatCheck | null
+  /** Personality rules that applied and which of them the decision broke; null when there was no decision. Optional for runs saved before it existed. */
+  persona?: { checked: number; broken: string[] } | null
   queueMs: number
   ttftMs: number | null
   totalMs: number | null
@@ -86,7 +89,7 @@ export async function runBench(plan: BenchPlan, opts: { signal?: AbortSignal; on
                 giveUp()
               }
             }
-            track(scheduler, contender.id, s.id, ctx, rep, finish)
+            track(scheduler, contender.id, s, ctx, rep, finish)
             waiting.add(resolve)
             opts.signal?.addEventListener('abort', () => resolve(), { once: true })
           }),
@@ -98,7 +101,7 @@ export async function runBench(plan: BenchPlan, opts: { signal?: AbortSignal; on
   return { trials, durations, stopped }
 }
 
-function track(scheduler: DecisionScheduler, contender: string, scenario: string, ctx: DecisionContext, rep: number, finish: (t: Trial) => void) {
+function track(scheduler: DecisionScheduler, contender: string, s: Scenario, ctx: DecisionContext, rep: number, finish: (t: Trial) => void) {
   const queued = performance.now()
   let started: number | null = null
   let firstToken: number | null = null
@@ -106,7 +109,7 @@ function track(scheduler: DecisionScheduler, contender: string, scenario: string
   let usage: TokenUsage | null = null
   const base = () => ({
     contender,
-    scenario,
+    scenario: s.id,
     resident: ctx.resident.id,
     rep,
     queueMs: (started ?? performance.now()) - queued,
@@ -120,8 +123,17 @@ function track(scheduler: DecisionScheduler, contender: string, scenario: string
     onReasoning: () => (firstToken ??= performance.now()),
     onResponse: (t, u) => ((text = t), (usage = u ?? null)),
     onDecision: (d: Decision) =>
-      finish({ ...base(), action: d.action, believes: d.believes, confidence: d.confidence, speech: d.speech, error: null, format: text === null ? null : checkFormat(text) }),
+      finish({
+        ...base(),
+        action: d.action,
+        believes: d.believes,
+        confidence: d.confidence,
+        speech: d.speech,
+        error: null,
+        format: text === null ? null : checkFormat(text),
+        persona: checkCoherence(ctx, s.tone, d),
+      }),
     onError: (message) =>
-      finish({ ...base(), action: null, believes: null, confidence: null, speech: null, error: message, format: text === null ? null : checkFormat(text) }),
+      finish({ ...base(), action: null, believes: null, confidence: null, speech: null, error: message, format: text === null ? null : checkFormat(text), persona: null }),
   })
 }

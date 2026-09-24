@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { analyze, cellKey, errorSummary } from '../src/core/bench/analysis'
+import { checkCoherence } from '../src/core/bench/coherence'
 import { checkFormat } from '../src/core/bench/format'
 import { FAIL_FAST_AFTER, runBench, type Contender } from '../src/core/bench/runner'
 import { buildScenario } from '../src/core/bench/scenarios'
 import type { Decision, DecisionEvent, DecisionProvider } from '../src/core/decisions/types'
 import { createRulesProvider, mockDecision } from '../src/providers/mock'
-import { content } from './helpers'
+import { content, exampleByTone } from './helpers'
 
 const contender = (id: string, provider: DecisionProvider): Contender => ({ id, label: id, provider, concurrency: 4, timeoutMs: 5000 })
 
@@ -86,6 +87,35 @@ describe('benchmark', () => {
     const run = runBench({ scenarios, repetitions: 1, contenders: [contender('slow', slow)] }, { signal: controller.signal })
     controller.abort()
     expect((await run).trials).toEqual([])
+  })
+})
+
+describe('persona coherence', () => {
+  const reckless: DecisionProvider = {
+    id: 'reckless',
+    label: 'reckless',
+    async *decide(ctx): AsyncIterable<DecisionEvent> {
+      yield { type: 'final', decision: { ...mockDecision(ctx, content.vocabulary), action: 'go', believes: true, tell: [] } }
+    },
+  }
+
+  it('finds the rules mode fully in character and a reckless model out of it', async () => {
+    const scenarios = content.examples.map((ex) => buildScenario(content, ex, 7))
+    const { trials } = await runBench({ scenarios, repetitions: 1, contenders: [contender('rules', createRulesProvider(content.vocabulary)), contender('reckless', reckless)] })
+    const report = analyze(trials, ['rules', 'reckless'])
+    const [rules, wild] = report.contenders
+    expect(rules.persona).toBe(1)
+    expect(wild.persona).toBeLessThan(0.7)
+    expect(Object.keys(wild.personaBroken!)).toEqual(expect.arrayContaining(['timid-into-danger', 'skeptic-buys-suspicious']))
+    const timid = content.residents.filter((r) => r.personality.scales.bravery <= 0.25).map((r) => r.id)
+    expect(wild.personaBroken!['timid-into-danger'].residents.every((id) => timid.includes(id))).toBe(true)
+  })
+
+  it('only judges the rules that apply to that resident', () => {
+    const [scenario] = [buildScenario(content, exampleByTone('emergencia'), 7)]
+    const brave = scenario.contexts.find((c) => c.resident.personality.scales.bravery >= 0.9)!
+    const goes = { ...mockDecision(brave, content.vocabulary), action: 'go' as const }
+    expect(checkCoherence(brave, 'emergencia', goes).broken).not.toContain('timid-into-danger')
   })
 })
 
