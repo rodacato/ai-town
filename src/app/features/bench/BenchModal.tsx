@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 import { ACTIONS } from '../../../core/decisions/types'
 import { trialsPerContender } from '../../../core/bench/run'
 import { errorSummary, type ContenderReport } from '../../../core/bench/analysis'
@@ -17,6 +17,8 @@ import type { BenchRun } from './history'
 import { trialsCsv } from './exportRun'
 import { CompareRuns } from './CompareRuns'
 import './bench.css'
+import { estimateRunCost, promptTokens } from './estimate'
+import { TYPICAL_REPLY_TOKENS } from '../../../providers/llm/pricing'
 import { firstName } from '../../../core/lang'
 
 const KINDS: ContenderKind[] = ['rules', 'anthropic', 'openai', 'shellm', 'custom']
@@ -76,6 +78,7 @@ function NewRun() {
   const { specs, scenarioIds, repetitions, seed, running, setPrefs, start } = useBench()
   const llm = useTown((s) => s.llm)
   const vaultLocked = useTown((s) => s.vaultLocked)
+  const avgPrompt = useMemo(() => promptTokens(town.content, town.content.examples.filter((e) => scenarioIds.includes(e.id)), seed), [scenarioIds, seed])
   if (running) return <Progress />
 
   const configured = (k: ContenderKind) => k === 'rules' || !!llm.connections[k].host.trim()
@@ -90,6 +93,9 @@ function NewRun() {
   const missingModel = specs.some((s) => s.kind !== 'rules' && !s.model.trim())
   const perModel = trialsPerContender(town.content, town.content.examples.filter((e) => scenarioIds.includes(e.id)), repetitions)
   const llmCount = specs.filter((s) => s.kind !== 'rules').length
+  const costs = specs.flatMap((s) => (s.kind === 'rules' || !s.model.trim() ? [] : [{ label: specLabel(s), cost: estimateRunCost({ ...llm.connections[s.kind], model: s.model.trim() }, perModel, avgPrompt) }]))
+  const priced = costs.filter((c) => c.cost !== null)
+  const unpriced = costs.filter((c) => c.cost === null)
   const keyless = [...new Set(specs.flatMap((s) => (s.kind !== 'rules' && !llm.connections[s.kind].apiKey ? [PRESETS[s.kind].label] : [])))]
   const problem = !specs.length
     ? 'Añade al menos un contendiente.'
@@ -191,6 +197,13 @@ function NewRun() {
           <b className="mono">{perModel}</b> peticiones por modelo{llmCount > 1 && <>, <b className="mono">{perModel * llmCount}</b> en total</>}. Solo se mide la primera reacción, sin boca en boca.
           {specs.some((s) => PAID.includes(s.kind)) && <span className="is-warning"> Con tu API key esto cuesta dinero real.</span>}
         </p>
+        {costs.length > 0 && (
+          <p className="bench-estimate" title={`Con ~${Math.round(avgPrompt)} tokens de prompt y ~${TYPICAL_REPLY_TOKENS} de respuesta por decisión, al precio de cada modelo.`}>
+            Costo estimado: <b className="mono">{usd(priced.reduce((n, c) => n + c.cost!, 0), true)}</b>
+            {priced.length > 1 && ` (${priced.map((c) => `${c.label} ${usd(c.cost, true)}`).join(' · ')})`}
+            {unpriced.length > 0 && <span className="is-muted"> · sin precio: {unpriced.map((c) => c.label).join(', ')}</span>}
+          </p>
+        )}
         {problem && <p className="field-error">{problem}</p>}
         <button className="btn-primary" disabled={!!problem} onClick={() => void start()}>
           Correr prueba
@@ -238,6 +251,7 @@ function Result({ run }: { run: BenchRun }) {
   const reports = run.report.contenders
   const name = `bench-${run.world}-${stamp()}`
   const hasRef = reports.some((r) => r.referenceAgreement !== null && r.contender !== 'rules')
+  const best = bestOf(reports)
   return (
     <div className="bench-result">
       <p className="bench-meta">
@@ -247,6 +261,7 @@ function Result({ run }: { run: BenchRun }) {
 
       <div className="table-scroll">
         <table className="bench-table">
+          <caption className="sr-only">Resultados por contendiente; el mejor modelo de cada columna va resaltado.</caption>
           <thead>
             <tr>
               <th scope="col">Contendiente</th>
@@ -256,16 +271,19 @@ function Result({ run }: { run: BenchRun }) {
               <th scope="col" title="Decisiones que no contradicen la personalidad del residente (miedosos que no van al peligro, escépticos que no se tragan lo sospechoso…)">Personaje</th>
               {hasRef && <th scope="col" title="Acción más común igual a la de las reglas locales; una referencia, no la verdad">Como las reglas</th>}
               <th scope="col">Errores</th>
+              <th scope="col" title="Mediana de lo que tarda en llegar el primer carácter del razonamiento">1.ª palabra</th>
               <th scope="col" title="Mediana y percentil 95 de la respuesta completa">Respuesta</th>
               <th scope="col" title="Peticiones terminadas por segundo, contando la espera">Pet/s</th>
               <th scope="col">Tokens/s</th>
-              <th scope="col" title="Entrada → salida">Tokens</th>
-              <th scope="col">Costo</th>
+              <th scope="col" title="Entrada → salida, en toda la corrida">Tokens</th>
+              <th scope="col" title="Tokens de entrada y salida por decisión">Tok./dec.</th>
+              <th scope="col" title="≈ cuando se estimó con el precio de lista o el que escribiste; «sin precio» cuando no hay con qué estimar">Costo</th>
+              <th scope="col" title="Lo que costarían 1.000 decisiones a este ritmo">$/1k dec.</th>
             </tr>
           </thead>
           <tbody>
             {reports.map((r) => (
-              <Row key={r.contender} r={r} label={label(r.contender)} hasRef={hasRef} ms={run.durations?.[r.contender]} />
+              <Row key={r.contender} r={r} label={label(r.contender)} hasRef={hasRef} ms={run.durations?.[r.contender]} best={best} />
             ))}
           </tbody>
         </table>
@@ -362,27 +380,65 @@ function Result({ run }: { run: BenchRun }) {
   )
 }
 
-function Row({ r, label, hasRef, ms }: { r: ContenderReport; label: string; hasRef: boolean; ms?: number }) {
+type Best = Partial<Record<keyof typeof BEST, Set<string>>>
+
+/** How each column is read and which way is better; the best model in each gets highlighted. */
+const BEST = {
+  format: [(r: ContenderReport) => (r.format.checked ? r.format.ok / r.format.checked : null), 'max'],
+  consistency: [(r: ContenderReport) => r.consistency, 'max'],
+  truth: [(r: ContenderReport) => r.truth ?? null, 'max'],
+  persona: [(r: ContenderReport) => r.persona ?? null, 'max'],
+  ttft: [(r: ContenderReport) => r.metrics.ttft?.p50 ?? null, 'min'],
+  total: [(r: ContenderReport) => r.metrics.total?.p50 ?? null, 'min'],
+  per1k: [(r: ContenderReport) => per1k(r), 'min'],
+} as const
+
+const per1k = (r: ContenderReport) => {
+  const decided = r.trials - r.errors
+  return r.metrics.costUsd === null || !decided ? null : (r.metrics.costUsd / decided) * 1000
+}
+
+/** The contenders that win each column, among the models; none when they all tie. */
+function bestOf(reports: ContenderReport[]): Best {
+  const models = reports.filter((r) => r.contender !== 'rules')
+  if (models.length < 2) return {}
+  const out: Best = {}
+  for (const [key, [read, dir]] of Object.entries(BEST) as [keyof typeof BEST, (typeof BEST)[keyof typeof BEST]][]) {
+    const scored = models.map((r) => [r.contender, read(r)] as const).filter((x): x is readonly [string, number] => x[1] !== null)
+    if (scored.length < 2) continue
+    const values = scored.map(([, v]) => v)
+    const top = dir === 'max' ? Math.max(...values) : Math.min(...values)
+    if (values.every((v) => v === top)) continue
+    out[key] = new Set(scored.filter(([, v]) => v === top).map(([id]) => id))
+  }
+  return out
+}
+
+function Row({ r, label, hasRef, ms, best }: { r: ContenderReport; label: string; hasRef: boolean; ms?: number; best: Best }) {
   const m = r.metrics
   const decided = r.trials - r.errors
+  const top = (key: keyof typeof BEST) => (best[key]?.has(r.contender) ? 'is-best' : '')
+  const rules = r.contender === 'rules'
+  const cost = per1k(r)
   return (
     <tr>
       <th scope="row">{label}</th>
-      <td className="mono">{r.format.checked ? pct(r.format.ok / r.format.checked) : '—'}</td>
-      <td className="mono">{pct(r.consistency)}</td>
-      <td className="mono" title={r.truth != null ? `Se tragó ${r.fooled ?? 0} mentiras · dudó de ${r.doubted ?? 0} verdades` : undefined}>
+      <td className={`mono ${top('format')}`}>{r.format.checked ? pct(r.format.ok / r.format.checked) : '—'}</td>
+      <td className={`mono ${top('consistency')}`}>{pct(r.consistency)}</td>
+      <td className={`mono ${top('truth')}`} title={r.truth != null ? `Se tragó ${r.fooled ?? 0} mentiras · dudó de ${r.doubted ?? 0} verdades` : undefined}>
         {pct(r.truth ?? null)}
       </td>
-      <td className="mono">{pct(r.persona ?? null)}</td>
+      <td className={`mono ${top('persona')}`}>{pct(r.persona ?? null)}</td>
       {hasRef && <td className="mono">{r.contender === 'rules' ? '—' : pct(r.referenceAgreement)}</td>}
       <td className={`mono ${r.errors ? 'is-bad' : ''}`}>{r.errors ? `${r.errors}/${r.trials}` : '0'}</td>
-      <td className="mono">{m.total && r.contender !== 'rules' ? `${seconds(m.total.p50)} · ${seconds(m.total.p95)}` : '—'}</td>
+      <td className={`mono ${top('ttft')}`}>{m.ttft && !rules ? seconds(m.ttft.p50) : '—'}</td>
+      <td className={`mono ${top('total')}`}>{m.total && !rules ? `${seconds(m.total.p50)} · p95 ${seconds(m.total.p95)}` : '—'}</td>
       <td className="mono">{ms && r.contender !== 'rules' && decided ? (r.trials / (ms / 1000)).toFixed(1) : '—'}</td>
       <td className="mono">{m.tokensPerSecond ? m.tokensPerSecond.toFixed(0) : '—'}</td>
       <td className="mono">{m.inputTokens ? `${tokens(m.inputTokens)} → ${tokens(m.outputTokens)}` : '—'}</td>
-      <td className="mono" title={m.costUsd !== null && decided ? `${usd(m.costUsd / decided)} por decisión` : undefined}>
-        {m.costUsd === null ? '—' : `${m.costEstimated ? '≈ ' : ''}${usd(m.costUsd)}`}
-      </td>
+      <td className="mono">{m.inputTokens && decided ? `${tokens(m.inputTokens / decided)} → ${tokens(m.outputTokens / decided)}` : '—'}</td>
+      <td className={`mono ${m.costUsd === null && !rules ? 'is-muted' : ''}`}>{rules ? '—' : usd(m.costUsd, m.costEstimated)}</td>
+      <td className={`mono ${top('per1k')}`}>{rules || cost === null ? '—' : usd(cost, m.costEstimated)}</td>
     </tr>
   )
 }
@@ -427,6 +483,7 @@ function History() {
             <span className="history-sub">
               {run.contenders.map((c) => c.label).join(' vs ')} · {run.scenarios.length} pregones × {run.repetitions}
             </span>
+            <span className="history-sub">{runDigest(run)}</span>
           </button>
           <button className="btn-link small" onClick={() => void remove(run.id)} aria-label="Borrar esta prueba">
             Borrar
@@ -436,6 +493,22 @@ function History() {
       </ul>
     </div>
   )
+}
+
+/** One line to tell runs apart: who got it most right, what it cost, and whether anything failed. */
+function runDigest(run: BenchRun) {
+  const models = run.report.contenders.filter((r) => r.contender !== 'rules')
+  const label = (id: string) => run.contenders.find((c) => c.id === id)?.label ?? id
+  const top = models.filter((r) => r.truth != null).sort((a, b) => b.truth! - a.truth!)[0]
+  const costs = models.map((r) => r.metrics.costUsd).filter((c): c is number => c !== null)
+  const errors = run.report.contenders.reduce((n, r) => n + r.errors, 0)
+  return [
+    top ? `más acierto: ${label(top.contender)} (${pct(top.truth!)})` : '',
+    costs.length ? `costó ${usd(costs.reduce((a, b) => a + b, 0), models.some((r) => r.metrics.costEstimated))}` : '',
+    errors ? `${errors} errores` : 'sin errores',
+  ]
+    .filter(Boolean)
+    .join(' · ')
 }
 
 function Errors({ run, label }: { run: BenchRun; label: (id: string) => string }) {

@@ -9,7 +9,8 @@ import { GOALS } from '../src/core/realm/standing'
 import { SEASON_DAYS } from '../src/core/realm/terrarium'
 import { createModelRuler } from '../src/providers/ruler'
 import { activeWorld } from '../src/worlds'
-import { bold, connectionForSpec, dim, fail, green, nodeStream, red, tty } from './cli'
+import { usd } from '../src/core/format'
+import { bold, connectionForSpec, PRICE_RE, dim, fail, green, nodeStream, red, tty } from './cli'
 
 const HELP = `Duelo de gobernantes: varias Baronesas gobiernan el mismo año, con la misma semilla y el mismo calendario del destino.
 
@@ -21,7 +22,8 @@ Uso: npm run reign -- [opciones]
       --seed <n>                         Semilla del calendario del destino (por defecto 7).
       --days <n>                         Días a gobernar (por defecto ${GOALS.yearDays + 1}: un año entero).
       --timeout <s>                      Tiempo máximo por turno (por defecto 120).
-      --price <entrada/salida>           USD por millón de tokens para estimar costo, ej. 3/15.
+      --price <entrada/salida>           USD por millón de tokens para los modelos sin precio propio, ej. 3/15.
+                                         Precio de un solo modelo: -m proveedor:modelo=3/15
   -o, --out <archivo.json>               Dónde guardar el duelo (por defecto reign-results/).
       --dry-run                          Muestra el plan y el calendario sin hacer peticiones.
   -h, --help
@@ -55,7 +57,7 @@ const int = (name: string, raw: string, min: number, max: number) => {
 const seed = int('seed', args.seed, 0, 2 ** 31)
 const days = int('days', args.days, 2, 400)
 const timeoutMs = int('timeout', args.timeout, 5, 3600) * 1000
-const price = args.price?.match(/^(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?)$/) ?? null
+const price = args.price?.match(PRICE_RE) ?? null
 if (args.price && !price) fail('--price va como entrada/salida, ej. 3/15.')
 
 const content = activeWorld.content
@@ -157,7 +159,7 @@ function printTable(list: ReignSummary[]) {
     ['Tesoro', (s) => `${s.treasury}`],
     ['Mentiras', (s) => `${s.lies}/${s.proclamations}`],
     ['Formato', (s) => (s.problems || s.errors ? red(`${s.problems} fallos${s.errors ? `, ${s.errors} sin respuesta` : ''}`) : 'ok')],
-    ['Costo', (s) => (s.costUsd ? `$${s.costUsd.toFixed(3)}` : '—')],
+    ['Costo', (s) => (s.ruler === 'Trono vacío' || s.ruler === 'Reglas' ? '—' : usd(s.costUsd))],
     ['Puntos', (s) => bold(`${s.score}`)],
   ]
   // eslint-disable-next-line no-control-regex

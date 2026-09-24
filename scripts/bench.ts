@@ -11,7 +11,8 @@ import { DEFAULT_SETTINGS, PRESETS, type Connection } from '../src/providers/llm
 import { createLlmProvider } from '../src/providers/llm/provider'
 import { createRulesProvider, mockDecision } from '../src/providers/mock'
 import { activeWorld } from '../src/worlds'
-import { bold, connectionForSpec, dim, ENV, fail, nodeStream, red, tty } from './cli'
+import { seconds, tokens, usd } from '../src/core/format'
+import { bold, connectionForSpec, PRICE_RE, dim, ENV, fail, nodeStream, red, tty } from './cli'
 import { firstName } from '../src/core/lang'
 import { ACTION_META } from '../src/theme/actions'
 
@@ -28,7 +29,8 @@ Uso: npm run bench -- [opciones]
       --seed <n>                         Semilla del pueblo (por defecto 7).
   -c, --concurrency <n>                  Peticiones a la vez por contendiente (1–${MAX_CONCURRENCY}).
       --timeout <s>                      Tiempo máximo por decisión (por defecto 120).
-      --price <entrada/salida>           USD por millón de tokens para estimar costo, ej. 3/15.
+      --price <entrada/salida>           USD por millón de tokens para los modelos sin precio propio, ej. 3/15.
+                                         Precio de un solo modelo: -m proveedor:modelo=3/15
   -o, --out <archivo.json>               Dónde guardar la corrida (por defecto bench-results/).
       --dry-run                          Muestra el plan sin hacer peticiones.
       --compare <antes.json> <después.json>
@@ -77,7 +79,7 @@ const repetitions = int('reps', args.reps, 1, 50)
 const seed = int('seed', args.seed, -(2 ** 31), 2 ** 31)
 const timeoutMs = int('timeout', args.timeout, 5, 3600) * 1000
 const concurrency = args.concurrency ? int('concurrency', args.concurrency, 1, MAX_CONCURRENCY) : null
-const price = args.price?.match(/^(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?)$/)
+const price = args.price?.match(PRICE_RE)
 if (args.price && !price) fail('--price va como entrada/salida, ej. 3/15.')
 
 const ids = args.scenarios?.split(',').map((s) => s.trim()) ?? content.examples.map((e) => e.id)
@@ -161,13 +163,14 @@ process.exit(run.cancelled ? 130 : dead.length ? 1 : 0)
 
 function printReport(run: BenchRun) {
   const pct = (n: number | null) => (n === null ? '—' : `${Math.round(n * 100)}%`)
-  const s = (ms: number) => `${(ms / 1000).toFixed(1)}s`
-  const k = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(Math.round(n)))
+  const s = seconds
+  const k = tokens
   const label = (id: string) => run.contenders.find((c) => c.id === id)?.label ?? id
   const row = (r: ContenderReport) => {
     const m = r.metrics
     const rules = r.contender === 'rules'
     const secs = (run.durations[r.contender] ?? 0) / 1000
+    const decided = r.trials - r.errors
     return [
       label(r.contender),
       r.format.checked ? pct(r.format.ok / r.format.checked) : '—',
@@ -176,14 +179,16 @@ function printReport(run: BenchRun) {
       pct(r.persona ?? null),
       rules ? '—' : pct(r.referenceAgreement),
       r.errors ? `${r.errors}/${r.trials}` : '0',
+      m.ttft && !rules ? s(m.ttft.p50) : '—',
       m.total && !rules ? `${s(m.total.p50)} / ${s(m.total.p95)}` : '—',
       !rules && secs && r.errors < r.trials ? (r.trials / secs).toFixed(1) : '—',
       m.tokensPerSecond ? m.tokensPerSecond.toFixed(0) : '—',
       m.inputTokens ? `${k(m.inputTokens)} → ${k(m.outputTokens)}` : '—',
-      m.costUsd === null ? '—' : `${m.costEstimated ? '≈' : ''}$${m.costUsd.toFixed(m.costUsd < 0.01 ? 4 : 2)}`,
+      rules ? '—' : usd(m.costUsd, m.costEstimated),
+      rules || m.costUsd === null || !decided ? '—' : usd((m.costUsd / decided) * 1000, m.costEstimated),
     ]
   }
-  const head = ['Contendiente', 'Formato', 'Consist.', 'Acierto', 'Personaje', 'Reglas', 'Errores', 'p50 / p95', 'Pet/s', 'Tok/s', 'Tokens', 'Costo']
+  const head = ['Contendiente', 'Formato', 'Consist.', 'Acierto', 'Personaje', 'Reglas', 'Errores', '1.ª palabra', 'p50 / p95', 'Pet/s', 'Tok/s', 'Tokens', 'Costo', '$/1k dec.']
   const rows = run.report.contenders.map(row)
   const widths = head.map((h, i) => Math.max(h.length, ...rows.map((r) => r[i].length)))
   const fmt = (cells: string[]) => cells.map((c, i) => (i ? c.padStart(widths[i]) : c.padEnd(widths[i]))).join('  ')
@@ -255,7 +260,7 @@ function compareFiles(files: string[]) {
       : fail('Las corridas no tienen contendientes en común; no sé qué comparar.')
   const name = (id: string) => firstName(content.residents.find((p) => p.id === id)?.name ?? id)
   const fmt = (v: number | null, unit: string) =>
-    v === null ? '—' : unit === 'pct' ? `${Math.round(v * 100)}%` : unit === 'ms' ? `${(v / 1000).toFixed(1)}s` : unit === 'usd' ? `$${v.toFixed(4)}` : v.toFixed(1)
+    v === null ? '—' : unit === 'pct' ? `${Math.round(v * 100)}%` : unit === 'ms' ? seconds(v) : unit === 'usd' ? usd(v) : v.toFixed(1)
   for (const [a, b] of pairs) {
     const cmp = compareSides({ run: before, contender: a }, { run: after, contender: b })
     const label = (run: BenchRun, id: string) => run.contenders.find((c) => c.id === id)?.label ?? id

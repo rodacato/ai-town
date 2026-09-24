@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { PRESETS, keyRing, withKeys, type Connection, type LlmSettings, type ProviderKind } from '../../../providers/llm/config'
 import { MAX_CONCURRENCY } from '../../../providers'
-import { knownPrice } from '../../../providers/llm/pricing'
+import { knownPrice, PRICES_AS_OF } from '../../../providers/llm/pricing'
 import { fetchModels, streamChat, transportMode, type TransportMode } from '../../../providers/llm/client'
 import { useTown } from '../../store'
 import { town } from '../../town'
@@ -324,18 +324,20 @@ function PriceInput({ label, value, placeholder, onChange }: { label: string; va
 
 /** Per-million-token prices for estimating cost when the host does not report it. */
 function PriceFields({ conn, onChange }: { conn: Connection; onChange: (patch: Partial<Connection>) => void }) {
-  const known = conn.kind === 'anthropic' ? knownPrice(conn.model) : null
+  const known = knownPrice(conn.model)
+  const own = conn.priceModel === conn.model
+  const set = (patch: Pick<Connection, 'priceIn'> | Pick<Connection, 'priceOut'>) => onChange({ ...(own ? {} : { priceIn: undefined, priceOut: undefined }), ...patch, priceModel: conn.model })
   return (
     <fieldset className="field price-fields">
       <legend className="field-label">Precio por millón de tokens (USD)</legend>
       <div className="price-inputs">
-        <PriceInput label="Entrada" value={conn.priceIn} placeholder={known ? String(known.input) : '—'} onChange={(priceIn) => onChange({ priceIn })} />
-        <PriceInput label="Salida" value={conn.priceOut} placeholder={known ? String(known.output) : '—'} onChange={(priceOut) => onChange({ priceOut })} />
+        <PriceInput key={`in-${conn.model}`} label="Entrada" value={own ? conn.priceIn : undefined} placeholder={known ? String(known.input) : '—'} onChange={(priceIn) => set({ priceIn })} />
+        <PriceInput key={`out-${conn.model}`} label="Salida" value={own ? conn.priceOut : undefined} placeholder={known ? String(known.output) : '—'} onChange={(priceOut) => set({ priceOut })} />
       </div>
       <span className="field-hint">
         {known
-          ? 'Vacío usa el precio de lista de este modelo. Solo sirve para estimar; tu factura manda.'
-          : 'Para estimar el costo de cada decisión cuando el host no lo reporta. Déjalo vacío para no estimar.'}
+          ? `Vacío usa el precio de lista de este modelo (revisado el ${PRICES_AS_OF}). Vale solo para ${conn.model}. Sirve para estimar; tu factura manda.`
+          : `Sin precio, el costo sale como «sin precio», no como gratis. Lo que escribas vale solo para ${conn.model || 'este modelo'}.`}
       </span>
     </fieldset>
   )

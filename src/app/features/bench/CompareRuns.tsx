@@ -57,10 +57,14 @@ export function CompareRuns() {
           <label key={label} className="field">
             <span className="field-label">{label}</span>
             <select className="input" value={value} onChange={(e) => set(e.target.value)}>
-              {options.map((o) => (
-                <option key={o.key} value={o.key}>
-                  {o.label}
-                </option>
+              {runs.map((run) => (
+                <optgroup key={run.id} label={`${new Date(run.createdAt).toLocaleString('es', { dateStyle: 'medium', timeStyle: 'short' })} · ${run.scenarios.length} pregones × ${run.repetitions}`}>
+                  {run.contenders.map((c) => (
+                    <option key={c.id} value={`${run.id}|${c.id}`}>
+                      {c.label}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           </label>

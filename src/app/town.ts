@@ -211,14 +211,18 @@ class TownController {
     const calls = reactions.flatMap((r) => r.calls)
     const times = calls.map((c) => c.totalMs).filter((ms): ms is number => ms !== null)
     const cost = calls.reduce((n, c) => n + (c.usage?.costUsd ?? 0), 0)
+    const sum = (k: 'inputTokens' | 'outputTokens') => calls.reduce((n, c) => n + (c.usage?.[k] ?? 0), 0)
     const counts = new Map<keyof typeof ACTION_META, number>()
     for (const r of reactions) if (r.decision) counts.set(r.decision.action, (counts.get(r.decision.action) ?? 0) + 1)
     const summary = [...counts].sort((a, b) => b[1] - a[1]).map(([action, n]) => `${n} ${ACTION_META[action].label.toLowerCase()}`).join(', ')
     this.settle(this.deciding, {
       status: errors && !decided ? 'error' : 'ok',
       detail: `${decided} de ${reactions.length} decidieron${summary ? `: ${summary}` : ''}${errors ? ` · ${errors} con error` : ''}${calls.length ? ` · ${calls.length} consultas` : ''}`,
-      ms: times.length ? Math.round(times.reduce((a, b) => a + b, 0) / times.length) : undefined,
+      ms: times.length ? Math.round([...times].sort((a, b) => a - b)[Math.floor((times.length - 1) / 2)]) : undefined,
       costUsd: cost || undefined,
+      costEstimated: calls.some((c) => c.usage?.costSource === 'table'),
+      tokensIn: sum('inputTokens') || undefined,
+      tokensOut: sum('outputTokens') || undefined,
     })
     this.deciding = null
   }
@@ -370,6 +374,9 @@ class TownController {
         detail: `${reply.mood > 0 ? 'Le sube el ánimo' : reply.mood < 0 ? 'Le baja el ánimo' : 'Su ánimo no cambia'} (ahora ${Math.round(n.mood * 100)}%)${reply.fellBack ? ' · el modelo no respondió en el formato esperado; habló con reglas' : ''}`,
         ms: reply.ms ? Math.round(reply.ms) : undefined,
         costUsd: reply.usage?.costUsd || undefined,
+        costEstimated: reply.usage?.costSource === 'table',
+        tokensIn: reply.usage?.inputTokens,
+        tokensOut: reply.usage?.outputTokens,
       })
       this.syncRealm()
     } catch (err) {
@@ -628,6 +635,9 @@ class TownController {
         detail: `«${reply.thought || '…'}»${actions.length ? ` → ${actions.map((a) => `${a.ok ? '' : '✗ '}${a.text}`).join(' · ')}` : ' → No hizo nada.'}${reply.problems.length ? ` · Formato: ${reply.problems.join(' ')}` : ''}`,
         ms: modelOk ? Math.round(reply.ms) : undefined,
         costUsd: reply.usage?.costUsd || undefined,
+        costEstimated: reply.usage?.costSource === 'table',
+        tokensIn: reply.usage?.inputTokens,
+        tokensOut: reply.usage?.outputTokens,
       })
       if (reply.actions.length) this.log('ruler', `La Baronesa: «${reply.thought.length > 160 ? `${reply.thought.slice(0, 157)}…` : reply.thought}»`)
     } catch (err) {

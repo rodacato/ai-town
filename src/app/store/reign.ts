@@ -37,6 +37,10 @@ export interface Activity {
   via?: string
   ms?: number
   costUsd?: number
+  /** The cost came from a price list, not from the provider. */
+  costEstimated?: boolean
+  tokensIn?: number
+  tokensOut?: number
 }
 
 /** A real event still going on; it settles its costs when `until` comes. */

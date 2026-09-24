@@ -9,6 +9,7 @@ import type { RulerMode } from '../../store/reign'
 import { TrustMeter } from '../../shared/TrustMeter'
 import { town } from '../../town'
 import '../god/god.css'
+import { seconds, usd } from '../../../core/format'
 import './throne.css'
 
 const TAXES = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
@@ -161,7 +162,7 @@ function BaronessRoom() {
             : rulerMode === 'rules'
               ? 'Cada amanecer decide con reglas sencillas, sin gastar nada.'
               : model
-                ? `Cada amanecer consulta a ${model}. Tope: ${rulerCalls}/${rulerCap} consultas en esta partida${rulerCost ? ` · ≈ $${rulerCost.toFixed(3)}` : ''}.`
+                ? `Cada amanecer consulta a ${model}. Tope: ${rulerCalls}/${rulerCap} consultas en esta partida${rulerCost ? ` · ${usd(rulerCost)}` : ''}.`
                 : 'No hay modelo configurado: elige uno en Configuración. Mientras, gobierna con reglas.'}
         </span>
       </div>
@@ -174,7 +175,7 @@ function BaronessRoom() {
           <div className="throne-turn-head">
             <span className="field-label">
               Día {lastTurn.day + 1} · {lastTurn.mode === 'model' ? 'con modelo' : 'con reglas'}
-              {lastTurn.ms ? ` · ${(lastTurn.ms / 1000).toFixed(1)} s` : ''}
+              {lastTurn.ms ? ` · ${seconds(lastTurn.ms)}` : ''}
             </span>
             <button className="btn-link" onClick={() => setReport(!report)} aria-expanded={report}>
               {report ? 'Ocultar informe' : 'Ver informe'}

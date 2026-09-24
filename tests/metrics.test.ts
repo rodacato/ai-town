@@ -40,3 +40,27 @@ describe('metrics', () => {
     expect(estimateCost(knownPrice('some-local-model'), 10, 10)).toBeUndefined()
   })
 })
+
+describe('how figures read', () => {
+  it('tells an unknown price from a free one, and marks estimates', async () => {
+    const { usd, clip } = await import('../src/core/format')
+    expect(usd(null)).toBe('sin precio')
+    expect(usd(0)).toBe('$0')
+    expect(usd(0.00123)).toBe('$0.0012')
+    expect(usd(0.456, true)).toBe('≈ $0.456')
+    expect(usd(12.5)).toBe('$12.50')
+    expect(clip('abcdef', 4)).toBe('abc…')
+  })
+
+  it('estimates what a run will cost from its real prompts, and nothing when the model has no price', async () => {
+    const { estimateRunCost, promptTokens } = await import('../src/app/features/bench/estimate')
+    const { DEFAULT_SETTINGS } = await import('../src/providers/llm/config')
+    const { content } = await import('./helpers')
+    const avg = promptTokens(content, content.examples.slice(0, 1), 7)
+    expect(avg).toBeGreaterThan(200)
+    const opus = { ...DEFAULT_SETTINGS.connections.anthropic, model: 'claude-opus-5' }
+    const sonnet = { ...opus, model: 'claude-sonnet-5' }
+    expect(estimateRunCost(opus, 100, avg)!).toBeGreaterThan(estimateRunCost(sonnet, 100, avg)!)
+    expect(estimateRunCost({ ...DEFAULT_SETTINGS.connections.shellm, model: 'claude' }, 100, avg)).toBeNull()
+  })
+})

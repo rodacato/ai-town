@@ -3,7 +3,7 @@ import { reportText, type RoyalReport } from '../core/realm/report'
 import { parseRulerTurn, RULER_SYSTEM, rulesRuler, type RulerTurn } from '../core/realm/ruler'
 import { streamChat, type ChatStream } from './llm/client'
 import type { Connection } from './llm/config'
-import { estimateCost, priceFor } from './llm/pricing'
+import { withCost } from './llm/pricing'
 
 export interface RulerReply extends RulerTurn {
   /** Exactly what was sent and received, for the throne room's transparency. */
@@ -26,10 +26,7 @@ export function createModelRuler(connection: Connection, stream: ChatStream = st
     let usage: TokenUsage | undefined
     for await (const e of stream(connection, RULER_SYSTEM, prompt, signal, { tag: 'Baronesa', timeoutMs: 110_000, maxTokens: 4000 })) {
       if (e.type === 'delta') text += e.text
-      else {
-        const cost = e.usage.costUsd ?? estimateCost(priceFor(connection), e.usage.inputTokens, e.usage.outputTokens)
-        usage = { ...e.usage, costUsd: cost }
-      }
+      else usage = withCost(connection, e.usage)
     }
     return { ...parseRulerTurn(text), prompt, response: text, usage, ms: performance.now() - t0 }
   }

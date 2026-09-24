@@ -34,7 +34,16 @@ for (const file of ['.env', '.env.local']) {
 /** The CLI talks to providers straight from Node: no proxy, no browser connection cap. */
 export const nodeStream: ChatStream = (connection, system, prompt, signal, opts = {}) => completionEvents(connection, { system, prompt, maxTokens: opts.maxTokens, timeoutMs: opts.timeoutMs }, signal)
 
-export function connectionForSpec(spec: string, opts: { concurrency?: number | null; price?: RegExpMatchArray | null } = {}): Connection {
+/** «3/15» → input and output USD per million tokens. */
+export const PRICE_RE = /^(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?)$/
+
+/** proveedor:modelo[@host][=entrada/salida]; the price after «=» is this model's own, else `opts.price` applies. */
+export function connectionForSpec(raw: string, opts: { concurrency?: number | null; price?: RegExpMatchArray | null } = {}): Connection {
+  const eq = raw.lastIndexOf('=')
+  const own = eq >= 0 ? raw.slice(eq + 1).match(PRICE_RE) : null
+  if (eq >= 0 && !own) fail(`Contendiente «${raw}»: el precio va como =entrada/salida, ej. =3/15.`)
+  const spec = eq >= 0 ? raw.slice(0, eq) : raw
+  const price = own ?? opts.price
   const colon = spec.indexOf(':')
   const kind = spec.slice(0, colon) as Connection['kind']
   if (colon < 0 || !(kind in ENV)) fail(`Contendiente «${spec}»: usa proveedor:modelo, con proveedor ${Object.keys(ENV).join(', ')}.`)
@@ -47,7 +56,7 @@ export function connectionForSpec(spec: string, opts: { concurrency?: number | n
   const base = DEFAULT_SETTINGS.connections[kind]
   const protocol = (env.protocol && process.env[env.protocol]) || base.protocol
   if (protocol !== 'openai' && protocol !== 'anthropic') fail(`Protocolo desconocido «${protocol}» para ${kind}.`)
-  const { concurrency, price } = opts
+  const { concurrency } = opts
   return {
     ...base,
     protocol,
@@ -55,6 +64,6 @@ export function connectionForSpec(spec: string, opts: { concurrency?: number | n
     host: host ?? (env.host && process.env[env.host]) ?? base.host,
     apiKey: process.env[env.key] ?? '',
     concurrency: concurrency ?? base.concurrency,
-    ...(price ? { priceIn: Number(price[1]), priceOut: Number(price[2]) } : {}),
+    ...(price ? { priceIn: Number(price[1]), priceOut: Number(price[2]), priceModel: model } : {}),
   }
 }

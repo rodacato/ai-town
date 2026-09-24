@@ -2,7 +2,7 @@ import type { DecisionContext, DecisionEvent, DecisionProvider, TokenUsage } fro
 import { streamChat, type ChatStream } from './client'
 import { PRESETS, type Connection } from './config'
 import { parseDecision, partialStringField } from './parse'
-import { estimateCost, priceFor } from './pricing'
+import { withCost } from './pricing'
 import { buildPrompt, buildSystemPrompt } from './prompt'
 
 /** `stream` defaults to the browser's route (local proxy or direct); the CLI passes a plain Node one. */
@@ -19,11 +19,7 @@ export function createLlmProvider(connection: Connection, stream: ChatStream = s
       yield { type: 'request', system, prompt }
       for await (const event of stream(connection, system, prompt, signal, { tag: ctx.resident.name, timeoutMs: 110_000 })) {
         if (event.type === 'done') {
-          const estimated = estimateCost(priceFor(connection), event.usage.inputTokens, event.usage.outputTokens)
-          usage =
-            event.usage.costUsd !== undefined
-              ? { ...event.usage, costSource: 'host' }
-              : { ...event.usage, costUsd: estimated, costSource: estimated === undefined ? undefined : 'table' }
+          usage = withCost(connection, event.usage)
           continue
         }
         text += event.text

@@ -509,3 +509,23 @@
   background: #f8ecea;
   color: #9a4a42;
 }
+
+.bench-table td.is-best {
+  color: #3f6a2a;
+  font-weight: 600;
+  background: rgba(111, 158, 84, 0.1);
+}
+
+.bench-table td.is-muted {
+  color: var(--ink-3);
+  font-style: italic;
+}
+
+.bench-estimate {
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+
+.bench-estimate .is-muted {
+  color: var(--ink-3);
+}

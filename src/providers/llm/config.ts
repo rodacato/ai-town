@@ -11,6 +11,8 @@ export interface Connection {
   /** USD per million tokens, overriding the known list price; used to estimate cost when the host does not report it. */
   priceIn?: number
   priceOut?: number
+  /** The model those prices were typed in for; they apply to no other, so comparing two models on one host never mixes prices. */
+  priceModel?: string
 }
 
 export interface LlmSettings {
@@ -91,7 +93,11 @@ export function loadSettings(): { settings: LlmSettings; hadPlaintextKeys: boole
     const settings: LlmSettings = {
       active: saved.active ?? 'mock',
       connections: Object.fromEntries(
-        Object.entries(DEFAULT_SETTINGS.connections).map(([k, def]) => [k, { ...def, ...saved.connections?.[k as keyof LlmSettings['connections']] }]),
+        Object.entries(DEFAULT_SETTINGS.connections).map(([k, def]) => {
+          const c = { ...def, ...saved.connections?.[k as keyof LlmSettings['connections']] }
+          // Prices saved before they were tied to a model belong to the model chosen then.
+          return [k, c.priceIn !== undefined && !c.priceModel ? { ...c, priceModel: c.model } : c]
+        }),
       ) as LlmSettings['connections'],
     }
     return { settings, hadPlaintextKeys: Object.values(settings.connections).some((c) => c.apiKey) }
