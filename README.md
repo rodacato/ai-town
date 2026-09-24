@@ -100,6 +100,8 @@ El botón **Pruebas** compara modelos con los mismos pregones y residentes. Una 
 - **Como las reglas**: coincidencia con el modo simulado, como referencia.
 - **Rendimiento y costo**: primera palabra, respuesta (mediana y p95), peticiones y tokens por segundo, tokens totales y por decisión, costo total y por 1.000 decisiones. El mejor modelo de cada columna va resaltado.
 
+La pestaña **Duelo de Baronesas** pone a gobernar el mismo año, con la misma semilla, dificultad y golpes del destino, al trono vacío, a las reglas y a los modelos que añadas. Estima el costo antes de empezar, muestra la tabla de resultados y cuatro gráficas (vecinos, confianza, ánimo y tesoro) con el cursor sincronizado, junto con las cartas que cada una escribió. El duelo sigue corriendo aunque cambies de pestaña, y se exporta en JSON (el mismo formato que `npm run reign`).
+
 Las pruebas se guardan en este navegador (IndexedDB), el historial resume cada una (quién acertó más, cuánto costó, errores) y se exportan en JSON o CSV. La pestaña **Comparar** pone lado a lado dos contendientes de cualquier prueba (el mismo modelo en dos días o dos modelos) y marca cada métrica como mejor, peor o igual, con qué residentes cambiaron de decisión.
 
 ### Desde la terminal
