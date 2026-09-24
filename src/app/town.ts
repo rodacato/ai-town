@@ -1,6 +1,8 @@
 import { DecisionScheduler } from '../core/decisions/scheduler'
 import { detectPlace, type Announcement } from '../core/reactions/announcement'
 import { ReactionEngine, type LogEntry, type Reaction } from '../core/reactions/engine'
+import { eventAt, react, type OutcomeVisual } from '../core/reactions/outcome'
+import type { Weather } from '../core/sim/weather'
 import { Simulation } from '../core/sim/simulation'
 import { createProvider } from '../providers'
 import { keyRing, saveSettings, withKeys, type LlmSettings } from '../providers/llm/config'
@@ -122,11 +124,13 @@ class TownController {
     window.setTimeout(() => {
       this.engine.stop()
       this.sim.reset()
+      this.renderer?.showEvent(null)
+      this.renderer?.setSpeed(1)
       this.renderer?.select(null)
       this.renderer?.markPlace(null)
       this.renderer?.camera.fit(false)
       this.pendingLog = []
-      useTown.setState({ announcement: null, reactions: {}, reasoning: {}, log: [], complete: false, draft: EMPTY_DRAFT, outcome: null })
+      useTown.setState({ announcement: null, reactions: {}, reasoning: {}, log: [], complete: false, draft: EMPTY_DRAFT, outcome: null, godEvent: null, weather: 'clear', speed: 1, curfew: false })
       this.syncClock()
       window.setTimeout(() => {
         useTown.setState({ resetting: false })
@@ -163,6 +167,58 @@ class TownController {
   forgetRememberedKeys() {
     forgetKeys()
     useTown.setState({ vaultLocked: false })
+  }
+
+  // God panel: direct control over the town, for trying things out without waiting.
+
+  setHour(hour: number) {
+    this.sim.setHour(hour)
+    this.syncClock()
+  }
+
+  setSpeed(speed: number) {
+    useTown.setState({ speed })
+    this.renderer?.setSpeed(speed)
+  }
+
+  setWeather(weather: Weather) {
+    this.sim.weather = weather
+    useTown.setState({ weather })
+  }
+
+  unleash(visual: OutcomeVisual, placeId: string) {
+    const event = eventAt(this.content, this.sim.world.places, visual, placeId)
+    // Residents mid-reaction to an announcement keep doing what they decided.
+    react(this.sim, event, (r) => r.frozen || r.tasks.length > 0)
+    this.renderer?.showEvent(event)
+    useTown.setState({ godEvent: event })
+    useTown.getState().toast(event.summary)
+  }
+
+  clearEvent() {
+    this.renderer?.showEvent(null)
+    useTown.setState({ godEvent: null })
+  }
+
+  gather(placeId: string) {
+    for (const r of this.sim.residents) {
+      if (r.frozen) continue
+      const spot = this.sim.spotAt(placeId)
+      if (spot) this.sim.assign(r, [{ kind: 'walk', to: spot, label: 'Convocado por una fuerza misteriosa' }, { kind: 'wait', seconds: 25, label: 'Esperando a ver qué pasa' }])
+    }
+    useTown.setState({ curfew: false })
+  }
+
+  setCurfew(on: boolean) {
+    for (const r of this.sim.residents) if (!r.frozen) this.sim.assign(r, on ? [{ kind: 'enterHome', label: 'Toque de queda' }] : [])
+    useTown.setState({ curfew: on })
+  }
+
+  /** One of the example announcements, with its truth left to chance. */
+  surprise() {
+    const ex = this.content.examples[Math.floor(Math.random() * this.content.examples.length)]
+    useTown.getState().setDraft({ text: ex.text, speaker: ex.speaker, truth: 'random' })
+    this.transmit()
   }
 
   private syncClock() {

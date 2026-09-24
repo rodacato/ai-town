@@ -54,6 +54,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  white-space: nowrap;
   height: 40px;
   padding: 0 14px;
   border-radius: 999px;
@@ -173,4 +174,20 @@
 
 .btn-pill:active {
   transform: scale(0.96);
+}
+
+.btn-pill.is-active {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+/* On narrower screens the tool buttons keep only their icons. */
+@media (max-width: 1100px) {
+  .btn-pill.tool .pill-label {
+    display: none;
+  }
+
+  .btn-pill.tool {
+    padding: 0 12px;
+  }
 }

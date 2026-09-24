@@ -3,7 +3,7 @@ import { useTown } from '../../store'
 import { town } from '../../town'
 import { activeLabel } from '../../../providers/llm/config'
 import { daylight } from '../../../theme/daylight'
-import { Gauge, Gear, Moon, Reset, Sun, TownMark, Users } from '../../shared/icons'
+import { Bolt, Gauge, Gear, Moon, Reset, Sun, TownMark, Users } from '../../shared/icons'
 import { useBench } from '../bench/benchStore'
 import './topbar.css'
 
@@ -13,6 +13,8 @@ export function TopBar() {
   const total = town.content.residents.length
   const llm = useTown((s) => s.llm)
   const openSettings = () => useTown.getState().setSettingsOpen(true)
+  const godOpen = useTown((s) => s.godOpen)
+  const setGodOpen = useTown((s) => s.setGodOpen)
   const { day, time } = formatClock(minutes)
 
   return (
@@ -41,6 +43,10 @@ export function TopBar() {
         </button>
         <button className="pill panel btn-pill icon-only" onClick={openSettings} aria-label="Configurar modelo de decisiones" title="Configurar modelo de decisiones">
           <Gear className="pill-icon gear" />
+        </button>
+        <button className={`pill panel btn-pill tool ${godOpen ? 'is-active' : ''}`} onClick={() => setGodOpen(!godOpen)} aria-pressed={godOpen} title="Modo dios: tiempo, clima y eventos (G)" aria-label="Modo dios">
+          <Bolt className="pill-icon" />
+          <span className="pill-label">Dios</span>
         </button>
         <BenchButton />
         <button className="pill panel btn-pill" onClick={() => town.reset()} title="Devuelve a todos a su rutina y borra el anuncio">

@@ -12,6 +12,7 @@ import { Timeline } from '../features/timeline/Timeline'
 import { ResetVeil, Toasts } from './Toasts'
 import { TopBar } from '../features/topbar/TopBar'
 import { TownCanvas } from '../features/map/TownCanvas'
+import { GodPanel } from '../features/god/GodPanel'
 import './shell.css'
 
 const SettingsModal = lazy(() => import('../features/settings/SettingsModal').then((m) => ({ default: m.SettingsModal })))
@@ -57,6 +58,7 @@ export function App() {
       <HoverTag />
       <Timeline />
       <RightPanel />
+      <GodPanel />
       <Toasts />
       <ResetVeil />
       <LazySettings />
@@ -70,12 +72,14 @@ export function App() {
 function useKeyboardShortcuts() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) return
+      if (e.metaKey || e.ctrlKey || e.altKey) return
       if (useTown.getState().settingsOpen || useBench.getState().open) return
       if (e.key === 'Escape') town.select(null)
       if (e.key === '+' || e.key === '=') town.zoomBy(1.25)
       if (e.key === '-') town.zoomBy(0.8)
       if (e.key === '0') town.fit()
+      if (e.key === 'g' || e.key === 'G') useTown.getState().setGodOpen(!useTown.getState().godOpen)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)

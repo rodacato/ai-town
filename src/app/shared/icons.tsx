@@ -191,3 +191,9 @@ export const Gauge = (p: SVGProps<SVGSVGElement>) => (
     <path className="gauge-needle" d="M12 17l4-5" />
   </svg>
 )
+
+export const Bolt = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <path d="M13 3 5 13.5h6L10 21l8-10.5h-6L13 3Z" />
+  </svg>
+)
