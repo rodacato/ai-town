@@ -3,14 +3,13 @@ import type { DayRecord } from '../../../core/realm/reign'
 import { GOALS } from '../../../core/realm/standing'
 import { chapters } from '../../../core/realm/terrarium'
 import { formatClock } from '../../../core/sim/clock'
-import type { Season } from '../../../core/sim/season'
+import { SEASON_ICON } from '../../../theme/seasons'
 import { useTown } from '../../store'
 import { Close } from '../../shared/icons'
 import { useDialog } from '../../shared/useDialog'
 import { town } from '../../town'
 import './chronicle.css'
 
-const SEASON_ICON: Record<Season, string> = { spring: '🌸', summer: '☀️', autumn: '🍂', winter: '❄️' }
 const KIND_ICON: Record<ChronicleKind, string> = { dawn: '🌅', decree: '📜', event: '⚡', reveal: '🔎', death: '🪦', leave: '🎒', ruler: '👑', petition: '✉️', plot: '🗡️', end: '🏁' }
 
 export function ChronicleModal() {

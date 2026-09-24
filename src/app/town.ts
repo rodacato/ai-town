@@ -24,7 +24,7 @@ import { HAD_PLAINTEXT_KEYS } from './store/settings'
 import { loadMemory, saveMemory } from './memoryStorage'
 import { exportGame, forgetTown, importGame, restoreTown, saveTown } from './townState'
 import { speakerName } from '../core/reactions/announcement'
-import { firstName } from '../core/lang'
+import { firstName, nameOf } from '../core/lang'
 import type { Outcome } from '../core/reactions/outcome'
 import type { MemoryEntry } from '../core/memory/memory'
 import { Terrarium, type TerrariumHost } from './terrarium'
@@ -325,7 +325,7 @@ class TownController implements TerrariumHost, ThroneHost {
   /** Dawn: the day's accounts in one line, and who is gone. */
   private onLedger(l: Ledger) {
     const { toast } = useTown.getState()
-    const name = (id: string) => firstName(this.content.residents.find((r) => r.id === id)?.name ?? id)
+    const name = (id: string) => nameOf(this.content, id)
     const dawn = `Amanece el día ${l.day + 1}: cosecha +${l.harvest}, ${l.sold} raciones vendidas${l.unfed.length ? `, ${l.unfed.length} sin comer` : ''}.`
     toast(dawn)
     const e = this.sim.economy!

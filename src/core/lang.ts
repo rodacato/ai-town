@@ -9,5 +9,8 @@ export const firstName = (name: string) => {
   return second && HONORIFICS.includes(first.toLowerCase()) ? `${first} ${second}` : first
 }
 
+/** How the town calls a resident, by id; the id itself if nobody has it. */
+export const nameOf = (content: { residents: { id: string; name: string }[] }, id: string) => firstName(content.residents.find((r) => r.id === id)?.name ?? id)
+
 export const listNames = (names: string[]) =>
   names.length > 1 ? `${names.slice(0, -1).join(', ')} y ${names[names.length - 1]}` : (names[0] ?? '')

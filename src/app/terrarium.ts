@@ -1,6 +1,6 @@
 import { alive, type Economy } from '../core/economy/economy'
 import { applyImpact, EFFECTS, guardDeed, rollHours } from '../core/economy/impact'
-import { firstName } from '../core/lang'
+import { firstName, nameOf as residentName } from '../core/lang'
 import type { MemoryEntry, TownMemory } from '../core/memory/memory'
 import type { OutcomeVisual } from '../core/reactions/outcome'
 import type { Chronicle, ChronicleKind } from '../core/realm/chronicle'
@@ -46,7 +46,7 @@ export class Terrarium {
     return this.host.sim.economy
   }
 
-  private nameOf = (id: string) => firstName(this.host.sim.content.residents.find((r) => r.id === id)?.name ?? id)
+  private nameOf = (id: string) => residentName(this.host.sim.content, id)
 
   calendar() {
     return fateCalendar(useTown.getState().seed, GOALS.yearDays + 1)

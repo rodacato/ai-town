@@ -15,9 +15,3 @@ export function isoFlat(x: number, y: number, z = 0): [number, number] {
 export function isoPoly(...corners: [number, number, number][]) {
   return corners.flatMap(([x, y, z]) => isoFlat(x, y, z))
 }
-
-export function screenToTile(sx: number, sy: number) {
-  const a = sx / (TILE_W / 2)
-  const b = sy / (TILE_H / 2)
-  return { x: (a + b) / 2, y: (b - a) / 2 }
-}

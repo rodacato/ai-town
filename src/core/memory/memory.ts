@@ -27,7 +27,7 @@ export interface Reputation {
   trust: number
 }
 
-export const speakerKey = (s: Speaker) => (s.kind === 'neighbor' ? `neighbor:${s.residentId}` : s.kind)
+const speakerKey = (s: Speaker) => (s.kind === 'neighbor' ? `neighbor:${s.residentId}` : s.kind)
 
 const DAYS_KEPT = 30
 const RECENT = 3

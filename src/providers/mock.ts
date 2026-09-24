@@ -15,7 +15,7 @@ const NEGATIVE_RELATION = ['rival', 'no le cae', 'critica', 'usurpadora', 'desco
 const hashString = (s: string) => [...s].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) | 0, 7)
 const clamp = (v: number, lo = 0, hi = 1) => Math.min(hi, Math.max(lo, v))
 
-export function isPositiveRelation(label: string) {
+function isPositiveRelation(label: string) {
   return !NEGATIVE_RELATION.some((w) => label.includes(w))
 }
 

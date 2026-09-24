@@ -66,7 +66,7 @@ export function eventAt(content: WorldContent, places: Place[], visual: OutcomeV
 }
 
 /** Tiles around an event within which people notice it. */
-export const NOTICE_RADIUS = 7
+const NOTICE_RADIUS = 7
 
 /** People near a real threat run home; near something good they come over to look for a while. */
 export function react(sim: Simulation, o: Outcome, isBusy: (r: Resident) => boolean = () => false) {

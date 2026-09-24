@@ -30,7 +30,6 @@ function Dialog({ onClose }: { onClose: () => void }) {
   const [draft, setDraft] = useState<LlmSettings>(saved)
   const [test, setTest] = useState<TestState>({ status: 'idle' })
   const [models, setModels] = useState<ModelsState>({ status: 'idle' })
-  const [showKey, setShowKey] = useState(false)
   const [mode, setMode] = useState<TransportMode | null>(null)
   const [remember, setRemember] = useState(false)
   const [passphrase, setPassphrase] = useState('')
@@ -161,50 +160,15 @@ function Dialog({ onClose }: { onClose: () => void }) {
                 <input className="input mono" value={conn.host} placeholder={PRESETS[kind].hostHint} onChange={(e) => update({ host: e.target.value })} spellCheck={false} />
               </label>
 
-              <div className="field">
-                <label className="field-label" htmlFor="api-key">
-                  API key
-                </label>
-                <div className="input-group">
-                  <input
-                    id="api-key"
-                    className="input mono"
-                    type={showKey ? 'text' : 'password'}
-                    value={conn.apiKey}
-                    placeholder={direct ? (PRESETS[kind].protocolLocked ? 'Necesaria en conexión directa' : 'Si tu host la pide') : `Vacía = usa ${PRESETS[kind].envKey} del archivo .env`}
-                    onChange={(e) => update({ apiKey: e.target.value })}
-                    autoComplete="off"
-                    spellCheck={false}
-                  />
-                  <button className="icon-btn" onClick={() => setShowKey((v) => !v)} aria-label={showKey ? 'Ocultar key' : 'Mostrar key'}>
-                    {showKey ? <EyeOff /> : <Eye />}
-                  </button>
-                </div>
-                {vaultOpen ? (
-                  <p className="field-hint is-safe">🔒 Tus keys se guardan cifradas en este navegador; cada cambio se vuelve a cifrar al guardar.</p>
-                ) : vaultLocked ? (
-                  <p className="field-hint is-warning">Desbloquea arriba tus keys guardadas antes de cambiarlas, o se perderán.</p>
-                ) : (
-                  <label className="check">
-                    <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
-                    Recordarlas cifradas en este navegador, con una frase (recomendado)
-                  </label>
-                )}
-                {remember && !vaultOpen && !vaultLocked && (
-                  <input
-                    className="input"
-                    type="password"
-                    value={passphrase}
-                    placeholder="Frase secreta (8 caracteres o más); te la pediré al volver"
-                    onChange={(e) => setPassphrase(e.target.value)}
-                    autoComplete="new-password"
-                    aria-label="Frase para cifrar las keys"
-                  />
-                )}
-                <p className="field-hint">
-                  {vaultOpen ? '' : 'Sin recordarla, la key vive solo en esta pestaña y se pierde al recargar o cerrarla. '}Usa keys dedicadas, con tope de gasto, y rótalas al terminar.
-                </p>
-              </div>
+              <KeyField
+                conn={conn}
+                placeholder={direct ? (PRESETS[kind].protocolLocked ? 'Necesaria en conexión directa' : 'Si tu host la pide') : `Vacía = usa ${PRESETS[kind].envKey} del archivo .env`}
+                onChange={(apiKey) => update({ apiKey })}
+                remember={remember}
+                setRemember={setRemember}
+                passphrase={passphrase}
+                setPassphrase={setPassphrase}
+              />
 
               <div className="field">
                 <div className="field-row">
@@ -301,6 +265,59 @@ function Dialog({ onClose }: { onClose: () => void }) {
           </div>
         </footer>
       </div>
+    </div>
+  )
+}
+
+/** The API key, and whether and how it is kept: encrypted with a passphrase, or only in this tab. */
+function KeyField({ conn, placeholder, onChange, remember, setRemember, passphrase, setPassphrase }: { conn: Connection; placeholder: string; onChange: (key: string) => void; remember: boolean; setRemember: (v: boolean) => void; passphrase: string; setPassphrase: (v: string) => void }) {
+  const [showKey, setShowKey] = useState(false)
+  const vaultLocked = useTown((s) => s.vaultLocked)
+  const vaultOpen = useTown((s) => s.vaultOpen)
+  return (
+    <div className="field">
+      <label className="field-label" htmlFor="api-key">
+        API key
+      </label>
+      <div className="input-group">
+        <input
+          id="api-key"
+          className="input mono"
+          type={showKey ? 'text' : 'password'}
+          value={conn.apiKey}
+          placeholder={placeholder}
+          onChange={(e) => onChange(e.target.value)}
+          autoComplete="off"
+          spellCheck={false}
+        />
+        <button className="icon-btn" onClick={() => setShowKey((v) => !v)} aria-label={showKey ? 'Ocultar key' : 'Mostrar key'}>
+          {showKey ? <EyeOff /> : <Eye />}
+        </button>
+      </div>
+      {vaultOpen ? (
+        <p className="field-hint is-safe">🔒 Tus keys se guardan cifradas en este navegador; cada cambio se vuelve a cifrar al guardar.</p>
+      ) : vaultLocked ? (
+        <p className="field-hint is-warning">Desbloquea arriba tus keys guardadas antes de cambiarlas, o se perderán.</p>
+      ) : (
+        <label className="check">
+          <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
+          Recordarlas cifradas en este navegador, con una frase (recomendado)
+        </label>
+      )}
+      {remember && !vaultOpen && !vaultLocked && (
+        <input
+          className="input"
+          type="password"
+          value={passphrase}
+          placeholder="Frase secreta (8 caracteres o más); te la pediré al volver"
+          onChange={(e) => setPassphrase(e.target.value)}
+          autoComplete="new-password"
+          aria-label="Frase para cifrar las keys"
+        />
+      )}
+      <p className="field-hint">
+        {vaultOpen ? '' : 'Sin recordarla, la key vive solo en esta pestaña y se pierde al recargar o cerrarla. '}Usa keys dedicadas, con tope de gasto, y rótalas al terminar.
+      </p>
     </div>
   )
 }

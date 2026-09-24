@@ -24,7 +24,7 @@ const BUILD: Record<string, { scale: number; wide: number }> = {
   tiefling: { scale: 1.1, wide: 1 },
 }
 
-export function buildOf(look: Look, age: number) {
+function buildOf(look: Look, age: number) {
   const b = BUILD[look.ancestry ?? 'human'] ?? BUILD.human
   return { scale: b.scale * (age < 14 ? 0.8 : 1), wide: b.wide }
 }

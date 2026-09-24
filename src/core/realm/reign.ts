@@ -6,7 +6,7 @@ import type { Season } from '../sim/season'
 import type { WorldContent } from '../world/content'
 import { createRng } from '../world/rng'
 import { Chronicle } from './chronicle'
-import { firstName } from '../lang'
+import { nameOf } from '../lang'
 import { seasonOfDay } from './terrarium'
 import { enact } from './decrees'
 import { buildReport, type RoyalReport } from './report'
@@ -100,15 +100,15 @@ export async function runReign(o: ReignOptions): Promise<ReignResult> {
   const standing: Standing = freshStanding()
   const goals = { ...GOALS, yearDays: o.days - 1, ...o.goals }
   const letters: string[] = []
-  const nameOf = (id: string) => firstName(o.content.residents.find((r) => r.id === id)?.name ?? id)
+  const called = (id: string) => nameOf(o.content, id)
   for (let day = 0; day < o.days; day++) {
     const season = seasonOfDay(day, o.seasonLength, o.seasonStart)
     const minutes = 6 * 60 + day * 1440
     if (day > 0) {
       const l = runDay(e, rules, season, day)
       chronicle.add(minutes, 'dawn', `Día ${day + 1}: cosecha +${l.harvest}, ${l.unfed.length} sin comer.`)
-      for (const id of l.died) chronicle.add(minutes, 'death', `${nameOf(id)} murió de hambre.`)
-      for (const id of l.left) chronicle.add(minutes, 'leave', `${nameOf(id)} se marchó del pueblo.`)
+      for (const id of l.died) chronicle.add(minutes, 'death', `${called(id)} murió de hambre.`)
+      for (const id of l.left) chronicle.add(minutes, 'leave', `${called(id)} se marchó del pueblo.`)
       for (const line of dawnStanding(standing, e, memory.reputation({ kind: 'authority' }).trust, day, goals)) chronicle.add(minutes + 5, standing.end ? 'end' : 'plot', line)
     }
     const report = buildReport({ content: o.content, economy: e, memory, chronicle: chronicle.entries, minutes: minutes + 30, season, weather: 'clear', day, seed: o.seed, standing })
@@ -128,7 +128,7 @@ export async function runReign(o: ReignOptions): Promise<ReignResult> {
       const rng = createRng(o.seed * 7919 + day)
       const hours = rollHours(f.visual, rng.next)
       const over = day * 1440 + (f.hour + hours) * 60
-      const impact = applyImpact(e, f.visual, hours, rng.next, nameOf)
+      const impact = applyImpact(e, f.visual, hours, rng.next, called)
       chronicle.add(over, 'event', `${f.text}${impact.text ? ` ${impact.text}` : ''}`)
       const deed = guardDeed(impact, f.visual, over)
       if (deed) memory.record(deed)

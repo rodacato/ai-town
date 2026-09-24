@@ -13,7 +13,7 @@ interface Rule {
 const DANGER: Example['tone'][] = ['urgente', 'emergencia']
 const OFFER: Example['tone'][] = ['confiable', 'sospechoso']
 
-export const RULES: Rule[] = [
+const RULES: Rule[] = [
   {
     id: 'timid-into-danger',
     label: 'Miedoso (valentía ≤ 0.25) que va hacia el peligro',

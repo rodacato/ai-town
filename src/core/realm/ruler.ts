@@ -98,6 +98,7 @@ export function parseRulerTurn(text: string): RulerTurn {
       }
       case 'pedir_al_creador':
         if (typeof a.texto === 'string' && a.texto.trim()) actions.push({ kind: 'ask', text: a.texto.trim().slice(0, 500) })
+        else problems.push('Una carta sin texto.')
         break
       default:
         problems.push(`Acción desconocida: «${String(a?.tipo)}».`)

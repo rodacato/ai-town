@@ -41,14 +41,14 @@ Lista de control para cerrar la versión 1.0.0. Se marca cada punto al terminarl
 - [x] Tests del ciclo: guardar, recargar, desbloquear, volver a cifrar, no sobrescribir
 
 ## 4. Calidad del código
-- [ ] Código muerto: icono `Home`, `screenToTile`, exports usados solo en su archivo, CSS sin uso
-- [ ] Duplicados: hora del día, nombres de leyes, iconos de estación, velocidades, nombre por id, formato de costo y de segundos, recorte de texto
-- [ ] `src/app/town.ts` (~830 líneas) separado por responsabilidad
-- [ ] Funciones largas: `drawProp`, `SettingsModal`, `BenchModal`, `enact`, `mockDecision`
-- [ ] `scripts/print-map.ts` sin leyenda para los objetos nuevos
-- [ ] Tests con azar sin semilla o que dependen del contenido; tests duplicados
-- [ ] Tests nuevos: guardar y restaurar eventos y bitácora, partidas viejas o corruptas, golpes del destino y eventos en curso, estaciones, pensamientos con modelo, precios desconocidos, `parseRulerTurn` y `parseMusing` en los bordes, puntaje del duelo
-- [ ] Cobertura también sobre `townState` y `memoryStorage`
+- [x] Código muerto: icono `Home`, `screenToTile`, exports usados solo en su archivo, CSS sin uso
+- [x] Duplicados: hora del día, nombres de leyes, iconos de estación, velocidades, nombre por id, formato de costo y de segundos, recorte de texto
+- [x] `src/app/town.ts` (~830 líneas) separado por responsabilidad
+- [x] Funciones largas: `drawProp`, `SettingsModal`, `BenchModal`, `enact`, `mockDecision`
+- [x] `scripts/print-map.ts` sin leyenda para los objetos nuevos
+- [x] Tests con azar sin semilla o que dependen del contenido; tests duplicados
+- [x] Tests nuevos: guardar y restaurar eventos y bitácora, partidas viejas o corruptas, golpes del destino y eventos en curso, estaciones, pensamientos con modelo, precios desconocidos, `parseRulerTurn` y `parseMusing` en los bordes, puntaje del duelo
+- [x] Cobertura también sobre `townState` y `memoryStorage`
 - [ ] Typecheck, build y tests limpios en CI
 
 ## 5. Publicación

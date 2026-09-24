@@ -5,7 +5,7 @@ import type { WorldContent } from '../world/content'
 import { SEASON_TEXT, type Season } from '../sim/season'
 import { WEATHER_TEXT, type Weather } from '../sim/weather'
 import type { ChronicleEntry } from './chronicle'
-import { firstName } from '../lang'
+import { nameOf } from '../lang'
 import { GOALS, guildWord, type GuildWord, type Standing } from './standing'
 
 export interface Petition {
@@ -71,7 +71,7 @@ export function buildReport(input: {
     .slice(-8)
     .map((c) => (c.kind === 'event' || c.kind === 'death' || c.kind === 'leave' ? rumour(c.text, rng.next) : c.text))
   const hungry = living.filter((id) => e.needs[id].daysHungry > 0).length
-  const name = (id: string) => firstName(content.residents.find((r) => r.id === id)?.name ?? id)
+  const name = (id: string) => nameOf(content, id)
   const petitions: Petition[] = []
   const ask = (id: string, text: string) => {
     if (living.includes(id) && petitions.length < 3) petitions.push({ from: name(id), text })

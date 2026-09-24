@@ -57,8 +57,8 @@ describe('economy', () => {
     expect(applyImpact(e, 'flood', 5).text).toMatch(/crecida.*\(5 h\)/)
     expect(e.granary).toBe(g - Math.round(g * 0.3))
     const t = e.treasury
-    applyImpact(e, 'thief')
-    expect(e.treasury).toBeLessThan(t)
+    applyImpact(e, 'thief', 1)
+    expect(e.treasury).toBe(t - Math.round(t * 0.25))
     const before = e.granary
     applyImpact(e, 'caravan', 5.5)
     expect(e.granary).toBe(before + 25)
@@ -97,13 +97,10 @@ describe('economy', () => {
     expect(guardDeed(applyImpact(open, 'caravan'), 'caravan', 40)).toBeNull()
   })
 
-  it('rolls a duration within each event\'s range', () => {
-    for (let i = 0; i < 20; i++) {
-      const h = rollHours('flood')
-      expect(h).toBeGreaterThanOrEqual(2)
-      expect(h).toBeLessThanOrEqual(8)
-    }
-    expect(rollHours('treasure')).toBe(1)
+  it('rolls a duration within each event\'s range, both ends included', () => {
+    expect(rollHours('flood', () => 0)).toBe(2)
+    expect(rollHours('flood', () => 0.999)).toBe(8)
+    expect(rollHours('treasure', () => 0.999)).toBe(1)
   })
 
   it('runs each dawn once, even after a long jump', () => {

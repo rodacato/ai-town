@@ -19,7 +19,7 @@ import { CompareRuns } from './CompareRuns'
 import './bench.css'
 import { estimateRunCost, promptTokens } from './estimate'
 import { TYPICAL_REPLY_TOKENS } from '../../../providers/llm/pricing'
-import { firstName } from '../../../core/lang'
+import { nameOf } from '../../../core/lang'
 
 const KINDS: ContenderKind[] = ['rules', 'anthropic', 'openai', 'shellm', 'custom']
 const PAID: ContenderKind[] = ['anthropic', 'openai']
@@ -538,7 +538,7 @@ function Errors({ run, label }: { run: BenchRun; label: (id: string) => string }
   )
 }
 
-const shortName = (id: string) => firstName(town.content.residents.find((r) => r.id === id)?.name ?? id)
+const shortName = (id: string) => nameOf(town.content, id)
 
 function OutOfCharacter({ reports, label }: { reports: ContenderReport[]; label: (id: string) => string }) {
   const broken = reports.filter((r) => r.personaBroken && Object.keys(r.personaBroken).length)

@@ -33,7 +33,7 @@ export const C = {
   shadow: 0x3b3024,
 } as const
 
-export const TERRAIN: TerrainPalette = {
+const TERRAIN: TerrainPalette = {
   grass: [0x9fc48f, 0x99bf8a, 0xa6c996, 0x95bb86],
   grassDark: 0x7fa874,
   grassTuft: 0x78a06d,
