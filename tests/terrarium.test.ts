@@ -59,3 +59,33 @@ describe('a game in a file', () => {
     expect(importGame(content.id, JSON.stringify({ app: 'ai-town', world: 'otro', state: { v: 1 } }))).toMatch(/otro mundo/)
   })
 })
+
+describe('seasons from any start', () => {
+  it('begins in the chosen season and keeps turning', () => {
+    expect([0, 10, 20, 30].map((d) => seasonOfDay(d, 10, 3))).toEqual(['winter', 'spring', 'summer', 'autumn'])
+  })
+})
+
+describe('a resident thinking out loud', () => {
+  const input = async () => {
+    const { startEconomy } = await import('../src/core/economy/economy')
+    const e = startEconomy(content.economy!, content.residents.map((r) => r.id), 6 * 60)
+    const resident = content.residents[0]
+    return { resident, needs: e.needs[resident.id], coins: 10, foodPrice: 2, taxRate: 0.2, laws: [], trust: 0.5, news: ['Llegó una caravana.'], hour: 11 }
+  }
+
+  it('reads a model answer and keeps it within bounds', async () => {
+    const { parseMusing } = await import('../src/core/realm/musing')
+    expect(parseMusing('Pienso… {"pensamiento": "Qué hambre.", "animo": -3, "emoji": "😣"}')).toEqual({ thought: 'Qué hambre.', mood: -1, emoji: '😣' })
+    expect(parseMusing('{"animo": 1}')).toBeNull()
+    expect(parseMusing('sin json')).toBeNull()
+  })
+
+  it('worries about hunger first when thinking by rules, and the prompt carries the town', async () => {
+    const { musingPrompt, rulesMusing } = await import('../src/core/realm/musing')
+    const i = await input()
+    expect(rulesMusing({ ...i, needs: { ...i.needs, daysHungry: 2 } }).mood).toBe(-1)
+    expect(rulesMusing({ ...i, news: [] }).mood).toBe(1)
+    expect(musingPrompt(i)).toContain('Llegó una caravana.')
+  })
+})

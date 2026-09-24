@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { formatClock } from '../../../core/sim/clock'
+import { dayOf } from '../../../core/economy/economy'
 import { useTown } from '../../store'
 import { town } from '../../town'
 import { activeLabel } from '../../../providers/llm/config'
 import { daylight } from '../../../theme/daylight'
-import { Bolt, Gauge, Gear, Moon, Pause, Play, Sun, TownMark, Users } from '../../shared/icons'
+import { Bolt, Gauge, Gear, Logbook, Moon, Pause, Play, Sun, TownMark, Users } from '../../shared/icons'
 import { useBench } from '../bench/benchStore'
 import './topbar.css'
 
@@ -31,9 +32,9 @@ export function TopBar() {
             <h1>{town.content.name}</h1>
           </div>
         </div>
-        <div className="pill panel" title="Hora del pueblo">
+        <div className="pill panel" title={`${day}. El día del reino empieza al amanecer (06:00), cuando se cobran impuestos, se come y se hacen las cuentas.`}>
           {daylight(minutes).night > 0.5 ? <Moon className="pill-icon moon" /> : <Sun className="pill-icon sun" />}
-          <span className="pill-label">{day}</span>
+          <span className="pill-label">Día {dayOf(minutes) + 1}</span>
           <span className="mono">{time}</span>
         </div>
         <div className="pill panel" title={`Residentes en la calle ahora mismo, de ${total}`}>
@@ -59,6 +60,7 @@ export function TopBar() {
           <Bolt className="pill-icon" />
           <span className="pill-label">Dios</span>
         </button>
+        <LogButton />
         <BenchButton />
         <button className="pill panel btn-pill icon-only" onClick={openSettings} aria-label="Configuración" title="Configuración: modelo de decisiones y partida">
           <Gear className="pill-icon gear" />
@@ -95,6 +97,21 @@ function TimeControls() {
         </span>
       )}
     </div>
+  )
+}
+
+/** Opens the log; a dot shows while a model is thinking, red when the last call failed. */
+function LogButton() {
+  const pending = useTown((s) => s.activity.some((a) => a.status === 'pending'))
+  const failed = useTown((s) => {
+    const last = [...s.activity].reverse().find((a) => a.via && a.via !== 'reglas' && a.status !== 'pending')
+    return last?.status === 'error'
+  })
+  return (
+    <button className="pill panel btn-pill icon-only log-btn" onClick={() => useTown.setState({ activityOpen: true })} aria-label="Bitácora" title="Bitácora: qué pasa y quién decide (B)">
+      <Logbook className="pill-icon" />
+      {(pending || failed) && <span className={`log-dot ${failed && !pending ? 'is-bad' : ''}`} aria-hidden />}
+    </button>
   )
 }
 

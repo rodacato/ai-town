@@ -26,11 +26,11 @@ export function RealmHud() {
         <span aria-hidden>👑</span>
         <b className="mono">{pct(trust)}</b>
       </div>
-      <div className="realm-stat" data-tip="Tesoro real. Entra por impuestos y por las raciones que se venden; sale cada amanecer en sueldos de la guardia y en los decretos.">
+      <div className="realm-stat" data-tip="Tesoro real. Cada amanecer (06:00) entran impuestos y lo que se paga por las raciones, y salen los sueldos de la guardia; los decretos gastan al momento.">
         <span aria-hidden>💰</span>
         <b className="mono">{realm.treasury}</b>
       </div>
-      <div className={`realm-stat ${low(realm.foodDays, 2)}`} data-tip={`Granero: ${realm.granary} raciones. Cada vecino compra una al amanecer; alcanza para unos ${realm.foodDays.toFixed(1)} días. Se llena con la cosecha, casi nula en invierno.`}>
+      <div className={`realm-stat ${low(realm.foodDays, 2)}`} data-tip={`Granero: ${realm.granary} raciones. Cada vecino compra una al amanecer (06:00); alcanza para unos ${realm.foodDays.toFixed(1)} días. Se llena con la cosecha, casi nula en invierno.`}>
         <span aria-hidden>🍞</span>
         <b className="mono">{realm.granary}</b>
         <span className="realm-sub">{Number.isFinite(realm.foodDays) ? `${realm.foodDays.toFixed(1)} d` : ''}</span>
@@ -65,9 +65,9 @@ export function RealmHud() {
           </b>
         </div>
       )}
-      <button className="realm-day mono" onClick={() => useTown.setState({ chronicleOpen: true })} data-tip="Día del reinado; un año son 40. Clic para abrir la crónica.">
+      <button className="realm-day mono" onClick={() => useTown.setState({ chronicleOpen: true })} data-tip="Día del reinado: un año son 40, y las estaciones cambian cada 10. Clic para abrir la crónica.">
         {autoplay && !standing.end ? '▶ ' : ''}
-        {standing.end ? standing.end.title : `Día ${realm.day + 1}/${GOALS.yearDays}`}
+        {standing.end ? standing.end.title : `📜 ${realm.day + 1}/${GOALS.yearDays}`}
       </button>
     </section>
   )

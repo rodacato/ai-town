@@ -209,3 +209,10 @@ export const Play = (p: SVGProps<SVGSVGElement>) => (
     <path d="M7 5v14l12-7L7 5Z" />
   </svg>
 )
+
+export const Logbook = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <path d="M6 3h11a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6V3Z" />
+    <path d="M6 3v18M10 8h5M10 12h5M10 16h3" />
+  </svg>
+)

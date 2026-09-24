@@ -10,6 +10,7 @@ import type { Speaker } from '../../../core/reactions/announcement'
 import { Bolt, Close } from '../../shared/icons'
 import { Choice } from '../../shared/Choice'
 import { town } from '../../town'
+import { NewGame } from '../../shared/NewGame'
 import { GOALS } from '../../../core/realm/standing'
 import './god.css'
 
@@ -167,6 +168,7 @@ function Terrarium() {
           📂 Cargar
         </button>
       </div>
+      <NewGame />
       <input
         ref={file}
         type="file"

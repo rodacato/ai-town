@@ -393,3 +393,12 @@
 .segmented[style*='--cols'] .segmented-thumb {
   width: calc((100% - 8px) / var(--cols));
 }
+
+.new-game {
+  display: flex;
+  gap: 8px;
+}
+
+.new-game-start {
+  gap: 6px;
+}
