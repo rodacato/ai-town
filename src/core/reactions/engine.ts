@@ -7,6 +7,7 @@ import type { Announcement } from './announcement'
 import { buildContext } from './context'
 import { judge, planOutcome, react, THREATS, type Outcome } from './outcome'
 import type { TownMemory } from '../memory/memory'
+import { livingRelations } from '../memory/bonds'
 import { firstName as first } from '../lang'
 
 export type Phase = 'unaware' | 'heard' | 'thinking' | 'decided' | 'error'
@@ -382,6 +383,10 @@ export class ReactionEngine {
     this.sim.assign(r, tasks)
   }
 
+  private relationsOf(r: Resident) {
+    return this.memory ? livingRelations(r.profile.relationships, this.memory.bondsOf(r.profile.id)) : r.profile.relationships
+  }
+
   private deliver(from: Resident, fromReaction: Reaction, toId: string) {
     const to = this.sim.get(toId)!
     const target = this.reactions.get(toId)
@@ -390,7 +395,7 @@ export class ReactionEngine {
     const rumor: Rumor = {
       fromId: from.profile.id,
       fromName: from.profile.name,
-      relation: to.profile.relationships.find((rel) => rel.id === from.profile.id)?.label ?? null,
+      relation: this.relationsOf(to).find((rel) => rel.id === from.profile.id)?.label ?? null,
       message: fromReaction.decision?.speech ?? '',
     }
     target.rumors.push(rumor)

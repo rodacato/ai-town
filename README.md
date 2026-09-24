@@ -28,6 +28,8 @@ Escribes un pregón en nombre de la Baronesa, de un vecino o de un forastero, y 
 
 Cada vecino también tiene **memoria propia**: quién le pasó una mentira que se creyó (aunque lo hiciera de buena fe) y quién le avisó a tiempo de algo cierto. Lo tiene en cuenta en su prompt, en las reglas locales se fía menos del chismoso y avisa primero a quien le debe un favor, y aparece en su ficha, en «Lo que recuerda».
 
+Con eso, **las relaciones cambian**: dos mentiras rompen una amistad, dos avisos a tiempo hacen las paces con un rival o crean una amistad nueva, y una mentira de alguien con quien no había trato deja rencor. La crónica lo cuenta («Finn ya no se fía de Rowan»), la ficha marca cada relación que cambió con cómo era antes, y la relación nueva es la que ven el prompt y las reglas locales.
+
 ### El ritmo del pueblo
 
 De 22:00 a 6:00 casi todos duermen, salvo quienes tienen rutina nocturna; con lluvia, tormenta o nieve buscan techo, y en invierno salen menos. El día del reino empieza al amanecer (06:00) y las estaciones cambian cada 10 días. En el centro de la barra superior pausas el pueblo o lo aceleras (×1, ×2, ×4, ×16).
