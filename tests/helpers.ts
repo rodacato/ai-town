@@ -15,3 +15,19 @@ export function exampleByTone(tone: Example['tone']) {
 export function announce(sim: Simulation, ex: Example): Announcement {
   return { id: ex.id, text: ex.text, speaker: ex.speaker, place: detectPlace(ex.text, sim.world.places, content.homeKeywords), minutes: sim.minutes }
 }
+
+/** In-memory stand-in for the browser's localStorage, so storage code runs under Node. */
+export function memoryStorage() {
+  const data = new Map<string, string>()
+  return {
+    getItem: (k: string) => data.get(k) ?? null,
+    setItem: (k: string, v: string) => void data.set(k, String(v)),
+    removeItem: (k: string) => void data.delete(k),
+    clear: () => data.clear(),
+    key: (i: number) => [...data.keys()][i] ?? null,
+    get length() {
+      return data.size
+    },
+    dump: () => Object.fromEntries(data),
+  }
+}
