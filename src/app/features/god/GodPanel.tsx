@@ -8,6 +8,12 @@ import { Bolt, Close } from '../../shared/icons'
 import { town } from '../../town'
 import './god.css'
 
+type Tab = 'world' | 'events' | 'town'
+const TABS: [Tab, string][] = [
+  ['world', 'Mundo'],
+  ['events', 'Eventos'],
+  ['town', 'Pueblo'],
+]
 const HOURS: [string, number][] = [
   ['Amanecer', 6.5],
   ['Mediodía', 12],
@@ -30,6 +36,12 @@ const EVENTS: { visual: OutcomeVisual; icon: string; label: string; place: strin
   { visual: 'treasure', icon: '💰', label: 'Tesoro', place: 'crypt' },
 ]
 
+/** Which preset the clock is closest to, so the time control shows where the day is. */
+function period(minutes: number) {
+  const h = (minutes / 60) % 24
+  return h >= 5 && h < 8 ? 0 : h >= 8 && h < 17 ? 1 : h >= 17 && h < 20 ? 2 : 3
+}
+
 export function GodPanel() {
   const open = useTown((s) => s.godOpen)
   if (!open) return null
@@ -37,14 +49,12 @@ export function GodPanel() {
 }
 
 function Drawer() {
-  const { minutes, speed, weather, season, godEvent, curfew, setGodOpen } = useTown()
-  const [place, setPlace] = useState('auto')
+  const setGodOpen = useTown((s) => s.setGodOpen)
+  const [tab, setTab] = useState<Tab>('world')
   const ref = useRef<HTMLElement>(null)
-  const places = town.sim.world.places.filter((p) => p.keywords.length && p.spots.length)
-  const { day, time } = formatClock(minutes)
 
   useEffect(() => {
-    ref.current?.querySelector<HTMLElement>('button')?.focus()
+    ref.current?.querySelector<HTMLElement>('[role=tab][aria-selected=true]')?.focus()
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && ref.current?.contains(document.activeElement) && setGodOpen(false)
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -54,107 +64,127 @@ function Drawer() {
     <aside className="god-panel panel" ref={ref} aria-label="Modo dios">
       <header className="god-head">
         <h2>
-          <Bolt width={18} height={18} /> Modo dios
+          <Bolt width={17} height={17} /> Modo dios
         </h2>
         <button className="icon-btn" onClick={() => setGodOpen(false)} aria-label="Cerrar modo dios">
           <Close />
         </button>
       </header>
-      <p className="god-intro">Cambia el mundo al instante para probar cómo reaccionan los residentes.</p>
+      <div className="segmented" role="tablist" aria-label="Secciones" style={{ ['--cols' as string]: TABS.length, ['--active' as string]: TABS.findIndex(([k]) => k === tab) }}>
+        <span className="segmented-thumb" aria-hidden />
+        {TABS.map(([k, label]) => (
+          <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'is-active' : ''} onClick={() => setTab(k)}>
+            {label}
+          </button>
+        ))}
+      </div>
+      <div role="tabpanel" className="god-body">
+        {tab === 'world' && <World />}
+        {tab === 'events' && <Events />}
+        {tab === 'town' && <TownActions />}
+      </div>
+    </aside>
+  )
+}
 
-      <section>
-        <h3 className="section-label">
-          Tiempo{' '}
+function Choice<T>({ label, options, value, onPick, render }: { label: string; options: T[]; value: T; onPick: (v: T) => void; render: (v: T) => React.ReactNode }) {
+  const active = options.indexOf(value)
+  return (
+    <div className="segmented" role="radiogroup" aria-label={label} style={{ ['--cols' as string]: options.length, ['--active' as string]: active }}>
+      {active >= 0 && <span className="segmented-thumb" aria-hidden />}
+      {options.map((o, i) => (
+        <button key={i} role="radio" aria-checked={i === active} className={i === active ? 'is-active' : ''} onClick={() => onPick(o)}>
+          {render(o)}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function World() {
+  const { minutes, speed, weather, season } = useTown()
+  const { day, time } = formatClock(minutes)
+  return (
+    <>
+      <div className="field">
+        <span className="field-label god-row">
+          Hora{' '}
           <span className="mono god-clock">
             {day} {time}
           </span>
-        </h3>
-        <div className="god-grid four">
-          {HOURS.map(([label, hour]) => (
-            <button key={label} className="god-btn" onClick={() => town.setHour(hour)}>
-              {label}
-            </button>
-          ))}
-        </div>
-        <div className="segmented four" role="radiogroup" aria-label="Velocidad del pueblo" style={{ ['--active' as string]: SPEEDS.findIndex(([, v]) => v === speed) }}>
-          <span className="segmented-thumb" aria-hidden />
-          {SPEEDS.map(([label, v]) => (
-            <button key={label} role="radio" aria-checked={speed === v} className={speed === v ? 'is-active' : ''} onClick={() => town.setSpeed(v)}>
-              {label}
-            </button>
-          ))}
-        </div>
-        <p className="field-hint">La velocidad mueve al pueblo; los modelos piensan a su ritmo.</p>
-      </section>
+        </span>
+        <Choice label="Hora" options={HOURS} value={HOURS[period(minutes)]} onPick={([, h]) => town.setHour(h)} render={([l]) => l} />
+      </div>
+      <div className="field">
+        <span className="field-label">Velocidad</span>
+        <Choice label="Velocidad" options={SPEEDS.map(([, v]) => v)} value={speed} onPick={(v) => town.setSpeed(v)} render={(v) => SPEEDS.find(([, x]) => x === v)![0]} />
+      </div>
+      <div className="field">
+        <span className="field-label">
+          Estación <span className="god-note">{SEASON_TEXT[season].label}</span>
+        </span>
+        <Choice label="Estación" options={SEASONS} value={season} onPick={(s) => town.setSeason(s)} render={(s) => <span className="god-emoji" role="img" aria-label={SEASON_TEXT[s].label}>{SEASON_ICON[s]}</span>} />
+      </div>
+      <div className="field">
+        <span className="field-label">
+          Clima <span className="god-note">{WEATHER_TEXT[weather].label}</span>
+        </span>
+        <Choice label="Clima" options={WEATHERS} value={weather} onPick={(w) => town.setWeather(w)} render={(w) => <span className="god-emoji" role="img" aria-label={WEATHER_TEXT[w].label}>{WEATHER_ICON[w]}</span>} />
+      </div>
+      <p className="field-hint">La estación y el clima entran en lo que el modelo sabe; la velocidad no afecta a los modelos.</p>
+    </>
+  )
+}
 
-      <section>
-        <h3 className="section-label">Estación</h3>
-        <div className="god-grid four" role="radiogroup" aria-label="Estación">
-          {SEASONS.map((s) => (
-            <button key={s} role="radio" aria-checked={season === s} className={`god-btn stacked ${season === s ? 'is-active' : ''}`} onClick={() => town.setSeason(s)}>
-              <span aria-hidden>{SEASON_ICON[s]}</span>
-              {SEASON_TEXT[s].label}
-            </button>
+function Events() {
+  const godEvent = useTown((s) => s.godEvent)
+  const [place, setPlace] = useState('auto')
+  const places = town.sim.world.places.filter((p) => p.keywords.length && p.spots.length)
+  return (
+    <>
+      <label className="field">
+        <span className="field-label">¿Dónde?</span>
+        <select className="input" value={place} onChange={(e) => setPlace(e.target.value)}>
+          <option value="auto">Donde tenga sentido</option>
+          {places.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
           ))}
-        </div>
-      </section>
+        </select>
+      </label>
+      <div className="god-grid">
+        {EVENTS.map((e) => (
+          <button key={e.visual} className="btn-secondary compact" onClick={() => town.unleash(e.visual, place === 'auto' ? e.place : place)}>
+            <span aria-hidden>{e.icon}</span> {e.label}
+          </button>
+        ))}
+      </div>
+      {godEvent && (
+        <button className="btn-link" onClick={() => town.clearEvent()}>
+          Quitar «{godEvent.summary.replace(/\.$/, '')}»
+        </button>
+      )}
+    </>
+  )
+}
 
-      <section>
-        <h3 className="section-label">Clima</h3>
-        <div className="god-grid five" role="radiogroup" aria-label="Clima">
-          {WEATHERS.map((w) => (
-            <button key={w} role="radio" aria-checked={weather === w} className={`god-btn stacked ${weather === w ? 'is-active' : ''}`} onClick={() => town.setWeather(w)}>
-              <span aria-hidden>{WEATHER_ICON[w]}</span>
-              {WEATHER_TEXT[w].label}
-            </button>
-          ))}
-        </div>
-        <p className="field-hint">Los residentes lo notan: la estación y el clima entran en lo que el modelo sabe.</p>
-      </section>
-
-      <section>
-        <h3 className="section-label">Desatar</h3>
-        <label className="field god-place">
-          <span className="field-label">¿Dónde?</span>
-          <select className="input" value={place} onChange={(e) => setPlace(e.target.value)}>
-            <option value="auto">Donde tenga sentido</option>
-            {places.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <div className="god-grid four">
-          {EVENTS.map((e) => (
-            <button key={e.visual} className="god-btn stacked" onClick={() => town.unleash(e.visual, place === 'auto' ? e.place : place)}>
-              <span aria-hidden>{e.icon}</span>
-              {e.label}
-            </button>
-          ))}
-        </div>
-        {godEvent && (
-          <button className="btn-link" onClick={() => town.clearEvent()}>
-            Quitar «{godEvent.summary.replace(/\.$/, '')}»
-          </button>
-        )}
-      </section>
-
-      <section>
-        <h3 className="section-label">Pueblo</h3>
-        <div className="god-actions">
-          <button className="god-btn" onClick={() => town.gather(place === 'auto' ? town.content.gatheringPlace : place)}>
-            Reunir a todos {place === 'auto' ? 'en la plaza' : 'allí'}
-          </button>
-          <button className={`god-btn ${curfew ? 'is-active' : ''}`} aria-pressed={curfew} onClick={() => town.setCurfew(!curfew)}>
-            {curfew ? 'Levantar el toque de queda' : 'Toque de queda'}
-          </button>
-          <button className="god-btn" onClick={() => town.surprise()}>
-            Pregón sorpresa
-          </button>
-        </div>
-        <p className="field-hint">El pregón sorpresa usa un ejemplo al azar y deja al azar si es verdad.</p>
-      </section>
-    </aside>
+function TownActions() {
+  const curfew = useTown((s) => s.curfew)
+  return (
+    <>
+      <div className="god-stack">
+        <button className="btn-secondary compact" onClick={() => town.gather(town.content.gatheringPlace)}>
+          Reunir a todos en la plaza
+        </button>
+        <button className="btn-secondary compact" aria-pressed={curfew} onClick={() => town.setCurfew(!curfew)}>
+          {curfew ? 'Levantar el toque de queda' : 'Toque de queda'}
+        </button>
+        <button className="btn-secondary compact" onClick={() => town.surprise()}>
+          Pregón sorpresa
+        </button>
+      </div>
+      <p className="field-hint">El pregón sorpresa usa un ejemplo al azar y deja al azar si es verdad.</p>
+    </>
   )
 }
