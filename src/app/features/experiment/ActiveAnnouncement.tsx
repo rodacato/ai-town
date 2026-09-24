@@ -92,9 +92,9 @@ export function ActiveAnnouncement({ announcement }: { announcement: Announcemen
       <RequestLog />
       {complete && <ExportRun announcement={announcement} reactions={reactions} />}
 
-      <button className="btn-secondary" onClick={() => town.reset()}>
+      <button className="btn-secondary" onClick={() => town.closeAnnouncement()}>
         <Reset width={15} height={15} />
-        Reiniciar y probar otro {town.content.copy.noun}
+        Hacer otro {town.content.copy.noun}
       </button>
     </div>
   )

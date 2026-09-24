@@ -3,9 +3,9 @@ import { ACTION_META } from '../../../theme/actions'
 import type { Action } from '../../../core/decisions/types'
 import { useTown } from '../../store'
 import { town } from '../../town'
-import { firstName } from '../../../core/lang'
+import { nameOf } from '../../../core/lang'
 
-const nameOf = (id: string) => firstName(town.content.residents.find((r) => r.id === id)?.name ?? id)
+const residentName = (id: string) => nameOf(town.content, id)
 
 function describe(e: LogEntry) {
   switch (e.kind) {
@@ -20,7 +20,7 @@ function describe(e: LogEntry) {
     case 'error':
       return `error: ${e.detail}`
     case 'told':
-      return `fue a avisar a ${nameOf(e.detail)}`
+      return `fue a avisar a ${residentName(e.detail)}`
   }
 }
 
@@ -38,7 +38,7 @@ export function RequestLog() {
           <li key={log.length - i} className={`log-${e.kind}`}>
             <span className="mono log-time">+{((e.at - startedAt) / 1000).toFixed(1)} s</span>
             <button className="inline-link" onClick={() => town.select(e.id)}>
-              {nameOf(e.id)}
+              {residentName(e.id)}
             </button>
             <span>{describe(e)}</span>
           </li>

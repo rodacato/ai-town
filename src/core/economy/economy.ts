@@ -53,6 +53,11 @@ export interface Laws {
   levy: boolean
 }
 
+export const LAW_NAME: Record<keyof Laws, string> = { curfew: 'toque de queda', rationing: 'racionamiento', levy: 'leva de guardias' }
+
+/** The standing laws, by name, for reports and prompts. */
+export const lawsInForce = (laws: Laws) => (Object.keys(LAW_NAME) as (keyof Laws)[]).filter((k) => laws[k]).map((k) => LAW_NAME[k])
+
 export interface Ledger {
   day: number
   harvest: number
@@ -160,11 +165,11 @@ export function runDay(e: Economy, rules: EconomyRules, season: Season, day: num
   return ledger
 }
 
-/** Runs every dawn that has passed since the last one, in order. */
-export function catchUp(e: Economy, rules: EconomyRules, season: Season, minutes: number): Ledger[] {
+/** Runs every dawn that has passed since the last one, in order; `season` may change from one dawn to the next. */
+export function catchUp(e: Economy, rules: EconomyRules, season: Season | ((day: number) => Season), minutes: number): Ledger[] {
   const out: Ledger[] = []
   const today = dayOf(minutes)
-  for (let d = e.day + 1; d <= today; d++) out.push(runDay(e, rules, season, d))
+  for (let d = e.day + 1; d <= today; d++) out.push(runDay(e, rules, typeof season === 'function' ? season(d) : season, d))
   return out
 }
 

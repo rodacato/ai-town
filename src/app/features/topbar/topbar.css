@@ -296,3 +296,12 @@
     opacity: 0.4;
   }
 }
+
+.pill.mode.is-keyless .dot {
+  background: #d99a2b;
+  box-shadow: 0 0 0 3px #f6e6c6;
+}
+
+.pill.mode.is-keyless .pill-label {
+  color: #8a5f0e;
+}

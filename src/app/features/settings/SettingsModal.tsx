@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { PRESETS, keyRing, withKeys, type Connection, type LlmSettings, type ProviderKind } from '../../../providers/llm/config'
 import { MAX_CONCURRENCY } from '../../../providers'
-import { knownPrice } from '../../../providers/llm/pricing'
+import { knownPrice, PRICES_AS_OF } from '../../../providers/llm/pricing'
 import { fetchModels, streamChat, transportMode, type TransportMode } from '../../../providers/llm/client'
 import { useTown } from '../../store'
 import { town } from '../../town'
 import { Alert, Check, Close, Eye, EyeOff, Refresh } from '../../shared/icons'
 import { NewGame } from '../../shared/NewGame'
+import { VaultUnlock } from '../../shared/VaultUnlock'
 import { useDialog } from '../../shared/useDialog'
 import './settings.css'
 
@@ -29,11 +30,11 @@ function Dialog({ onClose }: { onClose: () => void }) {
   const [draft, setDraft] = useState<LlmSettings>(saved)
   const [test, setTest] = useState<TestState>({ status: 'idle' })
   const [models, setModels] = useState<ModelsState>({ status: 'idle' })
-  const [showKey, setShowKey] = useState(false)
   const [mode, setMode] = useState<TransportMode | null>(null)
   const [remember, setRemember] = useState(false)
   const [passphrase, setPassphrase] = useState('')
   const vaultLocked = useTown((s) => s.vaultLocked)
+  const vaultOpen = useTown((s) => s.vaultOpen)
 
   useEffect(() => {
     void transportMode().then(setMode)
@@ -80,7 +81,13 @@ function Dialog({ onClose }: { onClose: () => void }) {
 
   const save = async () => {
     town.applySettings(draft)
-    if (remember) await town.rememberKeys(passphrase)
+    if (remember && !vaultOpen) {
+      try {
+        await town.rememberKeys(passphrase)
+      } catch (err) {
+        return toast(err instanceof Error ? err.message : 'No se pudieron guardar las keys.')
+      }
+    }
     const label = draft.active === 'mock' ? 'el modo simulado' : `${PRESETS[draft.active].label}${conn?.model ? ` (${conn.model})` : ''}`
     toast(announcement ? `Listo: las próximas decisiones las toma ${label}.` : `Listo: ahora decide ${label}.`)
     onClose()
@@ -153,44 +160,15 @@ function Dialog({ onClose }: { onClose: () => void }) {
                 <input className="input mono" value={conn.host} placeholder={PRESETS[kind].hostHint} onChange={(e) => update({ host: e.target.value })} spellCheck={false} />
               </label>
 
-              <div className="field">
-                <label className="field-label" htmlFor="api-key">
-                  API key
-                </label>
-                <div className="input-group">
-                  <input
-                    id="api-key"
-                    className="input mono"
-                    type={showKey ? 'text' : 'password'}
-                    value={conn.apiKey}
-                    placeholder={direct ? (PRESETS[kind].protocolLocked ? 'Necesaria en conexión directa' : 'Si tu host la pide') : `Vacía = usa ${PRESETS[kind].envKey} del archivo .env`}
-                    onChange={(e) => update({ apiKey: e.target.value })}
-                    autoComplete="off"
-                    spellCheck={false}
-                  />
-                  <button className="icon-btn" onClick={() => setShowKey((v) => !v)} aria-label={showKey ? 'Ocultar key' : 'Mostrar key'}>
-                    {showKey ? <EyeOff /> : <Eye />}
-                  </button>
-                </div>
-                <label className="check">
-                  <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
-                  Recordar mis keys en este navegador, cifradas con una frase
-                </label>
-                {remember && (
-                  <input
-                    className="input"
-                    type="password"
-                    value={passphrase}
-                    placeholder="Frase secreta (8 caracteres o más); te la pediré al volver"
-                    onChange={(e) => setPassphrase(e.target.value)}
-                    autoComplete="new-password"
-                    aria-label="Frase para cifrar las keys"
-                  />
-                )}
-                <p className="field-hint">
-                  Sin marcar, la key vive solo en esta pestaña y se borra al cerrarla. Usa keys dedicadas, con tope de gasto, y rótalas al terminar.
-                </p>
-              </div>
+              <KeyField
+                conn={conn}
+                placeholder={direct ? (PRESETS[kind].protocolLocked ? 'Necesaria en conexión directa' : 'Si tu host la pide') : `Vacía = usa ${PRESETS[kind].envKey} del archivo .env`}
+                onChange={(apiKey) => update({ apiKey })}
+                remember={remember}
+                setRemember={setRemember}
+                passphrase={passphrase}
+                setPassphrase={setPassphrase}
+              />
 
               <div className="field">
                 <div className="field-row">
@@ -291,42 +269,56 @@ function Dialog({ onClose }: { onClose: () => void }) {
   )
 }
 
-function VaultUnlock({ onUnlocked }: { onUnlocked: () => void }) {
-  const [pass, setPass] = useState('')
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
-  const unlock = async () => {
-    setBusy(true)
-    setError('')
-    try {
-      await town.unlockKeys(pass)
-      onUnlocked()
-      useTown.getState().toast('Keys desbloqueadas para esta pestaña.')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudieron abrir.')
-    }
-    setBusy(false)
-  }
+/** The API key, and whether and how it is kept: encrypted with a passphrase, or only in this tab. */
+function KeyField({ conn, placeholder, onChange, remember, setRemember, passphrase, setPassphrase }: { conn: Connection; placeholder: string; onChange: (key: string) => void; remember: boolean; setRemember: (v: boolean) => void; passphrase: string; setPassphrase: (v: string) => void }) {
+  const [showKey, setShowKey] = useState(false)
+  const vaultLocked = useTown((s) => s.vaultLocked)
+  const vaultOpen = useTown((s) => s.vaultOpen)
   return (
-    <form
-      className="vault-unlock"
-      onSubmit={(e) => {
-        e.preventDefault()
-        void unlock()
-      }}
-    >
-      <p>Tienes keys guardadas y cifradas en este navegador.</p>
+    <div className="field">
+      <label className="field-label" htmlFor="api-key">
+        API key
+      </label>
       <div className="input-group">
-        <input className="input" type="password" value={pass} placeholder="Tu frase secreta" onChange={(e) => setPass(e.target.value)} aria-label="Frase secreta" autoComplete="current-password" />
-        <button className="btn-secondary compact" type="submit" disabled={!pass || busy}>
-          {busy ? 'Abriendo…' : 'Desbloquear'}
+        <input
+          id="api-key"
+          className="input mono"
+          type={showKey ? 'text' : 'password'}
+          value={conn.apiKey}
+          placeholder={placeholder}
+          onChange={(e) => onChange(e.target.value)}
+          autoComplete="off"
+          spellCheck={false}
+        />
+        <button className="icon-btn" onClick={() => setShowKey((v) => !v)} aria-label={showKey ? 'Ocultar key' : 'Mostrar key'}>
+          {showKey ? <EyeOff /> : <Eye />}
         </button>
       </div>
-      {error && <p className="field-error">{error}</p>}
-      <button type="button" className="btn-link small" onClick={() => town.forgetRememberedKeys()}>
-        Olvidar las keys guardadas
-      </button>
-    </form>
+      {vaultOpen ? (
+        <p className="field-hint is-safe">🔒 Tus keys se guardan cifradas en este navegador; cada cambio se vuelve a cifrar al guardar.</p>
+      ) : vaultLocked ? (
+        <p className="field-hint is-warning">Desbloquea arriba tus keys guardadas antes de cambiarlas, o se perderán.</p>
+      ) : (
+        <label className="check">
+          <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
+          Recordarlas cifradas en este navegador, con una frase (recomendado)
+        </label>
+      )}
+      {remember && !vaultOpen && !vaultLocked && (
+        <input
+          className="input"
+          type="password"
+          value={passphrase}
+          placeholder="Frase secreta (8 caracteres o más); te la pediré al volver"
+          onChange={(e) => setPassphrase(e.target.value)}
+          autoComplete="new-password"
+          aria-label="Frase para cifrar las keys"
+        />
+      )}
+      <p className="field-hint">
+        {vaultOpen ? '' : 'Sin recordarla, la key vive solo en esta pestaña y se pierde al recargar o cerrarla. '}Usa keys dedicadas, con tope de gasto, y rótalas al terminar.
+      </p>
+    </div>
   )
 }
 
@@ -349,18 +341,20 @@ function PriceInput({ label, value, placeholder, onChange }: { label: string; va
 
 /** Per-million-token prices for estimating cost when the host does not report it. */
 function PriceFields({ conn, onChange }: { conn: Connection; onChange: (patch: Partial<Connection>) => void }) {
-  const known = conn.kind === 'anthropic' ? knownPrice(conn.model) : null
+  const known = knownPrice(conn.model)
+  const own = conn.priceModel === conn.model
+  const set = (patch: Pick<Connection, 'priceIn'> | Pick<Connection, 'priceOut'>) => onChange({ ...(own ? {} : { priceIn: undefined, priceOut: undefined }), ...patch, priceModel: conn.model })
   return (
     <fieldset className="field price-fields">
       <legend className="field-label">Precio por millón de tokens (USD)</legend>
       <div className="price-inputs">
-        <PriceInput label="Entrada" value={conn.priceIn} placeholder={known ? String(known.input) : '—'} onChange={(priceIn) => onChange({ priceIn })} />
-        <PriceInput label="Salida" value={conn.priceOut} placeholder={known ? String(known.output) : '—'} onChange={(priceOut) => onChange({ priceOut })} />
+        <PriceInput key={`in-${conn.model}`} label="Entrada" value={own ? conn.priceIn : undefined} placeholder={known ? String(known.input) : '—'} onChange={(priceIn) => set({ priceIn })} />
+        <PriceInput key={`out-${conn.model}`} label="Salida" value={own ? conn.priceOut : undefined} placeholder={known ? String(known.output) : '—'} onChange={(priceOut) => set({ priceOut })} />
       </div>
       <span className="field-hint">
         {known
-          ? 'Vacío usa el precio de lista de este modelo. Solo sirve para estimar; tu factura manda.'
-          : 'Para estimar el costo de cada decisión cuando el host no lo reporta. Déjalo vacío para no estimar.'}
+          ? `Vacío usa el precio de lista de este modelo (revisado el ${PRICES_AS_OF}). Vale solo para ${conn.model}. Sirve para estimar; tu factura manda.`
+          : `Sin precio, el costo sale como «sin precio», no como gratis. Lo que escribas vale solo para ${conn.model || 'este modelo'}.`}
       </span>
     </fieldset>
   )

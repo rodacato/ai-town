@@ -3,7 +3,7 @@ import { formatClock } from '../../../core/sim/clock'
 import { dayOf } from '../../../core/economy/economy'
 import { useTown } from '../../store'
 import { town } from '../../town'
-import { activeLabel } from '../../../providers/llm/config'
+import { activeLabel, missingKey } from '../../../providers/llm/config'
 import { daylight } from '../../../theme/daylight'
 import { Bolt, Gauge, Gear, Logbook, Moon, Pause, Play, Sun, TownMark, Users } from '../../shared/icons'
 import { useBench } from '../bench/benchStore'
@@ -14,6 +14,7 @@ export function TopBar() {
   const outside = useTown((s) => s.outside)
   const total = town.content.residents.length
   const llm = useTown((s) => s.llm)
+  const noKey = useTown((s) => s.keysChecked && missingKey(s.llm, s.envKeys))
   const openSettings = () => useTown.getState().setSettingsOpen(true)
   const godOpen = useTown((s) => s.godOpen)
   const setGodOpen = useTown((s) => s.setGodOpen)
@@ -45,9 +46,12 @@ export function TopBar() {
       </div>
       <TimeControls />
       <div className="topbar-right">
-        <button className={`pill panel btn-pill mode ${llm.active === 'mock' ? '' : 'is-llm'}`} onClick={openSettings} title="Cambiar quién decide por los residentes">
+        <button className={`pill panel btn-pill mode ${llm.active === 'mock' ? '' : 'is-llm'} ${noKey ? 'is-keyless' : ''}`} onClick={openSettings} title={noKey ? 'Falta la key de este modelo: no puede responder. Clic para ponerla.' : 'Cambiar quién decide por los residentes'}>
           <span className="dot" />
-          <span className="pill-label">{activeLabel(llm)}</span>
+          <span className="pill-label">
+            {activeLabel(llm)}
+            {noKey ? ' · sin key' : ''}
+          </span>
         </button>
         <button className={`pill panel btn-pill tool ${throneOpen ? 'is-active' : ''}`} onClick={() => setThroneOpen(!throneOpen)} aria-pressed={throneOpen} title="Gobierna como la Baronesa (T)" aria-label="Trono">
           <span className="pill-icon" aria-hidden>

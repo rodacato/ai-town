@@ -89,3 +89,47 @@ describe('a resident thinking out loud', () => {
     expect(musingPrompt(i)).toContain('Llegó una caravana.')
   })
 })
+
+describe('consistency of the reign', () => {
+  it('never makes a decree come true as an event on the map', async () => {
+    const { planOutcome } = await import('../src/core/reactions/outcome')
+    const sim = new Simulation(content)
+    const base = { id: 'd', speaker: { kind: 'authority' as const }, place: null, minutes: 0, truth: true }
+    const decree = planOutcome(content, sim.world.places, { ...base, text: 'Cada vecino recibe 3 monedas del tesoro real.', official: true })
+    expect(decree.visual).toBe('sparkle')
+    const rumour = planOutcome(content, sim.world.places, { ...base, text: 'Hay un cofre de monedas de oro en la cripta.' })
+    expect(rumour.visual).not.toBe('sparkle')
+  })
+
+  it('turns the season before the harvest of its first dawn', async () => {
+    const { catchUp, startEconomy } = await import('../src/core/economy/economy')
+    const e = startEconomy(content.economy!, content.residents.map((r) => r.id), 6 * 60)
+    const [summerDawn] = catchUp(e, content.economy!, 'summer', 6 * 60 + 1440)
+    const f = startEconomy(content.economy!, content.residents.map((r) => r.id), 6 * 60)
+    const [winterDawn] = catchUp(f, content.economy!, (day) => (day >= 1 ? 'winter' : 'summer'), 6 * 60 + 1440)
+    expect(winterDawn.harvest).toBeLessThan(summerDawn.harvest)
+  })
+})
+
+describe('what a reload keeps', () => {
+  beforeEach(() => vi.stubGlobal('localStorage', memoryStorage()))
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('brings back events in course, queued proclamations, the log and the speed', async () => {
+    const { FRESH_REIGN } = await import('../src/app/store/reign')
+    const sim = new Simulation(content, 1)
+    const reign = {
+      ...FRESH_REIGN,
+      speed: 0,
+      events: [{ visual: 'blaze' as const, summary: 'Arde la taberna.', until: 900, hours: 3, activity: 7 }],
+      queued: [{ text: 'Mañana hay mercado.', honest: true }],
+      activity: [{ id: 7, at: 1, minutes: 700, kind: 'town' as const, title: 'En curso: arde la taberna', status: 'pending' as const }],
+    }
+    saveTown(content.id, sim, [], reign)
+    const back = restoreTown(content.id, new Simulation(content, 2))!.reign!
+    expect(back.events).toEqual(reign.events)
+    expect(back.queued).toEqual(reign.queued)
+    expect(back.speed).toBe(0)
+    expect(back.activity).toEqual(reign.activity)
+  })
+})

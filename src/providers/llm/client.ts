@@ -7,16 +7,24 @@ export type { StreamEvent }
 
 const api = (path: string) => `${import.meta.env.BASE_URL}api/llm/${path}`
 
-let modePromise: Promise<TransportMode> | null = null
+export interface TransportInfo {
+  mode: TransportMode
+  /** Providers whose key the dev server has in its .env, so the browser needs none. */
+  envKeys: string[]
+}
+
+let infoPromise: Promise<TransportInfo> | null = null
 
 /** 'proxy' when the local dev server is there to relay requests; 'direct' on static hosting like GitHub Pages. */
-export function transportMode(): Promise<TransportMode> {
-  modePromise ??= fetch(api('health'))
+export function transportInfo(): Promise<TransportInfo> {
+  infoPromise ??= fetch(api('health'))
     .then((r) => (r.ok ? r.json() : null))
-    .then((body: { ok?: boolean } | null) => (body?.ok ? 'proxy' : 'direct') as TransportMode)
-    .catch(() => 'direct' as TransportMode)
-  return modePromise
+    .then((body: { ok?: boolean; envKeys?: string[] } | null): TransportInfo => (body?.ok ? { mode: 'proxy', envKeys: body.envKeys ?? [] } : { mode: 'direct', envKeys: [] }))
+    .catch((): TransportInfo => ({ mode: 'direct', envKeys: [] }))
+  return infoPromise
 }
+
+export const transportMode = () => transportInfo().then((i) => i.mode)
 
 type Sink = ReturnType<typeof pushQueue<StreamEvent>>
 

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { OutcomeVisual } from '../../../core/reactions/outcome'
-import { formatClock } from '../../../core/sim/clock'
-import { SEASONS, SEASON_TEXT, type Season } from '../../../core/sim/season'
+import { formatClock, hourOf } from '../../../core/sim/clock'
+import { SEASONS, SEASON_TEXT } from '../../../core/sim/season'
 import { WEATHERS, WEATHER_TEXT, type Weather } from '../../../core/sim/weather'
 import { useTown } from '../../store'
 import { TrustMeter } from '../../shared/TrustMeter'
@@ -10,6 +10,7 @@ import type { Speaker } from '../../../core/reactions/announcement'
 import { Bolt, Close } from '../../shared/icons'
 import { Choice } from '../../shared/Choice'
 import { town } from '../../town'
+import { SEASON_ICON } from '../../../theme/seasons'
 import { NewGame } from '../../shared/NewGame'
 import { GOALS } from '../../../core/realm/standing'
 import { describeEffect } from '../../../core/economy/impact'
@@ -29,14 +30,6 @@ const HOURS: [string, number][] = [
   ['Atardecer', 18.5],
   ['Noche', 22],
 ]
-const SPEEDS: [string, number][] = [
-  ['Pausa', 0],
-  ['×1', 1],
-  ['×2', 2],
-  ['×4', 4],
-  ['×16', 16],
-]
-const SEASON_ICON: Record<Season, string> = { spring: '🌸', summer: '☀️', autumn: '🍂', winter: '❄️' }
 const WEATHER_ICON: Record<Weather, string> = { clear: '☀️', rain: '🌧️', storm: '⛈️', snow: '❄️', fog: '🌫️' }
 /** What can be unleashed and where it happens unless the user picks a place. */
 const EVENTS: { visual: OutcomeVisual; icon: string; label: string; place: string }[] = [
@@ -56,7 +49,7 @@ const EVENTS: { visual: OutcomeVisual; icon: string; label: string; place: strin
 
 /** Which preset the clock is closest to, so the time control shows where the day is. */
 function period(minutes: number) {
-  const h = (minutes / 60) % 24
+  const h = hourOf(minutes)
   return h >= 5 && h < 8 ? 0 : h >= 8 && h < 17 ? 1 : h >= 17 && h < 20 ? 2 : 3
 }
 
@@ -118,7 +111,7 @@ function Terrarium() {
   const { autoplay, seed, fateDone, residentsOnModel, realm, season, standing, llm } = useTown()
   const file = useRef<HTMLInputElement>(null)
   const day = realm?.day ?? 0
-  const coming = town.fateCalendar().filter((f) => f.day > fateDone && f.day >= day).slice(0, 3)
+  const coming = town.terrarium.calendar().filter((f) => f.day > fateDone && f.day >= day).slice(0, 3)
   const save = () => {
     const { name, text } = town.exportGame()
     const a = document.createElement('a')
@@ -186,7 +179,7 @@ function Terrarium() {
 }
 
 function World() {
-  const { minutes, speed, weather, season } = useTown()
+  const { minutes, weather, season } = useTown()
   const { day, time } = formatClock(minutes)
   return (
     <>
@@ -200,10 +193,6 @@ function World() {
         <Choice label="Hora" options={HOURS} value={HOURS[period(minutes)]} onPick={([, h]) => town.setHour(h)} render={([l]) => l} />
       </div>
       <div className="field">
-        <span className="field-label">Velocidad</span>
-        <Choice label="Velocidad" options={SPEEDS.map(([, v]) => v)} value={speed} onPick={(v) => town.setSpeed(v)} render={(v) => SPEEDS.find(([, x]) => x === v)![0]} />
-      </div>
-      <div className="field">
         <span className="field-label">
           Estación <span className="god-note">{SEASON_TEXT[season].label}</span>
         </span>
@@ -215,7 +204,7 @@ function World() {
         </span>
         <Choice label="Clima" options={WEATHERS} value={weather} onPick={(w) => town.setWeather(w)} render={(w) => <span className="god-emoji" role="img" aria-label={WEATHER_TEXT[w].label}>{WEATHER_ICON[w]}</span>} />
       </div>
-      <p className="field-hint">La estación y el clima entran en lo que el modelo sabe; la velocidad no afecta a los modelos.</p>
+      <p className="field-hint">La estación y el clima entran en lo que el modelo sabe. La pausa y la velocidad están arriba, en el centro de la barra.</p>
     </>
   )
 }
@@ -281,7 +270,7 @@ function TownActions() {
         <button className="btn-secondary compact" onClick={() => town.surprise()}>
           Pregón sorpresa
         </button>
-        <button className="btn-secondary compact" onClick={() => town.stirGuild()}>
+        <button className="btn-secondary compact" onClick={() => town.throne.stirGuild()}>
           🗡️ Azuzar al gremio de ladrones
         </button>
       </div>

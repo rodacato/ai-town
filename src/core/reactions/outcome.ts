@@ -32,8 +32,8 @@ export interface Outcome {
 /** Picks what happens and where, from the announcement's own words; the truth is decided elsewhere. */
 export function planOutcome(content: WorldContent, places: Place[], a: Announcement & { truth: boolean }): Outcome {
   const t = ` ${normalize(a.text)} `
-  const def = content.outcomes?.find((d) => d.keywords.some((k) => t.includes(normalize(k))))
-  const danger = content.vocabulary.danger.some((w) => t.includes(normalize(w)))
+  const def = a.official ? undefined : content.outcomes?.find((d) => d.keywords.some((k) => t.includes(normalize(k))))
+  const danger = !a.official && content.vocabulary.danger.some((w) => t.includes(normalize(w)))
   const visual = def?.visual ?? (danger ? 'monster' : 'sparkle')
   // "Refúgiense en casa: un dragón sobre el bosque" happens in the forest, not at home.
   const where = detectPlace(a.text, places, []) ?? (a.place !== 'home' ? a.place : null) ?? content.gatheringPlace
@@ -66,7 +66,7 @@ export function eventAt(content: WorldContent, places: Place[], visual: OutcomeV
 }
 
 /** Tiles around an event within which people notice it. */
-export const NOTICE_RADIUS = 7
+const NOTICE_RADIUS = 7
 
 /** People near a real threat run home; near something good they come over to look for a while. */
 export function react(sim: Simulation, o: Outcome, isBusy: (r: Resident) => boolean = () => false) {

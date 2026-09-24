@@ -1,15 +1,14 @@
 import type { Reaction } from '../../../core/reactions/engine'
 import { ACTIONS, type Action } from '../../../core/decisions/types'
-import { toPlace } from '../../../core/lang'
+import { listNames, toPlace } from '../../../core/lang'
 import { placeLabel, type Announcement } from '../../../core/reactions/announcement'
 import { town } from '../../town'
 import { firstName as shortName } from '../../../core/lang'
 
 export const firstName = (id: string) => shortName(town.content.residents.find((r) => r.id === id)?.name ?? id)
-const list = (names: string[]) => (names.length > 1 ? `${names.slice(0, -1).join(', ')} y ${names[names.length - 1]}` : (names[0] ?? ''))
-export const seconds = (ms: number) => `${(ms / 1000).toFixed(1)} s`
-export const tokens = (n: number) => (n >= 10000 ? `${(n / 1000).toFixed(0)}k` : n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(Math.round(n)))
-export const usd = (n: number) => `$${n < 0.01 ? n.toFixed(4) : n.toFixed(2)}`
+const list = listNames
+export { seconds, tokens, usd } from '../../../core/format'
+import { seconds } from '../../../core/format'
 
 export interface Stats {
   listeners: Reaction[]

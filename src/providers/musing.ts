@@ -3,7 +3,7 @@ import { MUSING_SYSTEM, musingPrompt, parseMusing, rulesMusing, type Musing, typ
 import { streamChat, type ChatStream } from './llm/client'
 import type { Connection } from './llm/config'
 import { firstName } from '../core/lang'
-import { estimateCost, priceFor } from './llm/pricing'
+import { withCost } from './llm/pricing'
 
 export interface MusingReply extends Musing {
   usage?: TokenUsage
@@ -19,7 +19,7 @@ export async function modelMusing(connection: Connection, input: MusingInput, si
   let usage: TokenUsage | undefined
   for await (const e of stream(connection, MUSING_SYSTEM, musingPrompt(input), signal, { tag: firstName(input.resident.name), timeoutMs: 60_000, maxTokens: 600 })) {
     if (e.type === 'delta') text += e.text
-    else usage = { ...e.usage, costUsd: e.usage.costUsd ?? estimateCost(priceFor(connection), e.usage.inputTokens, e.usage.outputTokens) }
+    else usage = withCost(connection, e.usage)
   }
   const parsed = parseMusing(text)
   return { ...(parsed ?? rulesMusing(input)), usage, ms: performance.now() - t0, fellBack: !parsed }

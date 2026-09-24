@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { DEFAULT_SETTINGS, keyRing, loadSettings, saveSettings, withKeys, type LlmSettings } from '../src/providers/llm/config'
+import { DEFAULT_SETTINGS, keyRing, loadSettings, missingKey, saveSettings, withKeys, type LlmSettings } from '../src/providers/llm/config'
 import { forgetKeys, hasVault, openKeys, sealKeys } from '../src/providers/llm/vault'
 import { memoryStorage } from './helpers'
 
@@ -77,5 +77,46 @@ describe('key vault', () => {
     forgetKeys()
     expect(hasVault()).toBe(false)
     expect(await openKeys('frase correcta')).toEqual({})
+  })
+})
+
+describe('the key lifecycle across reloads', () => {
+  const settings = (key: string): LlmSettings => ({ active: 'anthropic', connections: { ...DEFAULT_SETTINGS.connections, anthropic: { ...DEFAULT_SETTINGS.connections.anthropic, apiKey: key } } })
+
+  it('remembers, survives a reload, opens again and keeps later changes sealed', async () => {
+    const keys = await import('../src/app/keys')
+    keys.forgetRememberedKeys()
+    await keys.rememberKeys(settings('sk-ant-1'), 'frase larga y secreta')
+    expect(keys.vaultOpen()).toBe(true)
+    await keys.resealKeys(settings('sk-ant-2'))
+    vi.resetModules()
+    const fresh = await import('../src/app/keys')
+    expect(fresh.vaultOpen()).toBe(false)
+    expect(await fresh.unlockKeys('frase larga y secreta')).toEqual({ anthropic: 'sk-ant-2' })
+  })
+
+  it('never overwrites a locked vault with an empty ring', async () => {
+    await sealKeys({ anthropic: 'sk-ant-guardada' }, 'frase larga y secreta')
+    vi.resetModules()
+    const keys = await import('../src/app/keys')
+    await expect(keys.rememberKeys(settings(''), 'otra frase cualquiera')).rejects.toThrow(/desbloquéalas primero/)
+    await keys.resealKeys(settings(''))
+    expect(await openKeys('frase larga y secreta')).toEqual({ anthropic: 'sk-ant-guardada' })
+  })
+
+  it('opens vaults sealed with the older, lighter derivation', async () => {
+    await sealKeys({ shellm: 'x' }, 'frase correcta')
+    const sealed = JSON.parse(storage.getItem('ai-town:key-vault')!)
+    expect(sealed.iter).toBe(600_000)
+    storage.setItem('ai-town:key-vault', JSON.stringify({ ...sealed, v: 2 }))
+    await expect(openKeys('frase correcta')).rejects.toThrow(/otra versión/)
+  })
+
+  it('knows when the chosen model cannot answer for lack of a key', () => {
+    expect(missingKey(settings(''), [])).toBe(true)
+    expect(missingKey(settings(''), ['anthropic'])).toBe(false)
+    expect(missingKey(settings('sk'), [])).toBe(false)
+    expect(missingKey({ ...settings(''), active: 'mock' }, [])).toBe(false)
+    expect(missingKey({ ...settings(''), active: 'custom' }, [])).toBe(false)
   })
 })

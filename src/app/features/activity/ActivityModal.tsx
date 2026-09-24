@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { formatClock } from '../../../core/sim/clock'
 import { dayOf } from '../../../core/economy/economy'
+import { seconds, tokens, usd } from '../../../core/format'
 import { useTown } from '../../store'
 import type { Activity, ActivityKind } from '../../store/reign'
 import { Close } from '../../shared/icons'
@@ -31,26 +32,36 @@ const since = (at: number, now: number) => {
 
 /** Is anybody thinking with a model, and is it answering? */
 function Status({ now }: { now: number }) {
-  const { activity, rulerMode, rulerCalls, rulerCap, rulerCost, llm } = useTown()
+  const { activity, rulerMode, rulerCalls, rulerCap, llm } = useTown()
   const residentsVia = town.residentsVia()
   const calls = activity.filter((a) => a.via && a.via !== 'reglas')
   const pending = calls.filter((a) => a.status === 'pending').length
   const lastOk = [...calls].reverse().find((a) => a.status === 'ok')
   const recent = calls.slice(-10)
   const errors = recent.filter((a) => a.status === 'error').length
-  const spent = calls.reduce((n, a) => n + (a.costUsd ?? 0), 0)
+  const spend = (kinds: ActivityKind[]) => {
+    const own = calls.filter((a) => kinds.includes(a.kind))
+    const cost = own.reduce((n, a) => n + (a.costUsd ?? 0), 0)
+    const toks = own.reduce((n, a) => n + (a.tokensIn ?? 0) + (a.tokensOut ?? 0), 0)
+    return own.length ? `${usd(cost, own.some((a) => a.costEstimated))} · ${tokens(toks)} tokens en ${own.length} ${own.length === 1 ? 'consulta' : 'consultas'}` : ''
+  }
+  const residentsSpend = spend(['residents', 'musing'])
+  const rulerSpend = spend(['ruler'])
   const ruler = rulerMode === 'manual' ? 'tú (desde el Trono)' : rulerMode === 'rules' || llm.active === 'mock' ? 'reglas, sin gastar' : `${llm.connections[llm.active].model} · ${rulerCalls}/${rulerCap} consultas`
   return (
     <dl className="activity-status">
       <div>
         <dt>Los vecinos deciden con</dt>
-        <dd>{residentsVia === 'reglas' ? 'reglas, sin gastar' : residentsVia}</dd>
+        <dd>
+          {residentsVia === 'reglas' ? 'reglas, sin gastar' : residentsVia}
+          {residentsSpend && <span className="activity-spend">{residentsSpend}</span>}
+        </dd>
       </div>
       <div>
         <dt>Gobierna</dt>
         <dd>
           {ruler}
-          {rulerCost ? ` · $${rulerCost.toFixed(3)}` : ''}
+          {rulerSpend && <span className="activity-spend">{rulerSpend}</span>}
         </dd>
       </div>
       <div>
@@ -58,7 +69,6 @@ function Status({ now }: { now: number }) {
         <dd className={errors >= 3 ? 'is-bad' : ''}>
           {pending ? <span className="activity-live">pensando ({pending})</span> : lastOk ? `respondió ${since(lastOk.at, now)}` : calls.length ? 'sin respuestas todavía' : 'no se ha usado'}
           {errors ? ` · ${errors} error${errors > 1 ? 'es' : ''} en las últimas ${recent.length}` : ''}
-          {spent ? ` · $${spent.toFixed(3)} en total` : ''}
         </dd>
       </div>
     </dl>
@@ -80,7 +90,7 @@ function Row({ a, now }: { a: Activity; now: number }) {
         {a.detail && <p className="activity-detail">{a.detail}</p>}
         {(a.via || a.ms || a.costUsd) && (
           <p className="activity-meta mono">
-            {[a.via, a.ms ? `${(a.ms / 1000).toFixed(1)} s` : null, a.costUsd ? `$${a.costUsd.toFixed(4)}` : null].filter(Boolean).join(' · ')}
+            {[a.via, a.ms ? `${a.kind === 'residents' ? 'mediana ' : ''}${seconds(a.ms)}` : null, a.tokensIn || a.tokensOut ? `${tokens(a.tokensIn ?? 0)} → ${tokens(a.tokensOut ?? 0)} tokens` : null, a.costUsd ? usd(a.costUsd, a.costEstimated) : null].filter(Boolean).join(' · ')}
           </p>
         )}
       </div>

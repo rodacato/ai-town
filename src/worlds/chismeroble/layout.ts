@@ -2,7 +2,7 @@ import type { Look, Rect, Sentry, WorldLayout } from '../../core/world/content'
 
 const N = 40
 export const PLAZA: Rect = { x0: 11, y0: 12, x1: 17, y1: 18 }
-export const FIELD: Rect = { x0: 1, y0: 1, x1: 4, y1: 4 }
+const FIELD: Rect = { x0: 1, y0: 1, x1: 4, y1: 4 }
 export const OAK = { x: 13, y: 14, size: 3 }
 export const CRYPT = { x: 27, y: 23, size: 2 }
 export const CEMETERY: Rect = { x0: 3, y0: 33, x1: 11, y1: 38 }

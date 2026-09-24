@@ -17,6 +17,7 @@ import { RealmHud } from '../features/realm/RealmHud'
 import { EndScreen } from '../features/realm/EndScreen'
 import { ChronicleModal } from '../features/chronicle/ChronicleModal'
 import { ActivityModal } from '../features/activity/ActivityModal'
+import { KeyGate } from './KeyGate'
 import { ThronePanel } from '../features/throne/ThronePanel'
 import './shell.css'
 
@@ -71,6 +72,7 @@ export function App() {
       <EndScreen />
       <ChronicleModal />
       <ActivityModal />
+      <KeyGate />
       <Toasts />
       <ResetVeil />
       <LazySettings />

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { compareSides, type DecisionChange, type MetricDelta } from '../../../core/bench/compare'
-import { firstName } from '../../../core/lang'
+import { nameOf } from '../../../core/lang'
 import { ACTION_META } from '../../../theme/actions'
 import { Alert } from '../../shared/icons'
 import { town } from '../../town'
@@ -43,7 +43,7 @@ export function CompareRuns() {
   const byScenario = new Map<string, DecisionChange[]>()
   for (const c of cmp?.changes ?? []) byScenario.set(c.scenario, [...(byScenario.get(c.scenario) ?? []), c])
   const scenarioText = (id: string) => [...(base?.run.scenarios ?? []), ...(next?.run.scenarios ?? [])].find((s) => s.id === id)?.text ?? id
-  const name = (id: string) => firstName(town.content.residents.find((r) => r.id === id)?.name ?? id)
+  const name = (id: string) => nameOf(town.content, id)
 
   return (
     <div className="bench-compare">
@@ -57,10 +57,14 @@ export function CompareRuns() {
           <label key={label} className="field">
             <span className="field-label">{label}</span>
             <select className="input" value={value} onChange={(e) => set(e.target.value)}>
-              {options.map((o) => (
-                <option key={o.key} value={o.key}>
-                  {o.label}
-                </option>
+              {runs.map((run) => (
+                <optgroup key={run.id} label={`${new Date(run.createdAt).toLocaleString('es', { dateStyle: 'medium', timeStyle: 'short' })} · ${run.scenarios.length} pregones × ${run.repetitions}`}>
+                  {run.contenders.map((c) => (
+                    <option key={c.id} value={`${run.id}|${c.id}`}>
+                      {c.label}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           </label>

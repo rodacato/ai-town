@@ -1,4 +1,5 @@
-import type { Needs } from '../economy/economy'
+import { lawsInForce, type Economy, type Needs } from '../economy/economy'
+import { hourOf } from '../sim/clock'
 import type { ResidentProfile } from '../world/content'
 
 /** What a resident has on their mind when they stop to think about how the town is doing. */
@@ -21,6 +22,22 @@ export interface Musing {
   /** -1 sours their mood a little, 1 lifts it, 0 leaves it. */
   mood: -1 | 0 | 1
   emoji: string
+}
+
+/** What `resident` has on their mind right now, read from the town's state. */
+export function musingInputFor(e: Economy, resident: ResidentProfile, o: { trust: number; news: string[]; minutes: number }): MusingInput {
+  const id = resident.id
+  return {
+    resident,
+    needs: e.needs[id],
+    coins: e.purses[id] ?? 0,
+    foodPrice: e.foodPrice,
+    taxRate: e.taxRate,
+    laws: lawsInForce(e.laws),
+    trust: o.trust,
+    news: o.news,
+    hour: Math.floor(hourOf(o.minutes)),
+  }
 }
 
 export const MUSING_SYSTEM = `Eres un vecino de Chismeroble, una aldea de fantasía. De vez en cuando te paras a pensar en cómo te va y en cómo va el pueblo.

@@ -9,8 +9,8 @@ const nameOf = (id: string) => town.content.residents.find((r) => r.id === id)?.
 /** What ran, without the key: enough to tell runs apart and repeat them. */
 function describeSetup(llm: LlmSettings) {
   if (llm.active === 'mock') return { provider: 'mock' }
-  const { kind, protocol, host, model, concurrency, priceIn, priceOut } = llm.connections[llm.active]
-  return { provider: kind, protocol, host, model, concurrency, priceIn, priceOut }
+  const { kind, protocol, host, model, concurrency, priceIn, priceOut, priceModel } = llm.connections[llm.active]
+  return { provider: kind, protocol, host, model, concurrency, ...(priceModel === model ? { priceIn, priceOut } : {}) }
 }
 
 export function runReport(announcement: Announcement, reactions: Record<string, Reaction>, llm: LlmSettings) {

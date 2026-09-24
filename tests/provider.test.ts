@@ -1,13 +1,13 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { buildScenario } from '../src/core/bench/scenarios'
 import type { DecisionEvent } from '../src/core/decisions/types'
 import { createProvider, MAX_CONCURRENCY } from '../src/providers'
 import type { ChatStream } from '../src/providers/llm/client'
-import { DEFAULT_SETTINGS, type Connection } from '../src/providers/llm/config'
+import { DEFAULT_SETTINGS, loadSettings, type Connection } from '../src/providers/llm/config'
 import { partialStringField } from '../src/providers/llm/parse'
-import { priceFor } from '../src/providers/llm/pricing'
+import { knownPrice, priceFor, priceInfo } from '../src/providers/llm/pricing'
 import { createLlmProvider } from '../src/providers/llm/provider'
-import { content } from './helpers'
+import { content, memoryStorage } from './helpers'
 
 const ctx = buildScenario(content, content.examples[0], 7).contexts[0]
 const reply = { reasoning: 'Tengo hambre y es gratis.', action: 'go', believes: true, tell: [], speech: '¡Voy!', emoji: '🍖', confidence: 0.8 }
@@ -43,7 +43,7 @@ describe('LLM provider', () => {
   })
 
   it('estimates the cost from the price table when the host does not report one', async () => {
-    const priced = { ...shellm, priceIn: 3, priceOut: 15 }
+    const priced = { ...shellm, priceIn: 3, priceOut: 15, priceModel: shellm.model }
     const events = await collect(priced, fakeStream(JSON.stringify(reply), { inputTokens: 1_000_000, outputTokens: 100_000 }))
     expect(events.find((e) => e.type === 'response')).toMatchObject({ usage: { costUsd: 4.5, costSource: 'table' } })
   })
@@ -54,11 +54,37 @@ describe('LLM provider', () => {
 })
 
 describe('pricing', () => {
-  it('prefers the price typed in settings over the list price', () => {
-    const anthropic = { ...DEFAULT_SETTINGS.connections.anthropic, model: 'claude-haiku-4-5' }
-    expect(priceFor(anthropic)).toEqual({ input: 1, output: 5 })
-    expect(priceFor({ ...anthropic, priceIn: 2, priceOut: 8 })).toEqual({ input: 2, output: 8 })
+  const anthropic = { ...DEFAULT_SETTINGS.connections.anthropic, model: 'claude-haiku-4-5' }
+
+  it('prefers the price typed in for this model over the list price', () => {
+    expect(priceInfo(anthropic)).toEqual({ price: { input: 1, output: 5 }, source: 'list' })
+    expect(priceInfo({ ...anthropic, priceIn: 2, priceOut: 8, priceModel: 'claude-haiku-4-5' })).toEqual({ price: { input: 2, output: 8 }, source: 'custom' })
+  })
+
+  it('never charges one model at the price typed in for another', () => {
+    const typed = { ...anthropic, priceIn: 2, priceOut: 8, priceModel: 'claude-haiku-4-5' }
+    expect(priceFor({ ...typed, model: 'claude-sonnet-5' })).toEqual({ input: 2, output: 10 })
+    expect(priceFor({ ...shellm, priceIn: 2, priceOut: 8, priceModel: 'otro' })).toBeNull()
+  })
+
+  it('knows the current list, also behind a gateway, and tells longer names apart', () => {
+    expect(knownPrice('claude-opus-5')).toEqual({ input: 5, output: 25 })
+    expect(knownPrice('claude-opus-5-5')).toEqual({ input: 4, output: 20 })
+    expect(knownPrice('anthropic/claude-sonnet-5')).toEqual({ input: 2, output: 10 })
+  })
+
+  it('treats a model on this machine as free and an unknown one as unpriced', () => {
+    const local = { ...DEFAULT_SETTINGS.connections.custom, model: 'llama3.2', host: 'http://localhost:11434' }
+    expect(priceInfo(local)).toEqual({ price: { input: 0, output: 0 }, source: 'local' })
+    expect(priceInfo({ ...local, host: 'https://openrouter.ai/api' })).toBeNull()
     expect(priceFor(shellm)).toBeNull()
+  })
+
+  it('moves prices saved before they were tied to a model onto the model chosen then', () => {
+    vi.stubGlobal('localStorage', memoryStorage())
+    localStorage.setItem('ai-town:llm-settings', JSON.stringify({ active: 'custom', connections: { custom: { model: 'qwen3', priceIn: 1, priceOut: 2 } } }))
+    expect(loadSettings().settings.connections.custom.priceModel).toBe('qwen3')
+    vi.unstubAllGlobals()
   })
 })
 

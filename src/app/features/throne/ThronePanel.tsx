@@ -9,6 +9,7 @@ import type { RulerMode } from '../../store/reign'
 import { TrustMeter } from '../../shared/TrustMeter'
 import { town } from '../../town'
 import '../god/god.css'
+import { seconds, usd } from '../../../core/format'
 import './throne.css'
 
 const TAXES = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
@@ -73,7 +74,7 @@ function Govern() {
   const [proclaim, setProclaim] = useState(true)
   const e = town.sim.economy
   if (!realm || !e) return null
-  const act = (d: Decree) => town.decree(d, proclaim)
+  const act = (d: Decree) => town.throne.decree(d, proclaim)
   const living = Object.values(realm.people).filter((p) => p.status !== 'dead' && p.status !== 'gone').length
   const hungry = Object.values(realm.people).filter((p) => p.daysHungry > 0 || p.coins < realm.foodPrice).length
 
@@ -154,18 +155,18 @@ function BaronessRoom() {
     <div className="throne-room">
       <div className="field">
         <span className="field-label">¿Quién gobierna?</span>
-        <Choice label="Quién gobierna" options={MODES.map(([m]) => m)} value={rulerMode} onPick={(m) => town.setRulerMode(m)} render={(m) => MODES.find(([k]) => k === m)![1]} />
+        <Choice label="Quién gobierna" options={MODES.map(([m]) => m)} value={rulerMode} onPick={(m) => town.throne.setRulerMode(m)} render={(m) => MODES.find(([k]) => k === m)![1]} />
         <span className="field-hint">
           {rulerMode === 'manual'
             ? 'Gobiernas tú desde la pestaña Gobernar. La Baronesa solo actúa si se lo pides.'
             : rulerMode === 'rules'
               ? 'Cada amanecer decide con reglas sencillas, sin gastar nada.'
               : model
-                ? `Cada amanecer consulta a ${model}. Tope: ${rulerCalls}/${rulerCap} consultas en esta partida${rulerCost ? ` · ≈ $${rulerCost.toFixed(3)}` : ''}.`
+                ? `Cada amanecer consulta a ${model}. Tope: ${rulerCalls}/${rulerCap} consultas en esta partida${rulerCost ? ` · ${usd(rulerCost)}` : ''}.`
                 : 'No hay modelo configurado: elige uno en Configuración. Mientras, gobierna con reglas.'}
         </span>
       </div>
-      <button className="btn-secondary compact" onClick={() => void town.reign(true)} disabled={rulerBusy}>
+      <button className="btn-secondary compact" onClick={() => void town.throne.reign(true)} disabled={rulerBusy}>
         {rulerBusy ? 'La Baronesa está pensando…' : '🗝️ Consultar a la Baronesa ahora'}
       </button>
 
@@ -174,7 +175,7 @@ function BaronessRoom() {
           <div className="throne-turn-head">
             <span className="field-label">
               Día {lastTurn.day + 1} · {lastTurn.mode === 'model' ? 'con modelo' : 'con reglas'}
-              {lastTurn.ms ? ` · ${(lastTurn.ms / 1000).toFixed(1)} s` : ''}
+              {lastTurn.ms ? ` · ${seconds(lastTurn.ms)}` : ''}
             </span>
             <button className="btn-link" onClick={() => setReport(!report)} aria-expanded={report}>
               {report ? 'Ocultar informe' : 'Ver informe'}
@@ -219,7 +220,7 @@ function BaronessRoom() {
               ))}
             </ul>
             {mailbox.some((l) => !l.seen) && (
-              <button className="btn-link" onClick={() => town.markLettersSeen()}>
+              <button className="btn-link" onClick={() => town.throne.markLettersSeen()}>
                 Marcar como leídas
               </button>
             )}

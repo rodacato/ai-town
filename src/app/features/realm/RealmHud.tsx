@@ -30,7 +30,7 @@ export function RealmHud() {
         <span aria-hidden>💰</span>
         <b className="mono">{realm.treasury}</b>
       </div>
-      <div className={`realm-stat ${low(realm.foodDays, 2)}`} data-tip={`Granero: ${realm.granary} raciones. Cada vecino compra una al amanecer (06:00); alcanza para unos ${realm.foodDays.toFixed(1)} días. Se llena con la cosecha, casi nula en invierno.`}>
+      <div className={`realm-stat ${low(realm.foodDays, 2)}`} data-tip={`Granero: ${realm.granary} raciones. Cada vecino compra una al amanecer (06:00); alcanza para ${Number.isFinite(realm.foodDays) ? `unos ${realm.foodDays.toFixed(1)} días` : 'mucho tiempo'}. Se llena con la cosecha, casi nula en invierno.`}>
         <span aria-hidden>🍞</span>
         <b className="mono">{realm.granary}</b>
         <span className="realm-sub">{Number.isFinite(realm.foodDays) ? `${realm.foodDays.toFixed(1)} d` : ''}</span>

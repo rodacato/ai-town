@@ -52,12 +52,6 @@ export const Close = (p: SVGProps<SVGSVGElement>) => (
   </svg>
 )
 
-export const Home = (p: SVGProps<SVGSVGElement>) => (
-  <svg {...base(p)}>
-    <path d="M3 11 12 4l9 7M5 10v10h14V10" />
-  </svg>
-)
-
 export function TownMark({ size = 28 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden>

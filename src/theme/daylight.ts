@@ -1,3 +1,5 @@
+import { hourOf } from '../core/sim/clock'
+
 /** Sky over the town at a given clock time: how dark it is and the tint the map is multiplied by. */
 export interface Daylight {
   /** 0 at noon, 1 in the dead of night. */
@@ -24,7 +26,7 @@ const lerpColor = (a: number, b: number, t: number) =>
   Math.round(lerp(a & 255, b & 255, t))
 
 export function daylight(minutes: number): Daylight {
-  const h = (minutes / 60) % 24
+  const h = hourOf(minutes)
   const i = KEYS.findIndex(([k], n) => h >= k && h < KEYS[n + 1][0])
   const [h0, n0, c0, a0] = KEYS[i]
   const [h1, n1, c1, a1] = KEYS[i + 1]
