@@ -34,12 +34,14 @@ Primera versión estable: un pueblo simulado para probar y comparar modelos de l
 - Crónica por días con gráficas de vecinos, ánimo, confianza y tesoro.
 - Bitácora con cada decisión: quién la tomó, cuánto tardó, cuántos tokens y cuánto costó.
 - Guardar y cargar la partida en un archivo; la partida se conserva en el navegador hasta empezar otra.
-- Modo dios: hora, velocidad, estación, clima, eventos y acciones sobre el pueblo.
+- Modo dios: hora, estación, clima, eventos con su costo a la vista y acciones sobre el pueblo; pausa y velocidad en el centro de la barra.
+- Atajos: `T` trono, `G` modo dios, `B` bitácora, `+`/`-`/`0` mapa.
 
 #### Comparar modelos
 - Conexiones a Anthropic, OpenAI, SheLLM y cualquier servicio compatible (Ollama, LM Studio…), directas o por el proxy local de Vite.
-- Keys propias (BYOK), con opción de guardarlas cifradas con una frase.
-- Banco de pruebas en el navegador y en la terminal (`npm run bench`): formato, consistencia, acierto contra la verdad, coherencia de personaje, latencia (primera palabra, p50, p95), tokens por segundo y costo.
+- Keys propias (BYOK) que nunca se guardan en claro: cifradas con una frase (PBKDF2 de 600.000 iteraciones y AES-GCM), pedidas al abrir la app y vueltas a cifrar con cada cambio; si falta una, la app lo dice y la barra marca «sin key».
+- Precios de lista de los modelos de Claude con fecha de revisión, precio propio por modelo para los demás, $0 para modelos locales y «sin precio» cuando no se sabe.
+- Banco de pruebas en el navegador y en la terminal (`npm run bench`): formato, consistencia, acierto contra la verdad, coherencia de personaje, primera palabra, respuesta (mediana y p95), tokens por segundo y por decisión, costo total y por 1.000 decisiones, con el mejor de cada columna resaltado y el costo estimado antes de correr.
 - Comparar dos corridas guardadas, con cambios de decisión y avisos de lo que no es comparable.
 - Duelo de gobernantes (`npm run reign`): varias Baronesas gobiernan el mismo año con la misma semilla, con puntaje y costo.
 

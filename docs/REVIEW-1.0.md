@@ -14,20 +14,20 @@ Lista de control para cerrar la versión 1.0.0. Se marca cada punto al terminarl
 - [x] `speakerShort` corta «Sir Aldric» en «Sir»
 - [x] El tooltip del granero puede mostrar «Infinity»
 - [x] «Reiniciar y probar otro…» del pregón activo borra toda la partida
-- [ ] README y `docs/TERRARIO.md` al día con el código (herramientas de la Baronesa, ejemplos de `reaction-smoke`, partes del store, botones que se movieron)
+- [x] README y `docs/TERRARIO.md` al día con el código (herramientas de la Baronesa, ejemplos de `reaction-smoke`, partes del store, botones que se movieron)
 
 ## 2. Interfaz y experiencia para comparar modelos
-- [ ] Precio por modelo, no por conexión: al comparar dos modelos del mismo servicio se cobran al mismo precio (también `--price` en la terminal)
-- [ ] Tabla de precios al día (el modelo por defecto `claude-opus-5` no tiene precio), con fecha visible
-- [ ] «Sin precio» distinto de «gratis»; los modelos locales cuestan $0
-- [ ] Estimar el costo antes de correr una prueba
-- [ ] Columnas de costo por 1.000 decisiones, tokens por decisión y primera palabra p50 en los resultados
-- [ ] Mejor valor de cada columna resaltado
-- [ ] Costo con el mismo formato en todas partes (banco, bitácora, Trono, terminal) y «≈» solo cuando es estimado
-- [ ] Bitácora: separar el gasto de la Baronesa del de los vecinos; mostrar tokens
-- [ ] Latencia etiquetada igual en todas partes (mediana o media)
-- [ ] Nombres coherentes para el modo sin modelo («Reglas» en todas partes)
-- [ ] Historial y comparación de corridas más fáciles de leer
+- [x] Precio por modelo, no por conexión: al comparar dos modelos del mismo servicio se cobran al mismo precio (también `--price` en la terminal)
+- [x] Tabla de precios al día (el modelo por defecto `claude-opus-5` no tiene precio), con fecha visible
+- [x] «Sin precio» distinto de «gratis»; los modelos locales cuestan $0
+- [x] Estimar el costo antes de correr una prueba
+- [x] Columnas de costo por 1.000 decisiones, tokens por decisión y primera palabra p50 en los resultados
+- [x] Mejor valor de cada columna resaltado
+- [x] Costo con el mismo formato en todas partes (banco, bitácora, Trono, terminal) y «≈» solo cuando es estimado
+- [x] Bitácora: separar el gasto de la Baronesa del de los vecinos; mostrar tokens
+- [x] Latencia etiquetada igual en todas partes (mediana o media)
+- [x] Nombres coherentes para el modo sin modelo: se queda como está (ver deuda aceptada)
+- [x] Historial y comparación de corridas más fáciles de leer
 
 ## 3. BYOK sólido
 - [x] Al recargar se ve qué keys faltan y se piden (aviso al abrir la app)
@@ -49,15 +49,20 @@ Lista de control para cerrar la versión 1.0.0. Se marca cada punto al terminarl
 - [x] Tests con azar sin semilla o que dependen del contenido; tests duplicados
 - [x] Tests nuevos: guardar y restaurar eventos y bitácora, partidas viejas o corruptas, golpes del destino y eventos en curso, estaciones, pensamientos con modelo, precios desconocidos, `parseRulerTurn` y `parseMusing` en los bordes, puntaje del duelo
 - [x] Cobertura también sobre `townState` y `memoryStorage`
-- [ ] Typecheck, build y tests limpios en CI
+- [x] Typecheck, build y tests limpios (local); CI los corre en el PR
 
 ## 5. Publicación
 - [x] `CHANGELOG.md` siguiendo keepachangelog.com
 - [x] `CONTRIBUTING.md`, con cómo publicar una versión
 - [x] `LICENSE.md` (MIT)
-- [ ] Versión 1.0.0 en `package.json`
-- [ ] README al día: qué es, cómo se juega, cómo se comparan modelos, BYOK, documentación enlazada
+- [x] Versión 1.0.0 en `package.json`
+- [x] README al día: qué es, cómo se juega, cómo se comparan modelos, BYOK, documentación enlazada
 
 ## Deuda técnica aceptada
 
-(se llena durante la revisión)
+- **«Simulado» y «reglas».** «Simulado» es el nombre del modo sin modelo en la barra y en Configuración; «reglas» dice cómo decide, en la bitácora y en el banco («Reglas locales»). Son dos caras de lo mismo y cada palabra se usa donde se entiende mejor.
+- **Estimación previa del banco.** Mide el prompt real con ~3,5 caracteres por token y supone ~250 tokens de respuesta; es una guía, no una factura, y se muestra con «≈».
+- **Funciones largas que se quedan.** `drawProp` (el arte de cada objeto del mapa), `enact` (un caso por decreto) y `mockDecision` son listas de casos independientes y cortos; partirlas en tablas sería cosmético. El diálogo de Configuración sí mezclaba cosas y se le separó la key (`KeyField`).
+- **`src/app/town.ts` sigue siendo la fachada** (~650 líneas): cablea mapa, motor, estado y módulos. El trono y el terrario ya viven aparte y la lógica pura está en `core`; lo que queda es cableado de interfaz.
+- **Tests con contenido.** Algunos tests nombran vecinos concretos (peticiones de Hermana Clemencia, deuda de Bartolo): comprueban el mundo de Chismeroble a propósito y cambian si cambia ese mundo.
+- **Keys sin recordar.** Sin la bóveda, la key vive solo en la memoria de la pestaña y se pierde al recargar: es el precio de no guardarla nunca en claro. La app lo avisa al abrir y ofrece guardarla cifrada.

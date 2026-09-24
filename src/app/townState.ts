@@ -20,7 +20,7 @@ interface Saved {
 
 const key = (world: string) => `ai-town:state:${world}`
 
-/** The living town (clock, sky, purses, graves and where everyone is) survives reloads until Reiniciar. */
+/** The living town (clock, sky, purses, graves and where everyone is) survives reloads until a new game starts. */
 export function saveTown(world: string, sim: Simulation, chronicle: ChronicleEntry[] = [], reign?: ReignState) {
   const saved: Saved = {
     v: 1,
