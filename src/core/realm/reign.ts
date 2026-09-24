@@ -6,6 +6,7 @@ import type { Season } from '../sim/season'
 import type { WorldContent } from '../world/content'
 import { createRng } from '../world/rng'
 import { Chronicle } from './chronicle'
+import { seasonOfDay } from './terrarium'
 import { enact } from './decrees'
 import { buildReport, type RoyalReport } from './report'
 import type { RulerTurn } from './ruler'
@@ -14,7 +15,10 @@ import { dawnStanding, freshStanding, GOALS, type Ending, type Goals, type Stand
 /** A scheduled blow of fate: on this day, this happens. */
 export interface FateEvent {
   day: number
+  /** Hour of that day when it strikes, on the map. */
+  hour: number
   visual: OutcomeVisual
+  place: string
   text: string
 }
 
@@ -58,25 +62,24 @@ export interface ReignResult {
   economy: Economy
 }
 
-const SEASON_ORDER: Season[] = ['spring', 'summer', 'autumn', 'winter']
 
 /** A seeded calendar of blows of fate: a fair, repeatable string of trouble and luck for any ruler. */
 export function fateCalendar(seed: number, days: number): FateEvent[] {
   const rng = createRng(seed)
-  const pool: [OutcomeVisual, string][] = [
-    ['thief', 'Un ladrón asaltó el tesoro.'],
-    ['flood', 'El río se desbordó sobre la orilla.'],
-    ['blaze', 'Ardió la taberna.'],
-    ['caravan', 'Llegó una caravana de mercaderes.'],
-    ['wolves', 'Una manada de lobos rondó el bosque.'],
-    ['undead', 'Salieron esqueletos del cementerio.'],
-    ['treasure', 'Encontraron un cofre de oro en la cripta.'],
-    ['meteor', 'Cayó un meteorito en el huerto.'],
+  const pool: [OutcomeVisual, string, string][] = [
+    ['thief', 'market', 'Un ladrón asaltó el tesoro.'],
+    ['flood', 'riverbank', 'El río se desbordó sobre la orilla.'],
+    ['blaze', 'tavern', 'Ardió la taberna.'],
+    ['caravan', 'gate', 'Llegó una caravana de mercaderes.'],
+    ['wolves', 'forest', 'Una manada de lobos rondó el bosque.'],
+    ['undead', 'cemetery', 'Salieron esqueletos del cementerio.'],
+    ['treasure', 'crypt', 'Encontraron un cofre de oro en la cripta.'],
+    ['meteor', 'field', 'Cayó un meteorito en el huerto.'],
   ]
   const out: FateEvent[] = []
   for (let d = 2; d < days; d += 2 + Math.floor(rng.next() * 3)) {
-    const [visual, text] = pool[Math.floor(rng.next() * pool.length)]
-    out.push({ day: d, visual, text })
+    const [visual, place, text] = pool[Math.floor(rng.next() * pool.length)]
+    out.push({ day: d, hour: 9 + Math.floor(rng.next() * 11), visual, place, text })
   }
   return out
 }
@@ -95,7 +98,7 @@ export async function runReign(o: ReignOptions): Promise<ReignResult> {
   const goals = { ...GOALS, yearDays: o.days - 1, ...o.goals }
   const letters: string[] = []
   for (let day = 0; day < o.days; day++) {
-    const season = SEASON_ORDER[Math.floor(day / o.seasonLength) % 4]
+    const season = seasonOfDay(day, o.seasonLength)
     const minutes = 6 * 60 + day * 1440
     if (day > 0) {
       const l = runDay(e, rules, season, day)

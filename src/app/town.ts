@@ -3,14 +3,17 @@ import { detectPlace, type Announcement } from '../core/reactions/announcement'
 import { ReactionEngine, type LogEntry, type Reaction } from '../core/reactions/engine'
 import { eventAt, react, type OutcomeVisual } from '../core/reactions/outcome'
 import { isNight } from '../core/sim/rhythm'
-import { averageMood, foodDays, type Ledger } from '../core/economy/economy'
+import { alive, averageMood, foodDays, type Ledger } from '../core/economy/economy'
 import { applyImpact } from '../core/economy/impact'
 import { Chronicle, type ChronicleKind } from '../core/realm/chronicle'
 import { enact, type Decree, type DecreeResult } from '../core/realm/decrees'
 import { buildReport, reportText } from '../core/realm/report'
 import type { RulerAction } from '../core/realm/ruler'
 import { createModelRuler, createRulesRuler } from '../providers/ruler'
-import { dawnStanding } from '../core/realm/standing'
+import { dawnStanding, GOALS } from '../core/realm/standing'
+import { fateCalendar } from '../core/realm/reign'
+import { seasonOfDay } from '../core/realm/terrarium'
+import { newSeed } from './store/reign'
 import { FRESH_REIGN, type ReignState, type RulerLog, type RulerMode } from './store/reign'
 import type { Season } from '../core/sim/season'
 import type { Weather } from '../core/sim/weather'
@@ -24,7 +27,7 @@ import { useTown } from './store'
 import { EMPTY_DRAFT } from './store/composer'
 import { HAD_PLAINTEXT_KEYS } from './store/settings'
 import { loadMemory, saveMemory } from './memoryStorage'
-import { forgetTown, restoreTown, saveTown } from './townState'
+import { exportGame, forgetTown, importGame, restoreTown, saveTown } from './townState'
 import { speakerName } from '../core/reactions/announcement'
 import type { Outcome } from '../core/reactions/outcome'
 
@@ -34,6 +37,8 @@ const REASONING_FLUSH_MS = 120
 const LOG_LIMIT = 400
 /** Tiles within which people see an event happen with their own eyes. */
 const SIGHT_RADIUS = 10
+/** Game minutes per second in the terrarium: a day in about a minute and a half. */
+const TERRARIUM_SPEED = 16
 
 /** The one place the UI goes through to change the town: it owns the simulation, the engine and the map. */
 class TownController {
@@ -50,6 +55,8 @@ class TownController {
   private snapshotFrame = 0
   private reasoningTimer = 0
   private pendingLog: LogEntry[] = []
+  /** A saved game is being loaded: nothing may overwrite it before the page restarts. */
+  private loading = false
 
   constructor() {
     const { provider, concurrency, timeoutMs } = createProvider(useTown.getState().llm, this.content)
@@ -59,7 +66,8 @@ class TownController {
       this.chronicle.entries = restored.chronicle
       useTown.setState({ chronicle: restored.chronicle.slice(-80), ...(restored.reign ? { ...FRESH_REIGN, ...restored.reign, standing: { ...FRESH_REIGN.standing, ...restored.reign.standing } } : {}) })
       useTown.setState({ weather: this.sim.weather, season: this.sim.season })
-    }
+    } else useTown.setState({ seed: newSeed() })
+    if (useTown.getState().autoplay) this.applyProvider()
     this.sim.onLedger((l) => this.onLedger(l))
     this.engine.memory = this.memory
     useTown.setState({ memoryEntries: [...this.memory.entries] })
@@ -92,6 +100,7 @@ class TownController {
     }, { insets: () => MAP_INSETS }).then((r) => {
       if (disposed) return r.destroy()
       this.renderer = r
+      if (useTown.getState().autoplay) this.setSpeed(TERRARIUM_SPEED)
       r.camera.onInteract = () => useTown.getState().interacted || useTown.setState({ interacted: true })
       useTown.setState({ ready: true })
     })
@@ -100,8 +109,11 @@ class TownController {
       saveSettings(useTown.getState().llm)
       useTown.getState().toast('Por seguridad, tus keys ya no se guardan sin cifrar. Siguen activas en esta pestaña.')
     }
-    const clock = window.setInterval(() => this.syncClock(), 1000)
-    const save = () => saveTown(this.content.id, this.sim, this.chronicle.entries, this.reignState())
+    const clock = window.setInterval(() => {
+      this.syncClock()
+      this.fateTick()
+    }, 1000)
+    const save = () => this.save()
     const autosave = window.setInterval(save, 5000)
     window.addEventListener('pagehide', save)
     return () => {
@@ -172,7 +184,8 @@ class TownController {
       this.forgetMemory()
       this.chronicle.clear()
       this.pendingProclamations = []
-      useTown.setState({ ...FRESH_REIGN, rulerMode: useTown.getState().rulerMode })
+      useTown.setState({ ...FRESH_REIGN, rulerMode: useTown.getState().rulerMode, residentsOnModel: useTown.getState().residentsOnModel, seed: newSeed() })
+      this.applyProvider()
       this.syncRealm()
       this.renderer?.showEvent(null)
       this.renderer?.setSpeed(1)
@@ -194,12 +207,55 @@ class TownController {
   }
 
   applySettings(llm: LlmSettings) {
-    const { provider, concurrency, timeoutMs } = createProvider(llm, this.content)
+    saveSettings(llm)
+    useTown.setState({ llm })
+    this.applyProvider()
+  }
+
+  /** Residents decide with the chosen model, except in the terrarium, where they use rules unless told otherwise. */
+  private applyProvider() {
+    const { llm, autoplay, residentsOnModel } = useTown.getState()
+    const { provider, concurrency, timeoutMs } = createProvider(autoplay && !residentsOnModel ? { ...llm, active: 'mock' } : llm, this.content)
     this.engine.scheduler.provider = provider
     this.engine.scheduler.timeoutMs = timeoutMs
     this.engine.scheduler.setConcurrency(concurrency)
-    saveSettings(llm)
-    useTown.setState({ llm })
+  }
+
+  // Terrarium: the town runs itself while the user watches as fate and the Baroness rules.
+
+  setAutoplay(autoplay: boolean) {
+    const state = useTown.getState()
+    if (autoplay && state.standing.end) return state.toast('Esta partida ya terminó. Empieza una nueva para poner en marcha el terrario.')
+    useTown.setState({ autoplay })
+    if (autoplay && state.rulerMode === 'manual') {
+      this.setRulerMode('rules')
+      state.toast('La Baronesa gobernará sola (con reglas); en el Trono puedes darle un modelo.')
+    }
+    if (autoplay) this.setSeason(seasonOfDay(this.sim.economy?.day ?? 0))
+    this.applyProvider()
+    this.setSpeed(autoplay ? TERRARIUM_SPEED : 1)
+  }
+
+  setResidentsOnModel(residentsOnModel: boolean) {
+    useTown.setState({ residentsOnModel })
+    this.applyProvider()
+  }
+
+  fateCalendar() {
+    return fateCalendar(useTown.getState().seed, GOALS.yearDays + 1)
+  }
+
+  /** Today's blow of fate strikes at its hour, once, if the town is not busy with something else. */
+  private fateTick() {
+    const { autoplay, fateDone, standing } = useTown.getState()
+    const e = this.sim.economy
+    if (!autoplay || !e || standing.end || (this.engine.active && !this.engine.settled)) return
+    const hour = ((this.sim.minutes % 1440) + 1440) % 1440 / 60
+    const due = this.fateCalendar().find((f) => f.day === e.day && f.day > fateDone && hour >= f.hour)
+    if (!due) return
+    useTown.setState({ fateDone: due.day })
+    this.log('event', `El destino: ${due.text}`)
+    this.unleash(due.visual, due.place)
   }
 
   /** Keeps the current keys encrypted with a passphrase so they survive reloads. */
@@ -248,8 +304,55 @@ class TownController {
       window.setTimeout(() => toast(line), 1500)
     }
     this.settleStanding(l.day)
+    if (useTown.getState().autoplay) this.setSeason(seasonOfDay(l.day))
+    this.recordDay(l.day)
     this.syncRealm()
+    if (useTown.getState().standing.end && useTown.getState().autoplay) {
+      useTown.setState({ autoplay: false })
+      this.applyProvider()
+      this.setSpeed(0)
+    }
     if (!useTown.getState().standing.end || useTown.getState().endSeen) void this.reign()
+  }
+
+  private recordDay(day: number) {
+    const e = this.sim.economy!
+    const ids = Object.keys(e.needs)
+    const { honesty, history } = useTown.getState()
+    const row = {
+      day,
+      season: this.sim.season,
+      population: ids.filter((id) => alive(e, id)).length,
+      treasury: e.treasury,
+      granary: Math.floor(e.granary),
+      mood: averageMood(e),
+      trust: this.memory.reputation({ kind: 'authority' }).trust,
+      actions: 0,
+      lies: honesty.lies,
+      problems: 0,
+    }
+    useTown.setState({ history: [...history.filter((h) => h.day !== day), row].slice(-200) })
+  }
+
+  save() {
+    if (this.loading) return
+    saveTown(this.content.id, this.sim, this.chronicle.entries, this.reignState())
+    saveMemory(this.content.id, this.memory)
+  }
+
+  /** The game as a file to keep or share. */
+  exportGame() {
+    this.save()
+    const day = (this.sim.economy?.day ?? 0) + 1
+    return { name: `chismeroble-dia-${day}.json`, text: exportGame(this.content.id) }
+  }
+
+  /** Loads a saved game: stored first, then the page restarts from it. */
+  importGame(text: string) {
+    const problem = importGame(this.content.id, text)
+    if (problem) return useTown.getState().toast(problem)
+    this.loading = true
+    window.location.reload()
   }
 
   stirGuild() {
@@ -270,7 +373,7 @@ class TownController {
   }
 
   log(kind: ChronicleKind, text: string) {
-    this.chronicle.add(this.sim.minutes, kind, text)
+    this.chronicle.add(this.sim.minutes, kind, text.charAt(0).toUpperCase() + text.slice(1))
     useTown.setState({ chronicle: this.chronicle.entries.slice(-80) })
   }
 
@@ -294,8 +397,8 @@ class TownController {
   }
 
   private reignState(): ReignState {
-    const { rulerMode, rulerCap, rulerCalls, rulerCost, lastTurn, mailbox, honesty, standing, endSeen } = useTown.getState()
-    return { rulerMode, rulerCap, rulerCalls, rulerCost, lastTurn, mailbox, honesty, standing, endSeen }
+    const { rulerMode, rulerCap, rulerCalls, rulerCost, lastTurn, mailbox, honesty, standing, endSeen, autoplay, seed, fateDone, residentsOnModel, history } = useTown.getState()
+    return { rulerMode, rulerCap, rulerCalls, rulerCost, lastTurn, mailbox, honesty, standing, endSeen, autoplay, seed, fateDone, residentsOnModel, history }
   }
 
   setRulerMode(rulerMode: RulerMode) {
@@ -318,10 +421,16 @@ class TownController {
     useTown.setState({ rulerBusy: true })
     try {
       const reply = await ruler(report, AbortSignal.timeout(120_000))
-      const actions = reply.actions.map((a) => this.carryOut(a, e.day))
+      // A rules ruler cannot word a proclamation of her own, so she announces her first decree.
+      let announce = !modelOk
+      const actions = reply.actions.map((a) => {
+        const done = this.carryOut(a, e.day, announce && a.kind === 'decree')
+        if (a.kind === 'decree' && done.ok) announce = false
+        return done
+      })
       const log: RulerLog = { day: e.day, mode: modelOk ? 'model' : 'rules', thought: reply.thought, report: reply.prompt, response: reply.response, actions, problems: reply.problems, ms: reply.ms, usage: reply.usage }
       useTown.setState((s) => ({ lastTurn: log, rulerCalls: s.rulerCalls + (modelOk ? 1 : 0), rulerCost: s.rulerCost + (reply.usage?.costUsd ?? 0) }))
-      this.log('ruler', `La Baronesa: «${reply.thought.length > 160 ? `${reply.thought.slice(0, 157)}…` : reply.thought}»`)
+      if (reply.actions.length) this.log('ruler', `La Baronesa: «${reply.thought.length > 160 ? `${reply.thought.slice(0, 157)}…` : reply.thought}»`)
     } catch (err) {
       const error = err instanceof Error ? err.message : 'No respondió.'
       useTown.setState({ lastTurn: { day: e.day, mode: 'model', thought: '', report: reportText(report), response: '', actions: [], problems: [], ms: 0, error } })
@@ -331,9 +440,9 @@ class TownController {
     }
   }
 
-  private carryOut(a: RulerAction, day: number): { text: string; ok: boolean } {
+  private carryOut(a: RulerAction, day: number, announce = false): { text: string; ok: boolean } {
     if (a.kind === 'decree') {
-      const r = this.decree(a.decree, false)
+      const r = this.decree(a.decree, announce)
       return { text: r.ok ? r.summary : `No se pudo: ${r.reason}`, ok: r.ok }
     }
     if (a.kind === 'ask') {

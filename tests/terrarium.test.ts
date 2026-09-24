@@ -1,0 +1,61 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { Simulation } from '../src/core/sim/simulation'
+import { fateCalendar } from '../src/core/realm/reign'
+import { chapters, seasonOfDay } from '../src/core/realm/terrarium'
+import { exportGame, importGame, restoreTown, saveTown } from '../src/app/townState'
+import { content, memoryStorage } from './helpers'
+
+describe('the terrarium calendar', () => {
+  it('turns the seasons every ten days, starting in spring', () => {
+    expect([0, 9, 10, 25, 39, 40].map((d) => seasonOfDay(d))).toEqual(['spring', 'spring', 'summer', 'autumn', 'winter', 'spring'])
+  })
+
+  it('deals the same blows of fate for the same seed, at daytime, in real places', () => {
+    const a = fateCalendar(77, 40)
+    expect(fateCalendar(77, 40)).toEqual(a)
+    expect(fateCalendar(78, 40)).not.toEqual(a)
+    const places = new Set(new Simulation(content).world.places.map((p) => p.id))
+    for (const f of a) {
+      expect(f.hour).toBeGreaterThanOrEqual(9)
+      expect(f.hour).toBeLessThan(20)
+      expect(places.has(f.place)).toBe(true)
+    }
+  })
+
+  it('tells each day by its most striking line, newest first', () => {
+    const day = (d: number, h: number) => 6 * 60 + d * 1440 + h * 60
+    const out = chapters([
+      { minutes: day(0, 0), kind: 'dawn', text: 'Amanece' },
+      { minutes: day(0, 3), kind: 'decree', text: 'Impuesto al 20%' },
+      { minutes: day(0, 5), kind: 'death', text: 'Murió Finn' },
+      { minutes: day(1, 0), kind: 'dawn', text: 'Amanece otra vez' },
+    ])
+    expect(out.map((c) => c.day)).toEqual([1, 0])
+    expect(out[1].headline?.text).toBe('Murió Finn')
+    expect(out[0].headline).toBeNull()
+  })
+})
+
+describe('a game in a file', () => {
+  beforeEach(() => vi.stubGlobal('localStorage', memoryStorage()))
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('goes out and comes back whole', () => {
+    const a = new Simulation(content, 1)
+    a.economy!.treasury = 321
+    saveTown(content.id, a)
+    localStorage.setItem(`ai-town:memory:${content.id}`, JSON.stringify({ v: 1, entries: [] }))
+    const file = exportGame(content.id)
+    localStorage.clear()
+    expect(importGame(content.id, file)).toBeNull()
+    const b = new Simulation(content, 2)
+    restoreTown(content.id, b)
+    expect(b.economy!.treasury).toBe(321)
+  })
+
+  it('refuses what is not a game of this world', () => {
+    expect(importGame(content.id, 'nope')).toMatch(/no es una partida/)
+    expect(importGame(content.id, JSON.stringify({ app: 'otra' }))).toMatch(/AI Town/)
+    expect(importGame(content.id, JSON.stringify({ app: 'ai-town', world: 'otro', state: { v: 1 } }))).toMatch(/otro mundo/)
+  })
+})

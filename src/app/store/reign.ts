@@ -1,6 +1,7 @@
 import type { StateCreator } from 'zustand'
 import type { TownState } from '.'
 import type { TokenUsage } from '../../core/decisions/types'
+import type { DayRecord } from '../../core/realm/reign'
 import { freshStanding, type Standing } from '../../core/realm/standing'
 
 export type RulerMode = 'manual' | 'rules' | 'model'
@@ -38,6 +39,16 @@ export interface ReignState {
   standing: Standing
   /** The end screen was closed; the town keeps living as a sandbox. */
   endSeen: boolean
+  /** Terrarium: the town runs on its own, seasons turn, and fate strikes on a seeded calendar. */
+  autoplay: boolean
+  /** Picks this game's calendar of fate; the same seed brings the same blows. */
+  seed: number
+  /** Last day whose blow of fate already struck. */
+  fateDone: number
+  /** Residents decide with the model too, instead of rules; it spends many more tokens. */
+  residentsOnModel: boolean
+  /** One row per dawn, for the chronicle's charts. */
+  history: DayRecord[]
 }
 
 export interface ReignSlice extends ReignState {
@@ -54,6 +65,13 @@ export const FRESH_REIGN: ReignState = {
   honesty: { proclamations: 0, lies: 0 },
   standing: freshStanding(),
   endSeen: false,
+  autoplay: false,
+  seed: 1,
+  fateDone: -1,
+  residentsOnModel: false,
+  history: [],
 }
+
+export const newSeed = () => 1 + Math.floor(Math.random() * 99_999)
 
 export const createReignSlice: StateCreator<TownState, [], [], ReignSlice> = () => ({ ...FRESH_REIGN, rulerBusy: false })

@@ -37,6 +37,7 @@ export interface GodSlice {
   /** The latest chronicle lines, oldest first. */
   chronicle: ChronicleEntry[]
   throneOpen: boolean
+  chronicleOpen: boolean
   setThroneOpen: (open: boolean) => void
   setGodOpen: (open: boolean) => void
 }
@@ -51,6 +52,7 @@ export const createGodSlice: StateCreator<TownState, [], [], GodSlice> = (set) =
   memoryEntries: [],
   chronicle: [],
   throneOpen: false,
+  chronicleOpen: false,
   setThroneOpen: (throneOpen) => set(throneOpen ? { throneOpen, godOpen: false } : { throneOpen }),
   setGodOpen: (godOpen) => set(godOpen ? { godOpen, throneOpen: false } : { godOpen }),
 })

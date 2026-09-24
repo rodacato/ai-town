@@ -71,3 +71,36 @@ export function forgetTown(world: string) {
     // Nothing saved, nothing to forget.
   }
 }
+
+interface GameFile {
+  app: 'ai-town'
+  world: string
+  state: Saved
+  memory: unknown
+}
+
+/** The whole game as one file: the town and its memory. */
+export function exportGame(world: string): string {
+  const read = (k: string) => JSON.parse(localStorage.getItem(k) ?? 'null') as unknown
+  const file: GameFile = { app: 'ai-town', world, state: read(key(world)) as Saved, memory: read(`ai-town:memory:${world}`) }
+  return JSON.stringify(file)
+}
+
+/** Puts a saved game back in storage so the next load picks it up; returns why not, if it cannot. */
+export function importGame(world: string, text: string): string | null {
+  let file: GameFile
+  try {
+    file = JSON.parse(text) as GameFile
+  } catch {
+    return 'El archivo no es una partida válida.'
+  }
+  if (file?.app !== 'ai-town' || file.state?.v !== 1) return 'El archivo no es una partida de AI Town.'
+  if (file.world !== world) return `Esa partida es de otro mundo (${file.world}).`
+  try {
+    localStorage.setItem(key(world), JSON.stringify(file.state))
+    localStorage.setItem(`ai-town:memory:${world}`, JSON.stringify(file.memory ?? { v: 1, entries: [] }))
+  } catch {
+    return 'No se pudo guardar en este navegador.'
+  }
+  return null
+}

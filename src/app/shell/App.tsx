@@ -15,6 +15,7 @@ import { TownCanvas } from '../features/map/TownCanvas'
 import { GodPanel } from '../features/god/GodPanel'
 import { RealmHud } from '../features/realm/RealmHud'
 import { EndScreen } from '../features/realm/EndScreen'
+import { ChronicleModal } from '../features/chronicle/ChronicleModal'
 import { ThronePanel } from '../features/throne/ThronePanel'
 import './shell.css'
 
@@ -65,6 +66,7 @@ export function App() {
       <GodPanel />
       <ThronePanel />
       <EndScreen />
+      <ChronicleModal />
       <Toasts />
       <ResetVeil />
       <LazySettings />
@@ -80,7 +82,7 @@ function useKeyboardShortcuts() {
     const onKey = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) return
       if (e.metaKey || e.ctrlKey || e.altKey) return
-      if (useTown.getState().settingsOpen || useBench.getState().open) return
+      if (useTown.getState().settingsOpen || useTown.getState().chronicleOpen || useBench.getState().open) return
       if (e.key === 'Escape') town.select(null)
       if (e.key === '+' || e.key === '=') town.zoomBy(1.25)
       if (e.key === '-') town.zoomBy(0.8)

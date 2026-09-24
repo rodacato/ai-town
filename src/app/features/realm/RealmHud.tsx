@@ -9,6 +9,7 @@ const pct = (x: number) => `${Math.round(x * 100)}%`
 export function RealmHud() {
   const realm = useTown((s) => s.realm)
   const standing = useTown((s) => s.standing)
+  const autoplay = useTown((s) => s.autoplay)
   useTown((s) => s.memoryEntries)
   if (!realm) return null
   const trust = town.memory.reputation({ kind: 'authority' }).trust
@@ -58,9 +59,10 @@ export function RealmHud() {
           </b>
         </div>
       )}
-      <span className="realm-day mono" title="Un año de gobierno son 40 días">
+      <button className="realm-day mono" onClick={() => useTown.setState({ chronicleOpen: true })} title="Abrir la crónica del reino (un año son 40 días)">
+        {autoplay && !standing.end ? '▶ ' : ''}
         {standing.end ? standing.end.title : `Día ${realm.day + 1}/${GOALS.yearDays}`}
-      </span>
+      </button>
     </section>
   )
 }
