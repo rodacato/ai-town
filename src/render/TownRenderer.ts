@@ -8,7 +8,7 @@ import type { Ambience, Glow, WorldArt } from './art'
 import { Birds, Butterflies, CloudShadows, Smoke, WaterShimmer } from './ambient'
 import { Camera } from './camera'
 import { ISLAND_DEPTH, TILE_H, TILE_W, iso } from './iso'
-import type { PropSprite } from './art'
+import type { ArtSprite, PropSprite } from './art'
 import { PlaceMarker } from './placeMarker'
 import { OriginBeacon, WaveFx } from './reactionFx'
 import { ResidentSprite, type ReactionVisual } from './residentSprite'
@@ -32,6 +32,7 @@ export class TownRenderer {
   private overlay = new Container()
   private sprites = new Map<string, ResidentSprite>()
   private sentries: SentrySprite[] = []
+  private outcome: { key: unknown; sprite: ArtSprite } | null = null
   private swaying: NonNullable<PropSprite['sway']>[] = []
   private animated: ((time: number, dt: number, ambience: Ambience) => void)[] = []
   private sky = new ColorMatrixFilter()
@@ -75,7 +76,7 @@ export class TownRenderer {
     host: HTMLElement,
     private sim: Simulation,
     private engine: ReactionEngine,
-    art: WorldArt,
+    private art: WorldArt,
     private events: RendererEvents,
     options: RendererOptions,
   ) {
@@ -319,6 +320,25 @@ export class TownRenderer {
     this.events.onHover(id)
   }
 
+  /** Shows what the announcement turned into once the engine reveals it, and clears it on reset. */
+  private syncOutcome(t: number, dt: number) {
+    const o = this.engine.outcome
+    if (this.outcome?.key !== o) {
+      if (this.outcome) this.outcome.sprite.view.destroy({ children: true })
+      this.outcome = null
+      const sprite = o && this.art.outcome?.(o)
+      if (sprite) {
+        sprite.view.zIndex = sprite.depth
+        this.objects.addChild(sprite.view)
+        this.outcome = { key: o, sprite }
+      }
+    }
+    if (this.outcome) {
+      if (this.calm) this.outcome.sprite.view.scale.set(1)
+      else this.outcome.sprite.update?.(t, dt, this.ambience)
+    }
+  }
+
   private tick(dt: number) {
     this.time += dt
     const t = this.time
@@ -332,6 +352,7 @@ export class TownRenderer {
     const zoom = this.camera.scale
     for (const [id, s] of this.sprites) s.update(t, dt, this.reactionVisual(id), zoom)
     if (!this.calm) for (const s of this.sentries) s.update(t)
+    this.syncOutcome(t, dt)
     this.spreadBubbles()
     this.updateSky()
     if (!this.calm) {

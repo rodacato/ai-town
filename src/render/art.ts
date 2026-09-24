@@ -1,4 +1,5 @@
 import type { Container } from 'pixi.js'
+import type { Outcome } from '../core/reactions/outcome'
 import type { Building, Landmark } from '../core/world/types'
 
 export interface TerrainPalette {
@@ -62,4 +63,6 @@ export interface WorldArt {
   landmark: (l: Landmark) => ArtSprite
   /** The hooded figure standing where a stranger makes an announcement. */
   stranger: () => Container
+  /** What an announcement turned into once its truth is revealed. */
+  outcome?: (o: Outcome) => ArtSprite
 }

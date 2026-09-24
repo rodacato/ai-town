@@ -2,6 +2,7 @@ import type { StateCreator } from 'zustand'
 import type { TownState } from '.'
 import type { Announcement } from '../../core/reactions/announcement'
 import type { LogEntry, Reaction } from '../../core/reactions/engine'
+import type { Outcome } from '../../core/reactions/outcome'
 
 export interface ExperimentSlice {
   announcement: Announcement | null
@@ -13,6 +14,8 @@ export interface ExperimentSlice {
   /** Chronological trace of requests and decisions, for transparency. */
   log: LogEntry[]
   startedAt: number
+  /** What the announcement turned out to be, once revealed. */
+  outcome: Outcome | null
 }
 
 export const createExperimentSlice: StateCreator<TownState, [], [], ExperimentSlice> = () => ({
@@ -22,4 +25,5 @@ export const createExperimentSlice: StateCreator<TownState, [], [], ExperimentSl
   complete: false,
   log: [],
   startedAt: 0,
+  outcome: null,
 })

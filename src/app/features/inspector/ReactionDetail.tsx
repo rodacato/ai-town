@@ -60,6 +60,11 @@ export function ReactionDetail({ reaction, name }: { reaction: Reaction | undefi
           <div className="decision-top">
             <ActionPill action={d.action} />
             <span className={`belief ${d.believes ? 'yes' : 'no'}`}>{d.believes ? 'Le cree' : 'No se lo cree'}</span>
+            {reaction.verdict && (
+              <span className={`verdict-mark ${reaction.verdict.right ? 'is-right' : 'is-wrong'}`} title="Según el desenlace">
+                {reaction.verdict.right ? '✓ Acertó' : '✗ Se equivocó'}
+              </span>
+            )}
             <span className="mono decision-latency">{seconds(reaction.latencyMs ?? 0)}</span>
           </div>
           <blockquote className="speech">
@@ -75,6 +80,7 @@ export function ReactionDetail({ reaction, name }: { reaction: Reaction | undefi
           </div>
           <ul className="decision-meta">
             <li>Se enteró {via}.</li>
+            {reaction.verdict && <li>{reaction.verdict.note}</li>}
             {reaction.decidedBy && <li>Decidido por {reaction.decidedBy}.</li>}
             {d.tell.length > 0 && (
               <li>

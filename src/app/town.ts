@@ -34,6 +34,10 @@ class TownController {
     this.engine.on((e) => {
       if (e.type === 'reasoning') return this.scheduleReasoning()
       if (e.type === 'log') this.pendingLog.push(e.entry)
+      if (e.type === 'outcome') {
+        useTown.setState({ outcome: e.outcome })
+        useTown.getState().toast(e.outcome.summary)
+      }
       if (e.type === 'complete' && this.engine.announcement && !this.toastedFor.has(this.engine.announcement.id)) {
         this.toastedFor.add(this.engine.announcement.id)
         useTown.getState().toast('Todo el pueblo ha decidido.')
@@ -102,12 +106,13 @@ class TownController {
     const { draft } = useTown.getState()
     const text = draft.text.trim()
     if (text.length < 3) return
-    const announcement: Announcement = { id: crypto.randomUUID(), text, speaker: draft.speaker, place: this.detectPlace(text), minutes: Math.floor(this.sim.minutes) }
+    const truth = draft.truth === 'random' ? Math.random() < 0.5 : draft.truth === 'true'
+    const announcement: Announcement = { id: crypto.randomUUID(), text, speaker: draft.speaker, place: this.detectPlace(text), minutes: Math.floor(this.sim.minutes), truth }
     this.renderer?.markPlace(announcement.place)
     this.renderer?.select(null)
     this.renderer?.camera.fit()
     this.pendingLog = []
-    useTown.setState({ announcement, complete: false, reasoning: {}, log: [], startedAt: performance.now(), interacted: true })
+    useTown.setState({ announcement, complete: false, reasoning: {}, log: [], startedAt: performance.now(), interacted: true, outcome: null })
     this.engine.start(announcement)
   }
 
@@ -121,7 +126,7 @@ class TownController {
       this.renderer?.markPlace(null)
       this.renderer?.camera.fit(false)
       this.pendingLog = []
-      useTown.setState({ announcement: null, reactions: {}, reasoning: {}, log: [], complete: false, draft: EMPTY_DRAFT })
+      useTown.setState({ announcement: null, reactions: {}, reasoning: {}, log: [], complete: false, draft: EMPTY_DRAFT, outcome: null })
       this.syncClock()
       window.setTimeout(() => {
         useTown.setState({ resetting: false })

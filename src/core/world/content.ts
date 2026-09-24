@@ -1,3 +1,4 @@
+import type { OutcomeDef } from '../reactions/outcome'
 import type { Rng } from './rng'
 import type { Building, Point, Tile, TileKind } from './types'
 import type { World } from './world'
@@ -155,6 +156,8 @@ export interface WorldContent {
     danger: string[]
     cues: [needle: string, label: string][]
   }
+  /** What announcements turn into when they come true, matched by keyword. */
+  outcomes?: OutcomeDef[]
   /** One paragraph that sets the scene for an LLM playing a resident. */
   promptSetting: string
   copy: {

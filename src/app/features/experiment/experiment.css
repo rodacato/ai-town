@@ -521,3 +521,47 @@
 .export-row .section-label {
   margin-right: auto;
 }
+
+.outcome-card {
+  padding: 14px 16px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--border);
+  background: var(--surface-sunk);
+  animation: fade-in 300ms var(--ease-out);
+}
+
+.outcome-card h3 {
+  margin: 4px 0 6px;
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.outcome-card p {
+  font-size: 13px;
+  color: var(--ink-2);
+  line-height: 1.5;
+}
+
+.outcome-card.is-true {
+  border-color: #b9d4ae;
+  background: #eef5ea;
+}
+
+.outcome-card.is-false {
+  border-color: #e3c3bd;
+  background: #f8ecea;
+}
+
+.verdict-mark {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.verdict-mark.is-right {
+  color: #446d3c;
+}
+
+.verdict-mark.is-wrong {
+  color: #9a4a42;
+}
