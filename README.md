@@ -97,6 +97,7 @@ El botón **Pruebas** compara modelos con los mismos pregones y residentes. Una 
 - **Consistencia**: con 2+ repeticiones, cuánto repite cada residente su decisión.
 - **Acierto**: si cree lo que de verdad pasó (cada pregón de ejemplo tiene su verdad), cuántas mentiras se tragó y de cuántas verdades dudó.
 - **Personaje**: decisiones que no contradicen la personalidad; el informe dice quién rompió qué regla (`src/core/bench/coherence.ts`).
+- **Casos de oro**: 10 decisiones con una respuesta clara, elegidas solas (sin curar nada): donde la verdad del pregón, las reglas de personaje y el modo simulado coinciden, y pocas acciones encajan con el vecino. Acierta quien cree lo cierto y actúa como el personaje. La **prueba rápida** hace solo esas 10 preguntas por modelo: sirve para revisar un modelo nuevo por centavos.
 - **Como las reglas**: coincidencia con el modo simulado, como referencia.
 - **Personaje según el juez** (opcional, al terminar): otro modelo lee una muestra fija de decisiones, con la ficha del vecino, y dice de 1 a 5 si su razonamiento y sus palabras suenan a él, con una frase de por qué. Se guarda dentro de la corrida, entra en la comparación y muestra lo menos creíble de cada contendiente. Cuesta unas pocas consultas cortas por contendiente.
 - **Rendimiento y costo**: primera palabra, respuesta (mediana y p95), peticiones y tokens por segundo, tokens totales y por decisión, costo total y por 1.000 decisiones. El mejor modelo de cada columna va resaltado.
@@ -113,6 +114,7 @@ Las keys y hosts salen de `.env` / `.env.local` (`ANTHROPIC_API_KEY`, `OPENAI_AP
 npm run bench -- -m shellm:claude -m shellm:codex -r 3 -c 16
 npm run bench -- -m anthropic:claude-opus-5 -m custom:llama3.2@http://localhost:11434 -s banquet,troll
 npm run bench -- -m shellm:claude -m shellm:codex --juez anthropic:claude-opus-5 --muestras 12
+npm run bench -- --rapida -m anthropic:claude-sonnet-5 -m custom:llama3.2@http://localhost:11434
 npm run bench -- --compare bench-results/antes.json bench-results/despues.json
 npm run reign -- -m anthropic:claude-sonnet-5 -m custom:qwen3@http://mi-servidor:8000=0.2/0.6 --seed 12
 npm run reign -- --dificultad cruel --seed 12

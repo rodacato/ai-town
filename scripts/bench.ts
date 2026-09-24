@@ -16,6 +16,7 @@ import { bold, connectionForSpec, PRICE_RE, dim, ENV, fail, nodeStream, red, tty
 import { runJudge, summarizeJudgments } from '../src/core/bench/judge'
 import { createModelJudge } from '../src/providers/judge'
 import { nameOf } from '../src/core/lang'
+import { GOLDEN_SIZE } from '../src/core/bench/golden'
 import { ACTION_META } from '../src/theme/actions'
 
 const HELP = `Banco de pruebas de AI Town desde la terminal.
@@ -33,6 +34,7 @@ Uso: npm run bench -- [opciones]
       --timeout <s>                      Tiempo máximo por decisión (por defecto 120).
       --price <entrada/salida>           USD por millón de tokens para los modelos sin precio propio, ej. 3/15.
                                          Precio de un solo modelo: -m proveedor:modelo=3/15
+      --rapida                           Solo los casos de oro (${GOLDEN_SIZE} decisiones con una respuesta clara), una vez cada uno.
       --juez <proveedor:modelo>          Al terminar, un modelo juzga de 1 a 5 si las decisiones suenan a cada vecino.
       --muestras <n>                     Decisiones que juzga por contendiente (por defecto 12).
   -o, --out <archivo.json>               Dónde guardar la corrida (por defecto bench-results/).
@@ -59,6 +61,7 @@ const { values: args, positionals } = parseArgs({
     price: { type: 'string' },
     out: { type: 'string', short: 'o' },
     juez: { type: 'string' },
+    rapida: { type: 'boolean', default: false },
     muestras: { type: 'string', default: '12' },
     'dry-run': { type: 'boolean', default: false },
     compare: { type: 'boolean', default: false },
@@ -81,7 +84,8 @@ const int = (name: string, raw: string, min: number, max: number) => {
   if (!Number.isInteger(n) || n < min || n > max) fail(`--${name} debe ser un entero entre ${min} y ${max}.`)
   return n
 }
-const repetitions = int('reps', args.reps, 1, 50)
+const quick = args.rapida
+const repetitions = quick ? 1 : int('reps', args.reps, 1, 50)
 const seed = int('seed', args.seed, -(2 ** 31), 2 ** 31)
 const timeoutMs = int('timeout', args.timeout, 5, 3600) * 1000
 const concurrency = args.concurrency ? int('concurrency', args.concurrency, 1, MAX_CONCURRENCY) : null
@@ -91,7 +95,7 @@ if (args.price && !price) fail('--price va como entrada/salida, ej. 3/15.')
 const ids = args.scenarios?.split(',').map((s) => s.trim()) ?? content.examples.map((e) => e.id)
 const unknown = ids.filter((id) => !content.examples.some((e) => e.id === id))
 if (unknown.length) fail(`Pregón desconocido: ${unknown.join(', ')}. Hay: ${content.examples.map((e) => e.id).join(', ')}.`)
-const examples = content.examples.filter((e) => ids.includes(e.id))
+const examples = quick ? content.examples : content.examples.filter((e) => ids.includes(e.id))
 
 const connectionFor = (spec: string) => connectionForSpec(spec, { concurrency, price })
 
@@ -114,10 +118,10 @@ for (const spec of args.model) {
 }
 if (!contenders.length) fail('No hay contendientes. Añade alguno con -m proveedor:modelo.')
 
-const perContender = trialsPerContender(content, examples, repetitions)
+const perContender = quick ? GOLDEN_SIZE : trialsPerContender(content, examples, repetitions)
 const llms = contenders.filter((c) => c.info.kind !== 'rules')
 console.log(bold(`Banco de pruebas · ${content.name}`))
-console.log(dim(`${examples.length} pregones × ${repetitions} repeticiones · semilla ${seed} · ${perContender} peticiones por contendiente`))
+console.log(dim(quick ? `Prueba rápida: ${GOLDEN_SIZE} casos de oro · semilla ${seed}` : `${examples.length} pregones × ${repetitions} repeticiones · semilla ${seed} · ${perContender} peticiones por contendiente`))
 for (const { info } of contenders) {
   const keyless = info.kind !== 'rules' && !process.env[ENV[info.kind as Connection['kind']].key]
   console.log(`  ${info.label}${info.host ? dim(` · ${info.host} · ${info.concurrency} a la vez`) : ''}${keyless ? dim(' · sin key') : ''}`)
@@ -151,7 +155,7 @@ function drawProgress(p: BenchProgress) {
 }
 
 const run = await executeRun(
-  { content, examples, seed, repetitions, contenders, reference: (ctx) => mockDecision(ctx, content.vocabulary) },
+  { content, examples, seed, repetitions, contenders, reference: (ctx) => mockDecision(ctx, content.vocabulary), quick },
   { signal: controller.signal, onTrial: (_t, p) => drawProgress(p) },
 )
 process.stdout.write('\n\n')
@@ -207,6 +211,7 @@ function printReport(run: BenchRun) {
       r.format.checked ? pct(r.format.ok / r.format.checked) : '—',
       pct(r.consistency),
       pct(r.truth ?? null),
+      r.golden ? `${pct(r.golden.rate)} (${r.golden.passed}/${r.golden.total})` : '—',
       pct(r.persona ?? null),
       rules ? '—' : pct(r.referenceAgreement),
       r.errors ? `${r.errors}/${r.trials}` : '0',
@@ -219,7 +224,7 @@ function printReport(run: BenchRun) {
       rules || m.costUsd === null || !decided ? '—' : usd((m.costUsd / decided) * 1000, m.costEstimated),
     ]
   }
-  const head = ['Contendiente', 'Formato', 'Consist.', 'Acierto', 'Personaje', 'Reglas', 'Errores', '1.ª palabra', 'p50 / p95', 'Pet/s', 'Tok/s', 'Tokens', 'Costo', '$/1k dec.']
+  const head = ['Contendiente', 'Formato', 'Consist.', 'Acierto', 'Oro', 'Personaje', 'Reglas', 'Errores', '1.ª palabra', 'p50 / p95', 'Pet/s', 'Tok/s', 'Tokens', 'Costo', '$/1k dec.']
   const rows = run.report.contenders.map(row)
   const widths = head.map((h, i) => Math.max(h.length, ...rows.map((r) => r[i].length)))
   const fmt = (cells: string[]) => cells.map((c, i) => (i ? c.padStart(widths[i]) : c.padEnd(widths[i]))).join('  ')

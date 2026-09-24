@@ -21,6 +21,8 @@ export interface ContenderReport {
   truth?: number | null
   /** Believed something false. */
   fooled?: number
+  /** Golden decisions right, out of those asked; absent in runs made before them. */
+  golden?: { passed: number; total: number; rate: number } | null
   /** Doubted something true. */
   doubted?: number
   metrics: RunMetrics
