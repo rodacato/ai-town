@@ -18,6 +18,13 @@ Abre `http://localhost:5173`. Sin configurar nada decide el modo **simulado** (r
 
 ## El pueblo
 
+Hay dos mundos, y cada uno guarda su partida; se cambia en Configuración:
+
+- **Chismeroble**, una aldea de 20 vecinos con un río, un bosque, una cripta y un cementerio, gobernada por la Baronesa Isolda desde su torreón.
+- **Aguamansa**, un pueblo de 13 pescadores a orillas de un lago, con playa, muelle, faro y arrozal, gobernado por el Alcalde Mauricio Redondo. Del otro lado del lago llegan contrabandistas a los que el pescadero Tobías debe dinero, y los viejos juran que algo enorme duerme bajo el agua.
+
+Lo que sigue usa Chismeroble de ejemplo; en Aguamansa cambian los nombres, los lugares y quién pide qué, no las reglas.
+
 ### Residentes
 
 Cada residente tiene oficio, bio, rasgos, alineamiento, relaciones y una **personalidad**: cómo habla, qué le importa, qué le da miedo, un secreto y cinco escalas de 0 a 1 (credulidad, valentía, sociabilidad, respeto a la autoridad y codicia). El modelo recibe todo eso en el prompt; el modo simulado decide con las escalas. Hay un mentiroso compulsivo, un paranoico, una recién llegada que no conoce a nadie y el sepulturero, pensados para poner a prueba a los modelos. Están en `src/worlds/chismeroble/`.
@@ -130,9 +137,10 @@ npm run bench -- --compare bench-results/antes.json bench-results/despues.json
 npm run reign -- -m anthropic:claude-sonnet-5 -m custom:qwen3@http://mi-servidor:8000=0.2/0.6 --seed 12
 npm run reign -- --dificultad cruel --seed 12
 npm run reign -- --dry-run --seed 12
+npm run reign -- --mundo aguamansa --dificultad dura
 ```
 
-`npm run bench` corre el banco sin navegador, guarda la corrida en `bench-results/` (se importa en el historial) y Ctrl+C cancela guardando lo que alcanzó. `npm run reign` es el **duelo de gobernantes**: varias Baronesas gobiernan el mismo año con la misma semilla, la misma dificultad y el mismo calendario del destino, junto al trono vacío y las reglas como referencia, y al final muestra quién terminó el año, vecinos, asaltos, confianza, mentiras, fallos de formato, costo, un puntaje y las cartas que escribieron.
+`npm run bench` corre el banco sin navegador, guarda la corrida en `bench-results/` (se importa en el historial) y Ctrl+C cancela guardando lo que alcanzó. `npm run reign` es el **duelo de gobernantes**: varios gobernantes llevan el mismo año con la misma semilla, la misma dificultad y el mismo calendario del destino, junto al trono vacío y las reglas como referencia, y al final muestra quién terminó el año, vecinos, asaltos, confianza, mentiras, fallos de formato, costo, un puntaje y las cartas que escribieron. Los dos aceptan `--mundo` para jugar en otro mundo.
 
 ## Atajos
 

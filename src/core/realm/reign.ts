@@ -73,22 +73,14 @@ export interface ReignResult {
 const BOONS: OutcomeVisual[] = ['caravan', 'treasure']
 
 /** A seeded calendar of blows of fate: a fair, repeatable string of trouble and luck for any ruler. */
-export function fateCalendar(seed: number, days: number, difficulty: Difficulty = 'normal'): FateEvent[] {
+export function fateCalendar(world: WorldContent, seed: number, days: number, difficulty: Difficulty = 'normal'): FateEvent[] {
   const rng = createRng(seed)
-  const pool: [OutcomeVisual, string, string][] = [
-    ['thief', 'market', 'Un ladrón asaltó el tesoro.'],
-    ['flood', 'riverbank', 'El río se desbordó sobre la orilla.'],
-    ['blaze', 'tavern', 'Ardió la taberna.'],
-    ['caravan', 'gate', 'Llegó una caravana de mercaderes.'],
-    ['wolves', 'forest', 'Una manada de lobos rondó el bosque.'],
-    ['undead', 'cemetery', 'Salieron esqueletos del cementerio.'],
-    ['treasure', 'crypt', 'Encontraron un cofre de oro en la cripta.'],
-    ['meteor', 'field', 'Cayó un meteorito en el huerto.'],
-  ]
+  const pool = world.hazards.flatMap((h): [OutcomeVisual, string, string][] => (h.fate ? [[h.visual, h.place, h.fate]] : []))
   const { gap, boons } = DIFFICULTY[difficulty]
   const good = pool.filter(([v]) => BOONS.includes(v))
   const bad = pool.filter(([v]) => !BOONS.includes(v))
   const pick = (list: typeof pool) => list[Math.floor(rng.next() * list.length)]
+  if (!pool.length) return []
   const out: FateEvent[] = []
   for (let d = 2; d < days; d += gap[0] + Math.floor(rng.next() * (gap[1] - gap[0] + 1))) {
     const [visual, place, text] = boons === null ? pick(pool) : pick(rng.next() < boons ? good : bad)

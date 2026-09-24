@@ -94,7 +94,7 @@ describe('ruling by rules', () => {
   })
 
   it('carries the town through a year that ruins an absent ruler', async () => {
-    const base = { content, days: 40, seed: 12, seasonLength: 10, fate: fateCalendar(12, 40) }
+    const base = { content, days: 40, seed: 12, seasonLength: 10, fate: fateCalendar(content, 12, 40) }
     const absent = await runReign({ ...base, rule: async () => ({ thought: '', actions: [], problems: [] }) })
     const ruled = await runReign({ ...base, rule: async (r) => rulesRuler(r) })
     expect(absent.ending?.won).toBe(false)

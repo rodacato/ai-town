@@ -95,7 +95,7 @@ export async function runDuel(o: {
   signal?: AbortSignal
   onDay?: (id: string, day: number) => void
 }): Promise<DuelResult> {
-  const fate = fateCalendar(o.seed, o.days, o.difficulty)
+  const fate = fateCalendar(o.content, o.seed, o.days, o.difficulty)
   const signal = o.signal ?? new AbortController().signal
   const rulers = await Promise.all(
     o.rulers.map(async (d) => {

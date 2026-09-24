@@ -10,7 +10,7 @@ import { MAX_CONCURRENCY } from '../src/providers'
 import { DEFAULT_SETTINGS, PRESETS, type Connection } from '../src/providers/llm/config'
 import { createLlmProvider } from '../src/providers/llm/provider'
 import { createRulesProvider, mockDecision } from '../src/providers/mock'
-import { activeWorld } from '../src/worlds'
+import { activeWorld, WORLDS, worldById } from '../src/worlds'
 import { seconds, tokens, usd } from '../src/core/format'
 import { cacheText } from '../src/core/reactions/metrics'
 import { bold, connectionForSpec, PRICE_RE, dim, ENV, fail, nodeStream, red, tty } from './cli'
@@ -28,6 +28,7 @@ Uso: npm run bench -- [opciones]
   -m, --model <proveedor:modelo[@host]>  Contendiente; repítelo para comparar.
                                          Proveedores: anthropic, openai, shellm, custom.
                                          Ej: -m shellm:claude -m shellm:codex -m custom:llama3.2:3b
+      --mundo <id>                       Mundo en el que se juega: %WORLDS% (por defecto el primero).
       --skip-rules                       No incluir las reglas locales como referencia.
   -s, --scenarios <ids>                  Pregones separados por coma (por defecto, todos): %SCENARIOS%
   -r, --reps <n>                         Repeticiones por residente (por defecto 3).
@@ -57,6 +58,7 @@ const { values: args, positionals } = parseArgs({
   options: {
     model: { type: 'string', short: 'm', multiple: true, default: [] },
     'skip-rules': { type: 'boolean', default: false },
+    mundo: { type: 'string' },
     scenarios: { type: 'string', short: 's' },
     reps: { type: 'string', short: 'r', default: '3' },
     seed: { type: 'string', default: '7' },
@@ -73,9 +75,11 @@ const { values: args, positionals } = parseArgs({
   },
 })
 
-const content = activeWorld.content
+const world = args.mundo ? worldById(args.mundo) : activeWorld
+if (!world) fail(`No hay un mundo «${args.mundo}». Hay: ${WORLDS.map((w) => w.content.id).join(', ')}.`)
+const content = world!.content
 if (args.help) {
-  console.log(HELP.replace('%SCENARIOS%', content.examples.map((e) => e.id).join(', ')))
+  console.log(HELP.replace('%SCENARIOS%', content.examples.map((e) => e.id).join(', ')).replace('%WORLDS%', WORLDS.map((w) => w.content.id).join(', ')))
   process.exit(0)
 }
 if (args.compare) {

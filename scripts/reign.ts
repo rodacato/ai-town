@@ -7,7 +7,7 @@ import { GOALS } from '../src/core/realm/standing'
 import { SEASON_DAYS } from '../src/core/realm/terrarium'
 import { DIFFICULTIES, DIFFICULTY, type Difficulty } from '../src/core/realm/difficulty'
 import { createModelRuler } from '../src/providers/ruler'
-import { activeWorld } from '../src/worlds'
+import { activeWorld, WORLDS, worldById } from '../src/worlds'
 import { usd } from '../src/core/format'
 import { bold, connectionForSpec, PRICE_RE, dim, fail, green, nodeStream, red, tty } from './cli'
 
@@ -19,6 +19,7 @@ Uso: npm run reign -- [opciones]
       --skip-rules                       Sin el gobernante de reglas.
       --skip-absent                      Sin el trono vacío (nadie gobierna).
       --seed <n>                         Semilla del calendario del destino (por defecto 7).
+      --mundo <id>                       Mundo en el que se juega: %WORLDS% (por defecto el primero).
       --dificultad <normal|dura|cruel>   Golpes del destino, reservas y cosecha (por defecto normal).
       --days <n>                         Días a gobernar (por defecto ${GOALS.yearDays + 1}: un año entero).
       --timeout <s>                      Tiempo máximo por turno (por defecto 120).
@@ -34,6 +35,7 @@ const { values: args } = parseArgs({
   options: {
     model: { type: 'string', short: 'm', multiple: true, default: [] },
     'skip-rules': { type: 'boolean', default: false },
+    mundo: { type: 'string' },
     'skip-absent': { type: 'boolean', default: false },
     seed: { type: 'string', default: '7' },
     days: { type: 'string', default: String(GOALS.yearDays + 1) },
@@ -46,7 +48,7 @@ const { values: args } = parseArgs({
   },
 })
 if (args.help) {
-  console.log(HELP)
+  console.log(HELP.replace('%WORLDS%', WORLDS.map((w) => w.content.id).join(', ')))
   process.exit(0)
 }
 
@@ -63,8 +65,10 @@ if (args.price && !price) fail('--price va como entrada/salida, ej. 3/15.')
 
 const difficulty = args.dificultad as Difficulty
 if (!DIFFICULTIES.includes(difficulty)) fail(`--dificultad va como ${DIFFICULTIES.join(', ')}.`)
-const content = activeWorld.content
-const fate = fateCalendar(seed, days, difficulty)
+const world = args.mundo ? worldById(args.mundo) : activeWorld
+if (!world) fail(`No hay un mundo «${args.mundo}». Hay: ${WORLDS.map((w) => w.content.id).join(', ')}.`)
+const content = world!.content
+const fate = fateCalendar(content, seed, days, difficulty)
 
 const contenders: Duelist[] = []
 if (!args['skip-absent']) contenders.push(absentDuelist)

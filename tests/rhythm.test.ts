@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { routineNow, staysIn } from '../src/core/sim/rhythm'
+import { placeKinds, routineNow, staysIn } from '../src/core/sim/rhythm'
 import { Simulation } from '../src/core/sim/simulation'
 import type { Weather } from '../src/core/sim/weather'
 import { content } from './helpers'
+
+const kinds = placeKinds(content.places)
 
 /** Runs the town for a while at a given hour and weather, and counts who is outside. */
 function outsideAfter(hour: number, weather: Weather, seconds = 240) {
@@ -38,10 +40,10 @@ describe('town rhythm', () => {
 
   it('bends a routine towards home in the evening, in foul weather and in winter', () => {
     const p = content.residents.find((r) => !r.nightRoutine)!
-    const noon = routineNow(p, 12 * 60, 'clear', 'summer')
-    expect(routineNow(p, 20 * 60, 'clear', 'summer').home ?? 0).toBeGreaterThan(noon.home ?? 0)
-    expect(routineNow(p, 12 * 60, 'rain', 'summer').home ?? 0).toBeGreaterThan(noon.home ?? 0)
-    expect(routineNow(p, 12 * 60, 'clear', 'winter').home ?? 0).toBeGreaterThan(noon.home ?? 0)
+    const noon = routineNow(p, 12 * 60, 'clear', 'summer', kinds)
+    expect(routineNow(p, 20 * 60, 'clear', 'summer', kinds).home ?? 0).toBeGreaterThan(noon.home ?? 0)
+    expect(routineNow(p, 12 * 60, 'rain', 'summer', kinds).home ?? 0).toBeGreaterThan(noon.home ?? 0)
+    expect(routineNow(p, 12 * 60, 'clear', 'winter', kinds).home ?? 0).toBeGreaterThan(noon.home ?? 0)
     expect(staysIn(p, 3 * 60)).toBe(true)
     expect(staysIn(content.residents.find((r) => r.nightRoutine)!, 3 * 60)).toBe(false)
   })

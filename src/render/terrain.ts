@@ -60,6 +60,9 @@ export function drawTerrain(world: World, palette: TerrainPalette) {
         case 'field':
           color = T.field
           break
+        case 'sand':
+          color = (T.sand ?? T.path)[Math.floor(h * (T.sand ?? T.path).length)]
+          break
         default:
           color = T.grass[Math.floor(h * T.grass.length)]
       }

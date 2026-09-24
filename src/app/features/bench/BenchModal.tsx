@@ -12,7 +12,7 @@ import { Alert, Close, Download, Plus } from '../../shared/icons'
 import { useDialog } from '../../shared/useDialog'
 import { download, stamp } from '../experiment/export'
 import { seconds, tokens, usd } from '../experiment/summary'
-import { MAX_REPETITIONS, specId, specLabel, useBench, type ContenderKind, type ContenderSpec } from './benchStore'
+import { MAX_REPETITIONS, ofThisWorld, specId, specLabel, useBench, type ContenderKind, type ContenderSpec } from './benchStore'
 import type { BenchRun } from './history'
 import { trialsCsv } from './exportRun'
 import { CompareRuns } from './CompareRuns'
@@ -483,7 +483,9 @@ function Row({ r, label, hasRef, hasGolden, hasCache, ms, best }: { r: Contender
 }
 
 function History() {
-  const runs = useBench((s) => s.runs)
+  const all = useBench((s) => s.runs)
+  const runs = all.filter(ofThisWorld)
+  const elsewhere = all.length - runs.length
   const show = useBench((s) => s.show)
   const remove = useBench((s) => s.remove)
   const importRuns = useBench((s) => s.importRuns)
@@ -503,7 +505,7 @@ function History() {
       />
     </label>
   )
-  if (!runs.length)
+  if (!all.length)
     return (
       <div className="history-empty">
         <SharedFolder />
@@ -514,10 +516,11 @@ function History() {
   return (
     <div className="history-wrap">
       <SharedFolder />
+      {elsewhere > 0 && <p className="field-hint">Hay {elsewhere} {elsewhere === 1 ? 'prueba' : 'pruebas'} de otros mundos; cambia de mundo en Configuración para verlas.</p>}
       <div className="history-actions">
         {picker}
-        <button className="btn-secondary compact" onClick={exportAll} title="Todas las pruebas en un solo archivo, para otra máquina">
-          Exportar todo ({runs.length})
+        <button className="btn-secondary compact" onClick={exportAll} title="Todas las pruebas, de todos los mundos, en un solo archivo, para otra máquina">
+          Exportar todo ({all.length})
         </button>
       </div>
       <ul className="history">
