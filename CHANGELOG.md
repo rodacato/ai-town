@@ -21,6 +21,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 - Relaciones que cambian: dos mentiras rompen una amistad, dos avisos a tiempo reconcilian a rivales o hacen amigos nuevos, y una mentira de un desconocido deja rencor. Salen de la memoria de cada vecino, se anuncian en la crónica, se marcan en la ficha y las usan el prompt, los rumores y las reglas locales.
 - Peticiones a la Baronesa escritas por el modelo de los vecinos: cada vecino con motivo la redacta con su voz, su situación y su confianza en ella; sin modelo, o si falla, usa sus palabras de siempre. Se anotan en la crónica y en la actividad, y quien más días lleva sin comer puede pedir por sí mismo. El LLM falso también responde peticiones.
 - Buzón de la Baronesa completo: todas las cartas con quién las escribió, respuestas del creador que ella lee en su próximo informe, un archivo de ideas que sobrevive entre partidas y descarga en Markdown.
+- Diseño para tablet y móvil: por debajo de 900 px el panel y los cajones se vuelven una hoja inferior, la barra superior se pliega en dos filas, las reacciones son una tira que se desplaza y el mapa se encuadra en el hueco que queda libre (y se reencuadra al plegar la hoja). Entre 900 y 1200 px el panel es más estrecho y la barra no se encima.
 
 ### Cambiado
 - Las reglas de la Baronesa reconocen una petición por su tema, no por sus palabras, para que las redactadas por un modelo cuenten igual.

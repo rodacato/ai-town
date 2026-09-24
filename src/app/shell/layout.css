@@ -1,0 +1,206 @@
+/* The shell's measures; --top-h, --hud-h and --sheet-h are measured at runtime by useLayoutVars. */
+:root {
+  --panel-w: 440px;
+  --gutter: 24px;
+  --timeline-h: 92px;
+  --top-h: 60px;
+  --sheet-h: 0px;
+  --hud-h: 60px;
+}
+
+/* Small laptops and landscape tablets: a narrower panel, and the faces in one scrolling row. */
+@media (max-width: 1200px) {
+  :root {
+    --panel-w: 380px;
+  }
+
+  .brand .eyebrow,
+  .topbar-left > .pill:nth-child(3) {
+    display: none;
+  }
+
+  .tl-title {
+    flex: 0 1 150px;
+    min-width: 110px;
+  }
+
+  .tl-people {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding: 6px 4px 6px 12px !important;
+  }
+
+  .map-hint {
+    display: none;
+  }
+}
+
+/* Tablets and phones (keep in step with COMPACT in layout.ts): the panel becomes a bottom sheet, the top bar folds into two rows. */
+@media (max-width: 900px) {
+  :root {
+    --gutter: 12px;
+    --timeline-h: 60px;
+  }
+
+  .topbar {
+    top: 10px;
+    left: var(--gutter);
+    right: var(--gutter);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .topbar-left {
+    flex: 1 1 auto;
+    gap: 8px;
+  }
+
+  .topbar-right {
+    flex: 1 1 100%;
+    justify-content: flex-start;
+    gap: 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    margin: -4px;
+    padding: 4px;
+  }
+
+  .topbar-right::-webkit-scrollbar {
+    display: none;
+  }
+
+  .topbar-right > * {
+    flex: none;
+  }
+
+  .brand {
+    gap: 8px;
+    padding: 6px 12px 6px 8px;
+  }
+
+  .brand .eyebrow {
+    display: none;
+  }
+
+  .brand h1 {
+    font-size: 17px;
+  }
+
+  .pill.mode .pill-label {
+    max-width: 140px;
+  }
+
+  .realm-hud {
+    top: calc(var(--top-h) + 8px);
+    max-width: calc(100vw - var(--gutter) * 2);
+    border-radius: var(--r-lg);
+  }
+
+  .right-column {
+    top: auto;
+    left: var(--gutter);
+    right: var(--gutter);
+    width: auto;
+    max-height: min(50svh, calc(100svh - var(--top-h) - var(--timeline-h) - 90px));
+  }
+
+  .right-panel {
+    margin-top: 0;
+  }
+
+  .timeline {
+    left: var(--gutter);
+    right: var(--gutter);
+    bottom: calc(var(--gutter) + var(--sheet-h) + 8px);
+    gap: 12px;
+    padding: 0 12px;
+  }
+
+  .tl-title {
+    flex: none;
+    min-width: 0;
+  }
+
+  .tl-title p {
+    display: none;
+  }
+
+  .tl-people {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding: 6px 4px 6px 12px !important;
+  }
+
+  .map-controls {
+    left: auto;
+    right: var(--gutter);
+    bottom: calc(var(--gutter) + var(--sheet-h) + var(--timeline-h) + 16px);
+  }
+
+  .map-hint {
+    display: none;
+  }
+
+  .toasts {
+    left: 50%;
+    bottom: calc(var(--gutter) + var(--sheet-h) + var(--timeline-h) + 16px);
+  }
+}
+
+/* Phones: every pixel counts, so the top bar keeps one row of essentials and the sheet leaves room for the map. */
+@media (max-width: 560px) {
+  .brand-text,
+  .topbar-left > .pill:not(:nth-child(2)),
+  .topbar-left .pill-icon {
+    display: none;
+  }
+
+  .topbar-left > .pill {
+    padding: 0 10px;
+  }
+
+  .time-controls button {
+    min-width: 28px;
+    padding: 0 5px;
+  }
+
+  .right-column {
+    max-height: min(46svh, calc(100svh - var(--top-h) - var(--timeline-h) - 150px));
+  }
+
+  .realm-hud {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    white-space: nowrap;
+  }
+
+  .realm-hud > * {
+    flex: none;
+  }
+
+  .modal-backdrop {
+    padding: 8px;
+  }
+
+  .modal-header p {
+    font-size: 13px;
+  }
+
+  .brand {
+    padding: 6px;
+  }
+
+  .pill.mode .pill-label {
+    display: none;
+  }
+
+  .tl-title h2 {
+    font-size: 15px;
+  }
+}

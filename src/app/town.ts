@@ -32,10 +32,16 @@ import { Terrarium, type TerrariumHost } from './terrarium'
 import { DIFFICULTY, withDifficulty, type Difficulty } from '../core/realm/difficulty'
 import { Throne, type ThroneHost } from './throne'
 import { roundSummary } from '../core/reactions/round'
+import { COMPACT } from './shell/layout'
 import { clip } from '../core/format'
 
-export const LAYOUT = { panelWidth: 440, gutter: 24, timelineHeight: 92 }
-const MAP_INSETS = { right: LAYOUT.panelWidth + LAYOUT.gutter + 16, bottom: LAYOUT.timelineHeight + LAYOUT.gutter + 12 }
+/** The map's free area: beside the panel on wide screens, between the top bar and the bottom sheet on narrow ones. */
+function mapInsets() {
+  const css = getComputedStyle(document.documentElement)
+  const px = (name: string) => parseFloat(css.getPropertyValue(name)) || 0
+  if (!matchMedia(COMPACT).matches) return { right: px('--panel-w') + px('--gutter') + 16, bottom: px('--timeline-h') + px('--gutter') + 12 }
+  return { right: 0, top: px('--hud-h') + 8, bottom: px('--sheet-h') + px('--timeline-h') + px('--gutter') * 2 + 8 }
+}
 const REASONING_FLUSH_MS = 120
 const LOG_LIMIT = 400
 /** Tiles within which people see an event happen with their own eyes. */
@@ -115,7 +121,7 @@ class TownController implements TerrariumHost, ThroneHost {
     TownRenderer.create(host, this.sim, this.engine, this.world.art, {
       onHover: (hoveredId) => useTown.setState({ hoveredId }),
       onSelect: (selectedId) => useTown.setState({ selectedId }),
-    }, { insets: () => MAP_INSETS }).then((r) => {
+    }, { insets: mapInsets }).then((r) => {
       if (disposed) return r.destroy()
       this.renderer = r
       this.setSpeed(useTown.getState().autoplay ? TERRARIUM_SPEED : useTown.getState().speed)
@@ -156,6 +162,11 @@ class TownController implements TerrariumHost, ThroneHost {
 
   zoomBy(factor: number) {
     this.renderer?.camera.zoomBy(factor)
+  }
+
+  /** The free area around the panels changed: the map re-frames itself unless someone moved it. */
+  relayout() {
+    this.renderer?.camera.handleResize()
   }
 
   fit() {

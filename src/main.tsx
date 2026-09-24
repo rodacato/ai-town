@@ -8,6 +8,7 @@ import './app/styles/base.css'
 import './app/styles/controls.css'
 import './app/styles/components.css'
 import './app/styles/forms.css'
+import './app/shell/layout.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

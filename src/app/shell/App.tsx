@@ -1,7 +1,8 @@
 import { lazy, Suspense, useEffect } from 'react'
 import { useTown } from '../store'
 import { useBench } from '../features/bench/benchStore'
-import { LAYOUT, town } from '../town'
+import { town } from '../town'
+import { useLayoutVars } from './layout'
 import { HoverTag } from '../features/map/HoverTag'
 import { Loader } from './Loader'
 import { MapControls } from '../features/map/MapControls'
@@ -44,20 +45,16 @@ function LazySettings() {
   ) : null
 }
 
+const relayout = () => town.relayout()
+
 export function App() {
   useKeyboardShortcuts()
+  useLayoutVars(relayout)
   useEffect(() => {
     document.title = `AI Town · ${town.content.name}`
   }, [])
   return (
-    <div
-      className="app"
-      style={{
-        ['--panel-w' as string]: `${LAYOUT.panelWidth}px`,
-        ['--gutter' as string]: `${LAYOUT.gutter}px`,
-        ['--timeline-h' as string]: `${LAYOUT.timelineHeight}px`,
-      }}
-    >
+    <div className="app">
       <TownCanvas />
       <TopBar />
       <RealmHud />
