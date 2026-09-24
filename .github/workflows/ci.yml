@@ -1,8 +1,8 @@
 name: CI
 
+# Every pull request, including ones stacked on another feature branch.
 on:
   pull_request:
-    branches: [main]
 
 permissions:
   contents: read
