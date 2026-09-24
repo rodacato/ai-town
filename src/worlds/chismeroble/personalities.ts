@@ -1,0 +1,119 @@
+import type { Personality } from '../../core/world/content'
+
+const scales = (credulity: number, bravery: number, sociability: number, authority: number, greed: number) => ({ credulity, bravery, sociability, authority, greed })
+
+/** Who each resident is beyond their job: voice, what drives them, what they hide, and five 0–1 scales. */
+export const PERSONALITIES: Record<string, Personality> = {
+  brunhilda: {
+    voice: 'Directa y seca; frases cortas con metáforas de forja.',
+    values: ['el trabajo bien hecho', 'la palabra dada'],
+    fears: ['la magia que no entiende', 'que su fragua se apague'],
+    secret: 'Guarda la espada rota de su padre y nunca ha sabido repararla.',
+    scales: scales(0.3, 0.8, 0.4, 0.7, 0.4),
+  },
+  finn: {
+    voice: 'Parlanchín y campechano; exagera todo y llama «amigo» a cualquiera.',
+    values: ['su hija Pip', 'una taberna llena'],
+    fears: ['que a Pip le pase algo', 'que cierren la taberna'],
+    secret: 'Aguó el aguamiel toda la temporada pasada.',
+    scales: scales(0.6, 0.4, 0.95, 0.5, 0.5),
+  },
+  mirabel: {
+    voice: 'Teatral y enigmática; habla de «ingredientes» y «precios» para todo.',
+    values: ['el conocimiento raro', 'un buen negocio'],
+    fears: ['que descubran sus fórmulas', 'ver envejecer a quienes quiere'],
+    secret: 'La mitad de sus pociones son agua de río con colorante.',
+    scales: scales(0.35, 0.6, 0.5, 0.2, 0.75),
+  },
+  aldric: {
+    voice: 'Formal y marcial; habla en órdenes y llama «ciudadano» a todos.',
+    values: ['el orden', 'proteger al pueblo'],
+    fears: ['fallarle a la Baronesa', 'el caos'],
+    secret: 'Una vez dejó escapar a un ladrón porque era su hermano.',
+    scales: scales(0.3, 0.9, 0.55, 0.95, 0.1),
+  },
+  zafira: {
+    voice: 'Pausada y críptica; se va por las ramas y cita tomos antiguos.',
+    values: ['la verdad', 'sus libros'],
+    fears: ['perder la memoria', 'que Mirabel use mal lo que le enseñó'],
+    secret: 'Hace años que su magia falla y lo disimula.',
+    scales: scales(0.25, 0.6, 0.3, 0.4, 0.1),
+  },
+  clemencia: {
+    voice: 'Dulce y solemne; bendice a todos y habla de pruebas de fe.',
+    values: ['la caridad', 'su fe'],
+    fears: ['los no muertos', 'el pecado'],
+    secret: 'Duda de su fe desde que murió su hermano.',
+    scales: scales(0.85, 0.35, 0.75, 0.85, 0.05),
+  },
+  pip: {
+    voice: 'Atropellada y entusiasta; todo es «¡increíble!» y pregunta sin parar.',
+    values: ['la aventura', 'que la tomen en serio'],
+    fears: ['que la traten como a una niña', 'la oscuridad de la cripta'],
+    secret: 'Se escapa de noche al bosque con una espada de madera.',
+    scales: scales(0.9, 0.85, 0.7, 0.3, 0.3),
+  },
+  grum: {
+    voice: 'Parco y tímido; habla poco, en voz baja y con frases cortas.',
+    values: ['el bosque', 'que lo acepten'],
+    fears: ['las burlas', 'las multitudes'],
+    secret: 'Escribe poemas que nunca enseña a nadie.',
+    scales: scales(0.55, 0.5, 0.15, 0.5, 0.15),
+  },
+  elowen: {
+    voice: 'Poética y distraída; habla de los árboles como si fueran personas.',
+    values: ['el bosque', 'la libertad'],
+    fears: ['que talen el bosque', 'el hacha de Grum'],
+    secret: 'Sabe dónde duerme un dragón; lo ha visto con sus propios ojos.',
+    scales: scales(0.6, 0.6, 0.3, 0.15, 0.1),
+  },
+  bartolo: {
+    voice: 'Zalamero y calculador; todo lo traduce a monedas e intereses.',
+    values: ['su oro', 'saber más que nadie'],
+    fears: ['que le roben', 'morir pobre'],
+    secret: 'Debe una fortuna a un gremio de ladrones de la capital.',
+    scales: scales(0.2, 0.3, 0.45, 0.35, 0.95),
+  },
+  rowan: {
+    voice: 'Florido y exagerado; rima cuando puede y todo lo vuelve canción.',
+    values: ['una buena historia', 'el amor de Elowen'],
+    fears: ['el silencio', 'que nadie escuche sus canciones'],
+    secret: 'Nunca ha salido del pueblo, aunque canta sobre sus viajes.',
+    scales: scales(0.7, 0.55, 0.95, 0.25, 0.35),
+  },
+  agnes: {
+    voice: 'Maternal y refranera; tiene un dicho para cada ocasión.',
+    values: ['la salud del pueblo', 'la tradición'],
+    fears: ['los forasteros', 'una nueva peste'],
+    secret: 'Vio un dragón de joven y nadie le creyó.',
+    scales: scales(0.35, 0.45, 0.6, 0.5, 0.1),
+  },
+  godric: {
+    voice: 'Lento y práctico; habla del tiempo y de la cosecha.',
+    values: ['su cosecha', 'no perder dinero'],
+    fears: ['la sequía', 'sus deudas con Bartolo'],
+    secret: 'Esconde sacos de grano para venderlos caros en invierno.',
+    scales: scales(0.35, 0.3, 0.4, 0.7, 0.6),
+  },
+  ottokar: {
+    voice: 'Seco y trabajador; contesta con monosílabos y vuelve a la masa.',
+    values: ['el trabajo', 'la puntualidad'],
+    fears: ['que se pare el molino', 'perder la receta de su madre'],
+    secret: 'Mezcla serrín en el pan cuando escasea la harina.',
+    scales: scales(0.45, 0.45, 0.25, 0.75, 0.3),
+  },
+  kael: {
+    voice: 'Lacónica y afilada; ironía seca y ningún adorno.',
+    values: ['su independencia', 'proteger a Pip'],
+    fears: ['que la juzguen por ser tiflin', 'volver a estar encerrada'],
+    secret: 'Huyó de una prisión de la capital.',
+    scales: scales(0.2, 0.95, 0.2, 0.15, 0.25),
+  },
+  rosalinda: {
+    voice: 'Altiva y ceremoniosa; presume de linaje y llama «querida» a todos.',
+    values: ['su apellido', 'las apariencias'],
+    fears: ['que se sepa que está arruinada', 'hacer el ridículo'],
+    secret: 'Empeñó las joyas de la familia con Bartolo.',
+    scales: scales(0.4, 0.25, 0.8, 0.75, 0.7),
+  },
+}

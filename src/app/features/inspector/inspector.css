@@ -299,3 +299,99 @@
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+.personality {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.voice {
+  font-style: italic;
+  color: var(--ink-2);
+  line-height: 1.5;
+}
+
+.scales {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 0;
+}
+
+.scales > div {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+}
+
+.scales dt {
+  color: var(--ink-2);
+}
+
+.scales dd {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.scale-track {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.scale-fill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--accent);
+}
+
+.scale-level {
+  width: 58px;
+  font-size: 11.5px;
+  color: var(--ink-3);
+  text-align: right;
+}
+
+.drives {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.drives .chips {
+  margin-top: 4px;
+}
+
+.drive-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.chip.is-fear {
+  background: var(--surface-sunk);
+  color: var(--ink-2);
+}
+
+.secret summary {
+  cursor: pointer;
+  font-size: 12.5px;
+  color: var(--accent-ink);
+}
+
+.secret p {
+  margin-top: 6px;
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  background: var(--surface-sunk);
+  font-size: 13px;
+  line-height: 1.5;
+}

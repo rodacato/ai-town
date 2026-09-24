@@ -21,6 +21,32 @@ export interface Look {
   beard?: number
 }
 
+/** Each 0–1; the rules mode decides from them and the benchmark checks models against them. */
+export interface PersonalityScales {
+  /** How readily they believe what they hear. */
+  credulity: number
+  /** Whether they walk towards danger or away from it. */
+  bravery: number
+  /** How much they seek company and pass news on. */
+  sociability: number
+  /** How much weight an official order carries. */
+  authority: number
+  /** How strongly gain pulls on them. */
+  greed: number
+}
+
+export const SCALES: (keyof PersonalityScales)[] = ['credulity', 'bravery', 'sociability', 'authority', 'greed']
+
+export interface Personality {
+  /** How they talk, so replies sound like them. */
+  voice: string
+  values: string[]
+  fears: string[]
+  /** Something nobody else in town knows. */
+  secret: string
+  scales: PersonalityScales
+}
+
 export interface ResidentProfile {
   id: string
   name: string
@@ -30,6 +56,7 @@ export interface ResidentProfile {
   traits: string[]
   /** Moral compass in D&D terms ("legal bueno", "caótico neutral"…); both providers weigh it when present. */
   alignment?: string
+  personality: Personality
   relationships: { id: string; label: string }[]
   home: string
   /** Weights over place ids, plus the special keys 'home' and 'visit'. */

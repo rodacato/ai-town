@@ -1,4 +1,5 @@
 import type { ResidentProfile } from '../../core/world/content'
+import { PERSONALITIES } from './personalities'
 
 const SKIN = { light: 0xf3d2b6, fair: 0xe9bf9a, tan: 0xd39c72, brown: 0xa8714e, deep: 0x7a4f35, elf: 0xf6e1cf, orc: 0x93a86f, tiefling: 0xc4685a, gnome: 0xf0c7a4 }
 const HAIR = { black: 0x2c2522, brown: 0x6b4430, chestnut: 0x8e5a36, blond: 0xe0c07a, grey: 0xb9b4ad, white: 0xece8e2, red: 0xb5532d, silver: 0xd6dde6, green: 0x6e8f5a, violet: 0x6b4f8a }
@@ -12,6 +13,7 @@ export const RESIDENTS: ResidentProfile[] = [
     bio: 'Forja las mejores espadas del reino y no se fía de nada que no se pueda golpear con un martillo.',
     traits: ['tozuda', 'honesta', 'desconfía de la magia'],
     alignment: 'legal neutral',
+    personality: PERSONALITIES.brunhilda,
     relationships: [
       { id: 'mirabel', label: 'rival: acero contra pócimas' },
       { id: 'aldric', label: 'le forja las armas a la guardia' },
@@ -29,6 +31,7 @@ export const RESIDENTS: ResidentProfile[] = [
     bio: 'Regenta La Jarra del Grifo. Si un rumor no ha pasado por su barra, es que no existe.',
     traits: ['chismoso', 'glotón', 'sociable'],
     alignment: 'neutral bueno',
+    personality: PERSONALITIES.finn,
     relationships: [
       { id: 'pip', label: 'hija' },
       { id: 'rowan', label: 'le paga en aguamiel por cantar' },
@@ -46,6 +49,7 @@ export const RESIDENTS: ResidentProfile[] = [
     bio: 'Vende pociones de dudosa garantía. Tres siglos de vida le han enseñado que todo tiene un precio.',
     traits: ['curiosa', 'excéntrica', 'calculadora'],
     alignment: 'caótico neutral',
+    personality: PERSONALITIES.mirabel,
     relationships: [
       { id: 'zafira', label: 'su antigua maestra' },
       { id: 'brunhilda', label: 'rival: pócimas contra acero' },
@@ -63,6 +67,7 @@ export const RESIDENTS: ResidentProfile[] = [
     bio: 'Leal a la Baronesa hasta la médula. Ha visto demasiados timadores para creer en la buena suerte.',
     traits: ['responsable', 'desconfiado', 'metódico'],
     alignment: 'legal bueno',
+    personality: PERSONALITIES.aldric,
     relationships: [
       { id: 'kael', label: 'la vigila de cerca' },
       { id: 'clemencia', label: 'su confesora' },
@@ -80,6 +85,7 @@ export const RESIDENTS: ResidentProfile[] = [
     bio: 'Estudia las estrellas desde su torre. Distraída con todo excepto con las mentiras, que huele a leguas.',
     traits: ['sabia', 'distraída', 'escéptica'],
     alignment: 'neutral bueno',
+    personality: PERSONALITIES.zafira,
     relationships: [
       { id: 'mirabel', label: 'su antigua aprendiz' },
       { id: 'agnes', label: 'viejas amigas' },
@@ -97,6 +103,7 @@ export const RESIDENTS: ResidentProfile[] = [
     bio: 'Cura heridas, bendice cosechas y cree en la bondad de todo el mundo, a veces demasiado.',
     traits: ['altruista', 'fervorosa', 'crédula'],
     alignment: 'legal bueno',
+    personality: PERSONALITIES.clemencia,
     relationships: [
       { id: 'agnes', label: 'amiga y compañera de rezos' },
       { id: 'aldric', label: 'escucha sus confesiones' },
@@ -114,6 +121,7 @@ export const RESIDENTS: ResidentProfile[] = [
     bio: 'Sueña con matar dragones. De momento, espanta gallinas con una espada de madera.',
     traits: ['aventurera', 'inquieta', 'crédula'],
     alignment: 'caótico bueno',
+    personality: PERSONALITIES.pip,
     relationships: [
       { id: 'finn', label: 'padre' },
       { id: 'zafira', label: 'le enseña magia' },
@@ -131,6 +139,7 @@ export const RESIDENTS: ResidentProfile[] = [
     bio: 'Enorme, tímido y más tierno que el pan. Media aldea le tiene miedo sin motivo.',
     traits: ['tímido', 'bondadoso', 'huraño'],
     alignment: 'neutral bueno',
+    personality: PERSONALITIES.grum,
     relationships: [
       { id: 'kael', label: 'compañero de caza' },
       { id: 'clemencia', label: 'la única que lo defiende' },
@@ -148,6 +157,7 @@ export const RESIDENTS: ResidentProfile[] = [
     bio: 'Vive en lo alto de un roble. Habla con los pájaros y desconfía de todo lo que venga del castillo.',
     traits: ['soñadora', 'independiente', 'protectora del bosque'],
     alignment: 'caótico bueno',
+    personality: PERSONALITIES.elowen,
     relationships: [
       { id: 'mirabel', label: 'le vende hierbas' },
       { id: 'grum', label: 'discuten por cada árbol' },
@@ -165,6 +175,7 @@ export const RESIDENTS: ResidentProfile[] = [
     bio: 'Presta dinero a medio pueblo y cobra intereses al otro medio. Huele el oro a tres calles.',
     traits: ['oportunista', 'tacaño', 'bien informado'],
     alignment: 'neutral maligno',
+    personality: PERSONALITIES.bartolo,
     relationships: [
       { id: 'rosalinda', label: 'le debe una fortuna' },
       { id: 'finn', label: 'le fía la cuenta de la taberna' },
@@ -182,6 +193,7 @@ export const RESIDENTS: ResidentProfile[] = [
     bio: 'Convierte cualquier chisme en balada. Si no pasó, lo canta igual; si pasó, lo canta mejor.',
     traits: ['hablador', 'impulsivo', 'conoce a todos'],
     alignment: 'caótico neutral',
+    personality: PERSONALITIES.rowan,
     relationships: [
       { id: 'elowen', label: 'enamorado sin remedio' },
       { id: 'finn', label: 'le paga en aguamiel' },
@@ -199,6 +211,7 @@ export const RESIDENTS: ResidentProfile[] = [
     bio: 'Ha sobrevivido a tres plagas, dos guerras y un dragón. Ningún forastero la engaña.',
     traits: ['sabia', 'paciente', 'desconfiada de forasteros'],
     alignment: 'neutral bueno',
+    personality: PERSONALITIES.agnes,
     relationships: [
       { id: 'zafira', label: 'viejas amigas' },
       { id: 'clemencia', label: 'compañera de rezos' },
@@ -216,6 +229,7 @@ export const RESIDENTS: ResidentProfile[] = [
     bio: 'Sus calabazas ganan todos los concursos. Habla poco, madruga mucho y no regala ni una semilla.',
     traits: ['cauteloso', 'ahorrador', 'madrugador'],
     alignment: 'legal neutral',
+    personality: PERSONALITIES.godric,
     relationships: [
       { id: 'finn', label: 'le vende calabazas' },
       { id: 'ottokar', label: 'le lleva el grano al molino' },
@@ -233,6 +247,7 @@ export const RESIDENTS: ResidentProfile[] = [
     bio: 'Su pan de centeno alimenta a toda la aldea. Trabaja de sol a sol y no tiene paciencia para cuentos.',
     traits: ['trabajador', 'pragmático', 'reservado'],
     alignment: 'legal bueno',
+    personality: PERSONALITIES.ottokar,
     relationships: [
       { id: 'godric', label: 'le trae el grano' },
       { id: 'finn', label: 'le vende el pan a la taberna' },
@@ -250,6 +265,7 @@ export const RESIDENTS: ResidentProfile[] = [
     bio: 'Rastrea bestias por el Bosque Susurrante. Por sus cuernos, muchos creen que trae mala suerte.',
     traits: ['valiente', 'reservada', 'escéptica'],
     alignment: 'caótico bueno',
+    personality: PERSONALITIES.kael,
     relationships: [
       { id: 'grum', label: 'compañero de caza' },
       { id: 'aldric', label: 'la vigila sin motivo' },
@@ -267,6 +283,7 @@ export const RESIDENTS: ResidentProfile[] = [
     bio: 'Presume de un linaje ilustre y de una fortuna que ya no tiene. Vive de apariencias y de chismes.',
     traits: ['orgullosa', 'chismosa', 'desconfiada de lo nuevo'],
     alignment: 'legal neutral',
+    personality: PERSONALITIES.rosalinda,
     relationships: [
       { id: 'bartolo', label: 'le debe una fortuna' },
       { id: 'rowan', label: 'le encarga versos halagadores' },

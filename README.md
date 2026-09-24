@@ -14,6 +14,10 @@ npm run dev
 - `npx tsx scripts/reaction-smoke.ts [food|bridge|money|storm]`: pasa los anuncios de ejemplo por el motor en modo simulado.
 - `npm run fake-llm`: levanta un LLM falso compatible con OpenAI en `http://127.0.0.1:6199`, útil para probar el flujo del modo LLM sin gastar tokens.
 
+## Residentes
+
+Cada residente tiene oficio, bio, rasgos, alineamiento y relaciones, y además una **personalidad**: cómo habla, qué le importa, qué le da miedo, un secreto que nadie más conoce y cinco escalas de 0 a 1 (credulidad, valentía, sociabilidad, respeto a la autoridad y codicia). El modelo recibe todo eso en el prompt; el modo simulado decide a partir de las escalas, y el inspector las muestra en la ficha de cada residente. Están en `src/worlds/chismeroble/personalities.ts`.
+
 ## Modelo de decisiones
 
 El engrane de la barra superior abre la configuración. Opciones:

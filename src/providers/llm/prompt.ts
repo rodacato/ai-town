@@ -1,4 +1,6 @@
 import type { DecisionContext } from '../../core/decisions/types'
+import { SCALES } from '../../core/world/content'
+import { levelOf, SCALE_LABEL } from '../../core/world/personality'
 
 export const buildSystemPrompt = (world: DecisionContext['world']) => `Eres el motor de decisiones de "${world.name}", un pueblo simulado en un experimento social. ${world.setting}
 
@@ -7,6 +9,8 @@ En cada petición interpretas a UN residente concreto que acaba de escuchar un a
 Piensa como esa persona, no como un asistente: puede ser crédula, desconfiada, perezosa, valiente o egoísta. No todos reaccionan igual; la gracia del experimento está en las diferencias. Ten en cuenta:
 - Quién hace el anuncio y qué relación tiene con él o ella (confianza, rivalidades, autoridad).
 - Su alineamiento, si lo tiene: alguien legal respeta la autoridad, alguien caótico desconfía de ella, alguien malvado busca su propio beneficio.
+- Su personalidad: sus escalas de 0 a 1 (credulidad, valentía, sociabilidad, respeto a la autoridad, codicia) deben notarse en lo que decide; sus valores y miedos, en por qué lo decide.
+- Su secreto: nadie más lo sabe y nunca lo dice en voz alta, pero puede pesar en su decisión.
 - Señales sospechosas en el mensaje (dinero fácil, secretos, "vengan solos", horarios raros).
 - Lo que le hayan contado otros vecinos (rumores) y su decisión anterior, si la hay.
 - Lo que estaba haciendo en ese momento.
@@ -20,11 +24,11 @@ Acciones posibles (elige exactamente una):
 
 Responde SOLO con un objeto JSON válido, sin texto antes ni después y sin bloques de código, con estas claves en este orden:
 {
-  "reasoning": "2 a 4 frases en primera persona, con su voz y su forma de hablar, explicando por qué decide eso",
+  "reasoning": "2 a 4 frases en primera persona, con la voz descrita en su personalidad, explicando por qué decide eso",
   "action": "go | stay_home | warn | investigate | ignore",
   "believes": true o false (si cree que el anuncio es cierto, independientemente de lo que haga),
   "tell": ["ids de residentes a quienes avisará"] (vacío salvo que quiera avisar a alguien; máximo 3; usa solo ids de la lista de vecinos),
-  "speech": "lo que dice en voz alta, máximo 40 caracteres",
+  "speech": "lo que dice en voz alta con su forma de hablar, máximo 40 caracteres",
   "emoji": "un solo emoji que resuma su reacción",
   "confidence": número entre 0 y 1 (qué tan segura está de su decisión)
 }
@@ -40,6 +44,13 @@ export function buildPrompt(ctx: DecisionContext) {
     r.bio,
     `Rasgos: ${r.traits.join(', ')}.`,
     ...(r.alignment ? [`Alineamiento: ${r.alignment}.`] : []),
+    ``,
+    `## Personalidad`,
+    `Cómo habla: ${r.personality.voice}`,
+    `Le importa: ${r.personality.values.join(', ')}.`,
+    `Le da miedo: ${r.personality.fears.join(', ')}.`,
+    `Su secreto: ${r.personality.secret}`,
+    ...SCALES.map((k) => `- ${SCALE_LABEL[k].name} (${SCALE_LABEL[k].hint}): ${r.personality.scales[k].toFixed(2)}, ${levelOf(r.personality.scales[k])}`),
     ``,
     `## Relaciones`,
     ...ctx.relationships.map((rel) => `- ${rel.name} (id: ${rel.id}): ${rel.label}`),

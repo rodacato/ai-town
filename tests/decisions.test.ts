@@ -4,6 +4,8 @@ import { detectPlace } from '../src/core/reactions/announcement'
 import { Simulation } from '../src/core/sim/simulation'
 import type { Example } from '../src/core/world/content'
 import { partialStringField, parseDecision } from '../src/providers/llm/parse'
+import { buildPrompt } from '../src/providers/llm/prompt'
+import { SCALES } from '../src/core/world/content'
 import { mockDecision } from '../src/providers/mock'
 import { announce, content, exampleByTone } from './helpers'
 
@@ -42,6 +44,36 @@ describe('mock decisions', () => {
   it('mostly believes the trusted example', () => {
     const decisions = decideAll(exampleByTone('confiable'))
     expect(decisions.filter((d) => d.believes).length).toBeGreaterThan(decisions.length / 2)
+  })
+})
+
+describe('personalities', () => {
+  it('give every resident a voice, drives, a secret and five scales in 0–1', () => {
+    for (const r of content.residents) {
+      const p = r.personality
+      expect(p.voice.length, r.id).toBeGreaterThan(10)
+      expect(p.values.length, r.id).toBeGreaterThan(0)
+      expect(p.fears.length, r.id).toBeGreaterThan(0)
+      expect(p.secret.length, r.id).toBeGreaterThan(10)
+      for (const k of SCALES) expect(p.scales[k], `${r.id}.${k}`).toBeGreaterThanOrEqual(0), expect(p.scales[k], `${r.id}.${k}`).toBeLessThanOrEqual(1)
+    }
+  })
+
+  it('reach the model prompt', () => {
+    const r = sim.residents[0]
+    const prompt = buildPrompt(buildContext(sim, announce(sim, content.examples[0]), r, [], null))
+    expect(prompt).toContain(r.profile.personality.voice)
+    expect(prompt).toContain(r.profile.personality.secret)
+    expect(prompt).toContain('Valentía')
+  })
+
+  it('make the bravest resident face danger and the most timid one hide from it', () => {
+    const dragon = exampleByTone('emergencia')
+    const decisions = new Map(sim.residents.map((r, i) => [r.profile.id, decideAll(dragon)[i]]))
+    const byBravery = [...content.residents].sort((a, b) => a.personality.scales.bravery - b.personality.scales.bravery)
+    expect(decisions.get(byBravery.at(-1)!.id)!.action).toBe('investigate')
+    // Warning others on a stay-home order means telling them and then going home too.
+    expect(['stay_home', 'warn']).toContain(decisions.get(byBravery[0].id)!.action)
   })
 })
 

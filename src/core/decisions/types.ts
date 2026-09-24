@@ -1,4 +1,4 @@
-import type { SpeakerKind } from '../world/content'
+import type { Personality, SpeakerKind } from '../world/content'
 
 export type Action = 'go' | 'stay_home' | 'warn' | 'investigate' | 'ignore'
 
@@ -35,6 +35,7 @@ export interface DecisionContext {
     traits: string[]
     alignment?: string
     ancestry?: string
+    personality: Personality
   }
   relationships: { id: string; name: string; label: string }[]
   announcement: {
