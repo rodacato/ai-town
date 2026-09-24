@@ -19,6 +19,25 @@ export interface RulerLog {
   error?: string
 }
 
+export type ActivityKind = 'ruler' | 'residents' | 'musing' | 'realm' | 'town'
+
+/** One line of the log: something that touched the terrarium, and for model calls how it went. */
+export interface Activity {
+  id: number
+  /** Real time, for "hace 20 s". */
+  at: number
+  /** Game time. */
+  minutes: number
+  kind: ActivityKind
+  title: string
+  detail?: string
+  status: 'info' | 'pending' | 'ok' | 'error'
+  /** Who decided: a model's name, or rules. */
+  via?: string
+  ms?: number
+  costUsd?: number
+}
+
 export interface Letter {
   day: number
   text: string
@@ -49,6 +68,9 @@ export interface ReignState {
   residentsOnModel: boolean
   /** One row per dawn, for the chronicle's charts. */
   history: DayRecord[]
+  /** Season the game began in, as an index into SEASONS; the rest follow every ten days. */
+  seasonStart: number
+  activity: Activity[]
 }
 
 export interface ReignSlice extends ReignState {
@@ -70,6 +92,8 @@ export const FRESH_REIGN: ReignState = {
   fateDone: -1,
   residentsOnModel: false,
   history: [],
+  seasonStart: 1,
+  activity: [],
 }
 
 export const newSeed = () => 1 + Math.floor(Math.random() * 99_999)

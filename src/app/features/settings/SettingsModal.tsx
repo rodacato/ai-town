@@ -5,7 +5,8 @@ import { knownPrice } from '../../../providers/llm/pricing'
 import { fetchModels, streamChat, transportMode, type TransportMode } from '../../../providers/llm/client'
 import { useTown } from '../../store'
 import { town } from '../../town'
-import { Alert, Check, Close, Eye, EyeOff, Refresh, Reset } from '../../shared/icons'
+import { Alert, Check, Close, Eye, EyeOff, Refresh } from '../../shared/icons'
+import { NewGame } from '../../shared/NewGame'
 import { useDialog } from '../../shared/useDialog'
 import './settings.css'
 
@@ -263,7 +264,13 @@ function Dialog({ onClose }: { onClose: () => void }) {
               El modo simulado decide con reglas: confianza en quien habla, relaciones, rasgos y señales sospechosas del mensaje. Sirve para probar sin gastar nada.
             </div>
           )}
-          <GameReset onDone={onClose} />
+          <section className="game-reset">
+            <div>
+              <span className="field-label">Partida</span>
+              <p className="field-hint">Empieza de cero: pueblo, memoria, crónica, Baronesa y calendario del destino. Tus modelos y keys se quedan.</p>
+            </div>
+            <NewGame onDone={onClose} />
+          </section>
         </div>
 
         <footer className="modal-footer">
@@ -281,39 +288,6 @@ function Dialog({ onClose }: { onClose: () => void }) {
         </footer>
       </div>
     </div>
-  )
-}
-
-/** Starts the town over; asks twice, since the whole game is lost. */
-function GameReset({ onDone }: { onDone: () => void }) {
-  const [sure, setSure] = useState(false)
-  return (
-    <section className="game-reset">
-      <div>
-        <span className="field-label">Partida</span>
-        <p className="field-hint">Empieza de cero: pueblo, memoria, crónica, Baronesa y calendario del destino. Tus modelos y keys se quedan.</p>
-      </div>
-      {sure ? (
-        <div className="modal-actions">
-          <button className="btn-secondary compact" onClick={() => setSure(false)}>
-            No
-          </button>
-          <button
-            className="btn-primary compact"
-            onClick={() => {
-              town.reset()
-              onDone()
-            }}
-          >
-            Sí, reiniciar
-          </button>
-        </div>
-      ) : (
-        <button className="btn-secondary compact" onClick={() => setSure(true)}>
-          <Reset width={15} height={15} /> Reiniciar partida
-        </button>
-      )}
-    </section>
   )
 }
 

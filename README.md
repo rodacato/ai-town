@@ -31,7 +31,7 @@ Al pregonar eliges si el anuncio es **verdad**, **mentira** o **al azar**. Los r
 
 Cada amanecer corre el libro de cuentas: la cosecha llena el granero (Godric, Ottokar, Kael y Elowen; mucho en otoño, casi nada en invierno), cada oficio cobra y paga el impuesto al tesoro, cada quien compra su ración (primero los que tienen más oro, así que los pobres pasan hambre antes) y el tesoro paga a los guardias. Quien pasa un día sin comer tiene hambre; al segundo, si anda desanimado, se va por la puerta sur; al tercero enferma y, si no vuelve a comer, muere y aparece una tumba nueva en el cementerio. Los eventos reales pesan: la crecida arruina el granero, el ladrón vacía el tesoro, la caravana trae comida. El tablero de arriba a la izquierda resume el reino, el inspector muestra cómo está cada residente, y el hambre y el bolsillo vacío llegan al prompt.
 
-El pueblo entero (hora, clima, estación, economía, tumbas y dónde está cada quien) y su memoria se guardan en el navegador hasta que pulses **Reiniciar partida** en Configuración (⚙️), que empieza una nueva. El centro de la barra superior pausa el pueblo o lo acelera (×1, ×2, ×4, ×16), y el tablero de arriba a la izquierda dice quién gobierna y explica cada cifra al pasar el ratón.
+El pueblo entero (hora, clima, estación, economía, tumbas y dónde está cada quien) y su memoria se guardan en el navegador hasta que pulses **Nueva partida** (en Configuración ⚙️ o en Dios → Terrario): empieza en una estación al azar, el lunes por la mañana, a ×2. El día del reino empieza al amanecer (06:00), que es cuando corren las cuentas; las estaciones cambian cada 10 días. El centro de la barra superior pausa el pueblo o lo acelera (×1, ×2, ×4, ×16), y el tablero de arriba a la izquierda dice quién gobierna y explica cada cifra al pasar el ratón.
 
 ## El trono
 
@@ -116,6 +116,12 @@ npm run bench -- --compare bench-results/antes.json bench-results/despues.json
 ```
 
 Muestra el progreso en vivo, imprime la misma tabla que el navegador (más peticiones por segundo) y guarda la corrida en `bench-results/`. Ese JSON se importa en el historial del Banco de pruebas. Ctrl+C cancela y guarda lo que alcanzó a correr.
+
+### Bitácora
+
+El botón 📒 de la barra (o la tecla `B`) abre la bitácora: lo que afecta al terrario, lo más nuevo arriba. Cada amanecer con el desglose de comida y dinero, decretos, eventos, el gremio, cada turno de la Baronesa (qué pensó, qué hizo, cuánto tardó y costó) y cada ronda de decisiones de los vecinos (cuántos decidieron qué, errores, tiempo y costo). Arriba resume con qué decide cada quien y si el modelo está respondiendo; en la barra, un punto azul avisa que el modelo está pensando y uno rojo que la última consulta falló.
+
+De día, cada pocas horas un vecino al azar se para a pensar en cómo le va (hambre, monedas, impuestos, leyes, lo que se comenta). Lo hace con el modelo de los vecinos o con reglas; el pensamiento aparece en un globo sobre el mapa y en la bitácora, y le sube o baja un poco el ánimo.
 
 ### Duelo de gobernantes
 

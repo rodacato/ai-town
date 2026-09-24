@@ -1,0 +1,97 @@
+.activity {
+  width: min(720px, 100%);
+}
+
+.activity-status {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 0;
+}
+
+.activity-status div {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.activity-status dt {
+  font-size: 11.5px;
+  color: var(--ink-3);
+}
+
+.activity-status dd {
+  margin: 3px 0 0;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.activity-status .is-bad {
+  color: #9a4a42;
+}
+
+.activity-live {
+  color: var(--accent-ink);
+  animation: activity-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes activity-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.activity-row {
+  display: grid;
+  grid-template-columns: 78px 22px 1fr;
+  gap: 8px;
+  padding: 9px 2px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.activity-when {
+  padding-top: 1px;
+  font-size: 11.5px;
+  color: var(--ink-3);
+}
+
+.activity-title {
+  line-height: 1.45;
+}
+
+.activity-detail {
+  margin-top: 2px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+.activity-meta {
+  margin-top: 3px;
+  font-size: 11px;
+  color: var(--ink-3);
+}
+
+.activity-row.is-error .activity-title {
+  color: #9a4a42;
+}
+
+.activity-row.is-pending .activity-title {
+  color: var(--accent-ink);
+}
+
+@media (max-width: 640px) {
+  .activity-status {
+    grid-template-columns: 1fr;
+  }
+}

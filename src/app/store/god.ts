@@ -38,13 +38,17 @@ export interface GodSlice {
   chronicle: ChronicleEntry[]
   throneOpen: boolean
   chronicleOpen: boolean
+  activityOpen: boolean
+  /** The announcement panel; folds away while a drawer is open, and closes the drawers when it opens. */
+  panelOpen: boolean
+  setPanelOpen: (open: boolean) => void
   setThroneOpen: (open: boolean) => void
   setGodOpen: (open: boolean) => void
 }
 
 export const createGodSlice: StateCreator<TownState, [], [], GodSlice> = (set) => ({
   godOpen: false,
-  speed: 1,
+  speed: 2,
   weather: 'clear',
   season: 'summer',
   godEvent: null,
@@ -53,6 +57,9 @@ export const createGodSlice: StateCreator<TownState, [], [], GodSlice> = (set) =
   chronicle: [],
   throneOpen: false,
   chronicleOpen: false,
-  setThroneOpen: (throneOpen) => set(throneOpen ? { throneOpen, godOpen: false } : { throneOpen }),
-  setGodOpen: (godOpen) => set(godOpen ? { godOpen, throneOpen: false } : { godOpen }),
+  activityOpen: false,
+  panelOpen: true,
+  setPanelOpen: (panelOpen) => set(panelOpen ? { panelOpen, godOpen: false, throneOpen: false } : { panelOpen }),
+  setThroneOpen: (throneOpen) => set(throneOpen ? { throneOpen, godOpen: false, panelOpen: false } : { throneOpen }),
+  setGodOpen: (godOpen) => set(godOpen ? { godOpen, throneOpen: false, panelOpen: false } : { godOpen }),
 })

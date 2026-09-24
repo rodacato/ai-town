@@ -269,3 +269,30 @@
   line-height: 17px;
   text-align: center;
 }
+
+.log-btn {
+  position: relative;
+}
+
+.log-dot {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--sky);
+  box-shadow: 0 0 0 2px var(--surface-solid);
+  animation: activity-pulse 1.2s ease-in-out infinite;
+}
+
+.log-dot.is-bad {
+  background: #c8645a;
+  animation: none;
+}
+
+@keyframes activity-pulse {
+  50% {
+    opacity: 0.4;
+  }
+}

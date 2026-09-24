@@ -65,6 +65,7 @@ export class TownRenderer {
   private marker = new PlaceMarker()
   private wave: WaveFx
   private beacon: OriginBeacon
+  private musings = new Map<string, { at: number; emoji: string; text: string }>()
   private toldAt = new Map<string, number>()
   private rumorAt = new Map<string, number>()
   private announcementAt = -1
@@ -268,7 +269,14 @@ export class TownRenderer {
     }
   }
 
+  /** A passing thought, shown over the resident for a few seconds when nothing else is going on. */
+  muse(id: string, emoji: string, text: string) {
+    this.musings.set(id, { at: this.time, emoji, text })
+  }
+
   private reactionVisual(id: string): ReactionVisual | undefined {
+    const m = this.musings.get(id)
+    if (m && this.time - m.at < 6 && !(this.engine.active && !this.engine.settled)) return { bubble: { kind: 'speech', emoji: m.emoji, text: m.text, color: 0xb9a888 }, ring: null, pulse: false }
     const rx = this.engine.reactions.get(id)
     if (!rx) return undefined
     const t = this.time

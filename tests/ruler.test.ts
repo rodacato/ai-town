@@ -26,7 +26,7 @@ describe('the royal report', () => {
       e.taxRate = 0.4
       for (const id of ids.slice(0, 5)) e.needs[id].daysHungry = 2
     })
-    expect(grim.petitions.map((p) => p.from)).toEqual(expect.arrayContaining(['Hermana', 'Godric', 'Bartolo']))
+    expect(grim.petitions.map((p) => p.from)).toEqual(expect.arrayContaining(['Hermana Clemencia', 'Godric', 'Bartolo']))
     expect(reportText(grim)).toContain('Peticiones')
   })
 

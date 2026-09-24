@@ -5,7 +5,8 @@ import type { ChronicleEntry, ChronicleKind } from './chronicle'
 /** Days per season in the terrarium; four make the year a reign has to last. */
 export const SEASON_DAYS = 10
 
-export const seasonOfDay = (day: number, length = SEASON_DAYS): Season => SEASONS[Math.floor(day / length) % 4]
+/** `start` is the season the game began in, as an index into SEASONS. */
+export const seasonOfDay = (day: number, length = SEASON_DAYS, start = 0): Season => SEASONS[(start + Math.floor(day / length)) % 4]
 
 /** One day of the chronicle, with the line that best sums it up. */
 export interface Chapter {
