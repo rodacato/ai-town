@@ -42,32 +42,30 @@ export function mockDecision(ctx: DecisionContext, vocab: Vocabulary): Decision 
   const r = read(ctx, vocab)
   const a = ctx.announcement
 
+  const sc = ctx.resident.personality.scales
   let trust = { authority: 0.72, neighbor: 0.55, stranger: 0.22 }[a.speakerKind]
   if (a.relationToSpeaker) trust += isPositiveRelation(a.relationToSpeaker) ? 0.3 : -0.3
-  if (has('desconfiad', 'esceptic', 'cautelos', 'metodic')) trust -= 0.18
-  if (has('credul', 'sonador')) trust += 0.2
+  trust += (sc.credulity - 0.5) * 0.6
   if (a.speakerKind === 'stranger' && has('forastero')) trust -= 0.25
-  if (a.speakerKind === 'authority' && has('leal', 'formal')) trust += 0.15
-  if (a.speakerKind === 'authority' && has('orgullos')) trust -= 0.12
-  const alignment = normalize(ctx.resident.alignment ?? '')
-  if (a.speakerKind === 'authority') trust += alignment.includes('legal') ? 0.12 : alignment.includes('caotic') ? -0.15 : 0
-  trust -= 0.22 * r.cues.length
+  if (a.speakerKind === 'authority') trust += (sc.authority - 0.5) * 0.5
+  trust -= 0.22 * r.cues.length * (1.2 - sc.credulity)
   trust += rng.range(-0.1, 0.1)
 
   const rumor = ctx.rumors[ctx.rumors.length - 1]
   if (rumor) {
-    const weight = rumor.relation && isPositiveRelation(rumor.relation) ? 0.6 : 0.3
+    const weight = (rumor.relation && isPositiveRelation(rumor.relation) ? 0.6 : 0.3) * (0.6 + sc.credulity * 0.6)
     const endorses = !/estafa|no te fies|cuidado con|mentira|trampa/.test(normalize(rumor.message))
     trust = trust * (1 - weight) + (endorses ? 0.9 : 0.1) * weight
   }
   trust = clamp(trust)
 
-  const curious = has('curios', 'impulsiv', 'inquiet', 'sonador', 'aventurer')
-  const social = has('chismos', 'hablador', 'sociable', 'protector', 'responsable', 'altruista', 'conoce a todos', 'leal')
-  const greedy = has('oportunista', 'tacan', 'ahorrador', 'codicios') || alignment.includes('maligno') || alignment.includes('malvad')
-  const solitary = has('solitari', 'reservad', 'independiente', 'huran')
-  const guard = has('metodic') && has('responsable')
-  const skeptic = has('desconfiad', 'esceptic', 'cautelos')
+  const curious = has('curios', 'impulsiv', 'inquiet', 'sonador', 'aventurer') || (sc.bravery >= 0.8 && sc.credulity < 0.4)
+  const social = sc.sociability >= 0.65
+  const greedy = sc.greed >= 0.65
+  const solitary = sc.sociability <= 0.25
+  const skeptic = sc.credulity <= 0.3
+  const timid = sc.bravery <= 0.3
+  const guard = sc.authority >= 0.85 && sc.bravery >= 0.8
   const busy = has('trabajador')
   const frail = ctx.resident.age / (LIFESPAN[ctx.resident.ancestry ?? 'human'] ?? LIFESPAN.human) >= 0.8
   const believes = trust >= 0.5
@@ -75,9 +73,9 @@ export function mockDecision(ctx: DecisionContext, vocab: Vocabulary): Decision 
 
   let action: Action
   if (r.danger && r.home) {
-    action = believes ? (social && rng.chance(0.6) ? 'warn' : 'stay_home') : curious ? 'investigate' : 'ignore'
+    action = believes ? (social && rng.chance(0.6) ? 'warn' : 'stay_home') : curious ? 'investigate' : timid ? 'stay_home' : 'ignore'
   } else if (r.danger) {
-    action = guard ? 'investigate' : believes ? (social ? 'warn' : 'ignore') : curious ? 'investigate' : 'ignore'
+    action = guard ? 'investigate' : believes ? (social ? 'warn' : timid ? 'stay_home' : 'ignore') : curious ? 'investigate' : 'ignore'
   } else if (r.opportunity) {
     if (believes) {
       action = 'go'
@@ -86,7 +84,7 @@ export function mockDecision(ctx: DecisionContext, vocab: Vocabulary): Decision 
       else if (solitary && !greedy && trust < 0.85) excuse = 'Prefiero no mezclarme con la multitud.'
       else if (skeptic && trust < 0.62) action = 'investigate'
       if (excuse) action = 'ignore'
-    } else if (guard) action = 'investigate'
+    } else if (guard || (greedy && !timid)) action = 'investigate'
     else if (social && r.cues.length) action = 'warn'
     else action = curious ? 'investigate' : 'ignore'
   } else {

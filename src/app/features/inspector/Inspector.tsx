@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTown } from '../../store'
 import { Avatar } from '../../shared/Avatar'
+import { PersonalityCard } from './PersonalityCard'
 import { ReactionDetail } from './ReactionDetail'
 import { Brain, Close } from '../../shared/icons'
 import { statusOf } from '../../../core/sim/status'
@@ -57,6 +58,8 @@ export function Inspector({ id }: { id: string }) {
           ))}
         </div>
       </section>
+
+      <PersonalityCard personality={profile.personality} name={profile.name.split(' ')[0]} />
 
       <section>
         <h3 className="section-label">Relaciones</h3>
