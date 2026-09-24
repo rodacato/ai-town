@@ -35,7 +35,7 @@ Lo que puedes hacer (máximo ${MAX_ACTIONS} acciones por día):
 - "paga_extra": regalar entre 1 y 10 monedas a cada vecino.
 - "fiesta": 40 monedas y 15 raciones para una fiesta que alegra al pueblo.
 - "ley": activar o quitar "toque_de_queda", "racionamiento" (media ración, el granero dura el doble pero enferma y entristece) o "leva" (dos guardias más, cuestan 6 monedas al día).
-- "pedir_al_creador": pedirle algo a quien creó este mundo (una herramienta, una regla nueva). Se lee, pero no se aplica solo.
+- "pedir_al_creador": pedirle algo a quien creó este mundo (una herramienta, una regla nueva). Se lee, pero no se aplica solo. A veces te contesta, y su respuesta llega en el informe.
 
 Sabe que el invierno casi no da cosecha: hay que llenar el granero en otoño. Un gremio de ladrones de la capital, al que Bartolo debe dinero, conspira más cuanto peor está el ánimo; la leva de guardias los frena. Las noticias pueden venir exageradas.
 

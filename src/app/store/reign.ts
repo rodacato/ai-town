@@ -4,6 +4,7 @@ import type { TokenUsage } from '../../core/decisions/types'
 import type { OutcomeVisual } from '../../core/reactions/outcome'
 import type { Difficulty } from '../../core/realm/difficulty'
 import type { DayRecord } from '../../core/realm/reign'
+import { loadIdeas } from '../ideas'
 import { freshStanding, type Standing } from '../../core/realm/standing'
 
 export type RulerMode = 'manual' | 'rules' | 'model'
@@ -56,9 +57,18 @@ export interface RunningEvent {
 }
 
 export interface Letter {
+  /** Missing on letters saved before they had one. */
+  id?: string
   day: number
   text: string
   seen: boolean
+  /** Who wrote it: the model's label, or «reglas». */
+  via?: string
+  /** The creator's answer, and whether it has reached her in a report yet. */
+  reply?: string
+  delivered?: boolean
+  /** Kept in the ideas archive, which outlives the game. */
+  idea?: boolean
 }
 
 /** Who governs and how it is going: the Baroness's last turn, her letters to the creator, and her honesty. */
@@ -98,6 +108,8 @@ export interface ReignState {
 
 export interface ReignSlice extends ReignState {
   rulerBusy: boolean
+  /** Letters kept as ideas, across every game in this browser. */
+  ideas: Letter[]
 }
 
 export const FRESH_REIGN: ReignState = {
@@ -125,4 +137,4 @@ export const FRESH_REIGN: ReignState = {
 
 export const newSeed = () => 1 + Math.floor(Math.random() * 99_999)
 
-export const createReignSlice: StateCreator<TownState, [], [], ReignSlice> = () => ({ ...FRESH_REIGN, rulerBusy: false })
+export const createReignSlice: StateCreator<TownState, [], [], ReignSlice> = () => ({ ...FRESH_REIGN, rulerBusy: false, ideas: loadIdeas() })

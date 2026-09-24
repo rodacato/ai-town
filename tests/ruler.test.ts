@@ -164,3 +164,14 @@ describe('petitions to the Baroness', () => {
     expect(parsePetition('{"peticion": ""}')).toBeNull()
   })
 })
+
+describe('the creator\'s replies', () => {
+  it('reach the Baroness in her report only when there are some', () => {
+    const e = startEconomy(content.economy!, ids, 6 * 60)
+    const base = { content, economy: e, memory: new TownMemory(), chronicle: [], minutes: 6 * 60 + 1440, season: 'summer' as const, weather: 'clear' as const, day: 1, seed: 7 }
+    expect(reportText(buildReport(base))).not.toContain('Respuestas del creador')
+    const text = reportText(buildReport({ ...base, replies: [{ letter: 'Quiero un puerto.', reply: 'No hay mar, pero habrá un río.' }] }))
+    expect(text).toContain('## Respuestas del creador a tus cartas')
+    expect(text).toContain('Te responde: «No hay mar, pero habrá un río.»')
+  })
+})

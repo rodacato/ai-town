@@ -6,6 +6,7 @@ import { musingInputFor } from '../core/realm/musing'
 import type { Economy } from '../core/economy/economy'
 import { nameOf } from '../core/lang'
 import { modelPetition } from '../providers/petition'
+import { letterKey, saveIdeas } from './ideas'
 import type { RulerAction } from '../core/realm/ruler'
 import type { ChronicleKind, Chronicle } from '../core/realm/chronicle'
 import type { TownMemory } from '../core/memory/memory'
@@ -102,7 +103,9 @@ export class Throne {
     const gen = this.host.generation
     const petitions = await this.hearPetitions(e)
     if (gen !== this.host.generation) return useTown.setState({ rulerBusy: false })
-    const report = buildReport({ content: this.host.sim.content, economy: e, memory: this.host.memory, chronicle: this.host.chronicle.entries, minutes: this.host.sim.minutes, season: this.host.sim.season, weather: this.host.sim.weather, day: e.day, seed: this.host.sim.content.layout.seed, standing: state.standing, petitions })
+    const replies = state.mailbox.filter((l) => l.reply && !l.delivered).map((l) => ({ letter: l.text, reply: l.reply! }))
+    const report = buildReport({ content: this.host.sim.content, economy: e, memory: this.host.memory, chronicle: this.host.chronicle.entries, minutes: this.host.sim.minutes, season: this.host.sim.season, weather: this.host.sim.weather, day: e.day, seed: this.host.sim.content.layout.seed, standing: state.standing, petitions, replies })
+    if (replies.length) useTown.setState((s) => ({ mailbox: s.mailbox.map((l) => (l.reply ? { ...l, delivered: true } : l)) }))
     const via = modelOk && active !== 'mock' ? `${state.llm.connections[active].model} (${active})` : 'reglas'
     const entry = this.host.track('ruler', `Día ${e.day + 1}: la Baronesa ${modelOk ? `consulta a ${via}` : 'decide con reglas'}`, { status: modelOk ? 'pending' : 'info', via })
     try {
@@ -111,7 +114,7 @@ export class Throne {
       // A rules ruler cannot word a proclamation of her own, so she announces her first decree.
       let announce = !modelOk
       const actions = reply.actions.map((a) => {
-        const done = this.carryOut(a, e.day, announce && a.kind === 'decree')
+        const done = this.carryOut(a, e.day, announce && a.kind === 'decree', via)
         if (a.kind === 'decree' && done.ok) announce = false
         return done
       })
@@ -180,13 +183,13 @@ export class Throne {
     return petitions
   }
 
-  private carryOut(a: RulerAction, day: number, announce = false): { text: string; ok: boolean } {
+  private carryOut(a: RulerAction, day: number, announce = false, via?: string): { text: string; ok: boolean } {
     if (a.kind === 'decree') {
       const r = this.decree(a.decree, announce)
       return { text: r.ok ? r.summary : `No se pudo: ${r.reason}`, ok: r.ok }
     }
     if (a.kind === 'ask') {
-      useTown.setState((s) => ({ mailbox: [...s.mailbox, { day, text: a.text, seen: false }].slice(-40) }))
+      useTown.setState((s) => ({ mailbox: [...s.mailbox, { id: crypto.randomUUID(), day, text: a.text, seen: false, via }].slice(-40) }))
       useTown.getState().toast('📬 La Baronesa te ha escrito una carta.')
       this.host.log('ruler', `La Baronesa escribe al creador: «${clip(a.text, 120)}»`)
       return { text: `Carta al creador: «${a.text}»`, ok: true }
@@ -203,6 +206,34 @@ export class Throne {
     const next = this.queue.shift()
     if (!next) return
     this.host.proclaim({ id: crypto.randomUUID(), text: next.text, speaker: { kind: 'authority' }, place: this.host.detectPlace(next.text), minutes: Math.floor(this.host.sim.minutes), truth: next.honest, official: true })
+  }
+
+  /** The creator answers a letter; she reads it in her next report. */
+  reply(key: string, text: string) {
+    const reply = text.trim()
+    useTown.setState((s) => ({ mailbox: s.mailbox.map((l) => (letterKey(l) === key ? { ...l, seen: true, reply: reply || undefined, delivered: false } : l)) }))
+    this.keepIdeas()
+  }
+
+  /** Keeps a letter in the ideas archive, or takes it out. */
+  toggleIdea(key: string) {
+    useTown.setState((s) => ({ mailbox: s.mailbox.map((l) => (letterKey(l) === key ? { ...l, idea: !l.idea, seen: true } : l)) }))
+    this.keepIdeas()
+  }
+
+  /** The archive follows the letters marked as ideas in this game, and keeps those from earlier ones. */
+  private keepIdeas() {
+    const { mailbox, ideas } = useTown.getState()
+    const here = new Set(mailbox.map(letterKey))
+    const next = [...ideas.filter((l) => !here.has(letterKey(l))), ...mailbox.filter((l) => l.idea)]
+    useTown.setState({ ideas: next })
+    saveIdeas(next)
+  }
+
+  forgetIdea(key: string) {
+    const next = useTown.getState().ideas.filter((l) => letterKey(l) !== key)
+    useTown.setState((s) => ({ ideas: next, mailbox: s.mailbox.map((l) => (letterKey(l) === key ? { ...l, idea: false } : l)) }))
+    saveIdeas(next)
   }
 
   markLettersSeen() {

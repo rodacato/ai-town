@@ -38,6 +38,7 @@ export interface GodSlice {
   chronicle: ChronicleEntry[]
   throneOpen: boolean
   chronicleOpen: boolean
+  mailboxOpen: boolean
   activityOpen: boolean
   /** The announcement panel; folds away while a drawer is open, and closes the drawers when it opens. */
   panelOpen: boolean
@@ -57,6 +58,7 @@ export const createGodSlice: StateCreator<TownState, [], [], GodSlice> = (set) =
   chronicle: [],
   throneOpen: false,
   chronicleOpen: false,
+  mailboxOpen: false,
   activityOpen: false,
   panelOpen: true,
   setPanelOpen: (panelOpen) => set(panelOpen ? { panelOpen, godOpen: false, throneOpen: false } : { panelOpen }),
