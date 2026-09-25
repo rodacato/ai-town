@@ -3,8 +3,7 @@ import { chismerobleArt } from './chismeroble/art'
 import { aguamansa } from './aguamansa'
 import type { WorldPack } from './types'
 
-/** Every world the app can run, the first one by default. */
-/** Aguamansa reuses Chismeroble's art kit: buildings, props and terrain are drawn by kind. */
+/** Every world the app can run, the first one by default; Aguamansa reuses Chismeroble's art kit, which draws by kind. */
 export const WORLDS: WorldPack[] = [
   { content: chismeroble, art: chismerobleArt },
   { content: aguamansa, art: chismerobleArt },
