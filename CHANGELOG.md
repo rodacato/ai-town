@@ -6,26 +6,36 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+## [1.1.0] - 2026-09-24
+
+Dos pueblos, vecinos con memoria propia y relaciones que cambian, y más formas de medir a los modelos. Funciona en tablet y móvil y se puede usar entero con teclado.
+
 ### Añadido
-- Dificultad al empezar una partida y en el duelo (`--dificultad`): **normal**, **dura** o **cruel**. Cambia la frecuencia y el tipo de los golpes del destino, las reservas iniciales, la cosecha, cuánto duelen los golpes y el precio del grano de los mercaderes; la Baronesa lo ve en su informe.
 
-- Duelo de Baronesas en el navegador, dentro del banco de pruebas: el trono vacío, las reglas y los modelos que elijas gobiernan el mismo año; tabla de resultados, gráficas de vecinos, confianza, ánimo y tesoro con el cursor sincronizado, cartas al creador, costo estimado y exportación en JSON. La terminal y el navegador corren el mismo código (`runDuel`).
+#### Mundos
+- Segundo mundo, **Aguamansa**: un pueblo de pescadores a orillas de un lago, con 13 vecinos, playa, muelle, faro y arrozal, gobernado por un alcalde, con sus propios pregones de ejemplo, desenlaces, economía, peticiones y contrabandistas. Reutiliza el kit de arte de Chismeroble; se elige en Configuración y en la terminal con `--mundo`.
+- Preparado para varios mundos: quién gobierna y cómo se le nombra, el gremio y su deudor, quién pide qué y dónde se hace la fiesta salen del mundo (`realm`), no del código. Registro de mundos con selector en Configuración (aparece con más de uno), y cada mundo guarda su partida.
+- La arena de la orilla se dibuja como arena.
 
-- Juez de personaje en el banco de pruebas y en la terminal (`--juez`, `--muestras`): otro modelo puntúa de 1 a 5 si las decisiones de una muestra fija suenan a cada vecino, con su razón; se guarda en la corrida y entra en la comparación.
-- Casos de oro: 10 decisiones con una respuesta clara que se eligen solas (verdad, reglas de personaje y modo simulado de acuerdo). Cada prueba los califica, entran en la comparación y la **prueba rápida** (`--rapida` en la terminal) hace solo esas 10 preguntas por modelo.
-- Compartir pruebas entre máquinas: carpeta compartida (Chrome y Edge) donde cada prueba se guarda y se leen las que haya, «Exportar todo» en un solo archivo, importación de varios archivos o lotes a la vez, y `AI_TOWN_RUNS_DIR` para que `npm run bench` guarde en esa carpeta.
-- Las corridas guardan el razonamiento de cada decisión (recortado).
-- El LLM falso responde también como Baronesa y como juez.
-- Caché de prompts de Anthropic: las instrucciones y el anuncio, iguales para todo el pueblo, se marcan para la caché. El inspector muestra los tokens leídos y escritos, el costo los cobra a su precio y el banco añade la columna **Caché** (parte del prompt servida y ahorro) y la variante **Sin caché** del mismo modelo (`~sin-cache` en la terminal) para medirlo.
+#### Vecinos y terrario
 - Memoria de cada vecino: recuerda quién le pasó mentiras que se creyó y quién le avisó a tiempo de algo cierto. Entra en su prompt (también junto a cada rumor que le llega), en las reglas locales (desconfía de quien le mintió y avisa primero a quien le debe) y en su ficha del inspector.
 - Relaciones que cambian: dos mentiras rompen una amistad, dos avisos a tiempo reconcilian a rivales o hacen amigos nuevos, y una mentira de un desconocido deja rencor. Salen de la memoria de cada vecino, se anuncian en la crónica, se marcan en la ficha y las usan el prompt, los rumores y las reglas locales.
 - Peticiones a la Baronesa escritas por el modelo de los vecinos: cada vecino con motivo la redacta con su voz, su situación y su confianza en ella; sin modelo, o si falla, usa sus palabras de siempre. Se anotan en la crónica y en la actividad, y quien más días lleva sin comer puede pedir por sí mismo. El LLM falso también responde peticiones.
 - Buzón de la Baronesa completo: todas las cartas con quién las escribió, respuestas del creador que ella lee en su próximo informe, un archivo de ideas que sobrevive entre partidas y descarga en Markdown.
+- Dificultad al empezar una partida y en el duelo (`--dificultad`): **normal**, **dura** o **cruel**. Cambia la frecuencia y el tipo de los golpes del destino, las reservas iniciales, la cosecha, cuánto duelen los golpes y el precio del grano de los mercaderes; la Baronesa lo ve en su informe.
+
+#### Comparar modelos
+- Duelo de Baronesas en el navegador, dentro del banco de pruebas: el trono vacío, las reglas y los modelos que elijas gobiernan el mismo año; tabla de resultados, gráficas de vecinos, confianza, ánimo y tesoro con el cursor sincronizado, cartas al creador, costo estimado y exportación en JSON. La terminal y el navegador corren el mismo código (`runDuel`).
+- Juez de personaje en el banco de pruebas y en la terminal (`--juez`, `--muestras`): otro modelo puntúa de 1 a 5 si las decisiones de una muestra fija suenan a cada vecino, con su razón; se guarda en la corrida y entra en la comparación.
+- Casos de oro: 10 decisiones con una respuesta clara que se eligen solas (verdad, reglas de personaje y modo simulado de acuerdo). Cada prueba los califica, entran en la comparación y la **prueba rápida** (`--rapida` en la terminal) hace solo esas 10 preguntas por modelo.
+- Compartir pruebas entre máquinas: carpeta compartida (Chrome y Edge) donde cada prueba se guarda y se leen las que haya, «Exportar todo» en un solo archivo, importación de varios archivos o lotes a la vez, y `AI_TOWN_RUNS_DIR` para que `npm run bench` guarde en esa carpeta.
+- Las corridas guardan el razonamiento de cada decisión (recortado).
+- Caché de prompts de Anthropic: las instrucciones y el anuncio, iguales para todo el pueblo, se marcan para la caché. El inspector muestra los tokens leídos y escritos, el costo los cobra a su precio y el banco añade la columna **Caché** (parte del prompt servida y ahorro) y la variante **Sin caché** del mismo modelo (`~sin-cache` en la terminal) para medirlo.
+- El LLM falso responde también como Baronesa y como juez.
+
+#### Interfaz y herramientas
 - Diseño para tablet y móvil: por debajo de 900 px el panel y los cajones se vuelven una hoja inferior, la barra superior se pliega en dos filas, las reacciones son una tira que se desplaza y el mapa se encuadra en el hueco que queda libre (y se reencuadra al plegar la hoja). Entre 900 y 1200 px el panel es más estrecho y la barra no se encima.
 - Accesibilidad: el mapa se enfoca con `Tab` y se recorre con teclado (flechas para moverlo, `N`/`P` para ir de vecino en vecino, con su ficha y un anuncio de dónde está y qué hace), enlace para ir directo a escribir un pregón, y los diálogos dejan inerte lo de detrás para lectores de pantalla y teclado.
-- Preparado para varios mundos: quién gobierna y cómo se le nombra, el gremio y su deudor, quién pide qué y dónde se hace la fiesta salen del mundo (`realm`), no del código. Registro de mundos con selector en Configuración (aparece con más de uno), y cada mundo guarda su partida.
-- Segundo mundo, **Aguamansa**: un pueblo de pescadores a orillas de un lago, con 13 vecinos, playa, muelle, faro y arrozal, gobernado por un alcalde, con sus propios pregones de ejemplo, desenlaces, economía, peticiones y contrabandistas. Reutiliza el kit de arte de Chismeroble; se elige en Configuración y en la terminal con `--mundo`.
-- La arena de la orilla se dibuja como arena.
 - Medidor de rendimiento: `?perf` en la dirección muestra cuadros por segundo, tiempo de lógica y de dibujo, objetos y memoria; `npm run perf` mide sin navegador la lógica de días enteros a la velocidad que digas, con pregones.
 
 ### Cambiado
@@ -76,5 +86,6 @@ Primera versión estable: un pueblo simulado para probar y comparar modelos de l
 - Comparar dos corridas guardadas, con cambios de decisión y avisos de lo que no es comparable.
 - Duelo de gobernantes (`npm run reign`): varias Baronesas gobiernan el mismo año con la misma semilla, con puntaje y costo.
 
-[Sin publicar]: https://github.com/rodacato/ai-town/compare/v1.0.0...HEAD
+[Sin publicar]: https://github.com/rodacato/ai-town/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/rodacato/ai-town/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/rodacato/ai-town/releases/tag/v1.0.0
