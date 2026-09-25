@@ -83,11 +83,11 @@ Bartolo le debe una fortuna a un gremio de ladrones. El gremio conspira más cua
 | Simulado | — | Reglas locales. Gratis e inmediato. |
 | Claude | Anthropic Messages (SDK oficial) | Tu API key de Anthropic. |
 | OpenAI | Chat Completions | Tu API key de OpenAI. |
-| SheLLM | Cualquiera de los dos | Tu suscripción de Claude Code o Codex vía [SheLLM](https://rodacato.github.io/SheLLM/). Mantén la concurrencia baja. |
+| SheLLM | Cualquiera de los dos | Tu suscripción de Claude Code o Codex vía [SheLLM](https://rodacato.github.io/SheLLM/). La concurrencia por defecto es 4, la de SheLLM; más, espera en su cola. |
 | Personalizado | Compatible con OpenAI | Ollama, LM Studio, OpenRouter… |
 
 - **Local (`npm run dev`)**: las peticiones pasan por un proxy dentro del servidor de Vite, sin el límite de conexiones del navegador. Si dejas la key vacía, el proxy usa la de `.env.local` (ver `.env.example`).
-- **Estática (GitHub Pages)**: tu navegador llama directo al proveedor con tu key. Anthropic y OpenAI lo permiten; Ollama, LM Studio y SheLLM necesitan habilitar CORS.
+- **Estática (GitHub Pages)**: tu navegador llama directo al proveedor con tu key. Anthropic y OpenAI lo permiten; Ollama, LM Studio y SheLLM necesitan habilitar CORS. En SheLLM (1.10 o más nuevo), añade el origen de la app a los permitidos y, mejor aún, usa una key limitada a ese origen.
 
 ### Tus keys (BYOK)
 
@@ -101,6 +101,8 @@ Bartolo le debe una fortuna a un gremio de ladrones. El gremio conspira más cua
 ### Precios y costo
 
 El costo sale del host cuando lo reporta (SheLLM) o se estima con el precio por millón de tokens. Los modelos de Claude traen su precio de lista (con la fecha en que se revisó); para los demás puedes escribir uno en Configuración, y vale solo para ese modelo. Los modelos locales cuestan $0; si no hay precio, se dice «sin precio», nunca $0. Lo estimado lleva «≈».
+
+En los hosts compatibles con OpenAI (SheLLM incluido) se puede elegir el **esfuerzo de razonamiento** de cada conexión (mínimo, bajo, medio o alto, o lo que diga el host; SheLLM usa medio con Claude desde la 1.16). Con SheLLM 1.16 o más nuevo, el inspector y el banco muestran además los tokens que salieron de la caché y los que fueron razonamiento, y cuánto esperó cada petición en la cola del propio SheLLM (columna **Cola del host**), para separar la espera del modelo de la del servidor.
 
 Con Anthropic, cada decisión usa la **caché de prompts**: las instrucciones y el anuncio (con la lista de vecinos) son iguales para todo el pueblo y van primero, marcados para la caché; lo propio de cada residente va después. Leer de la caché cuesta la décima parte y escribirla un cuarto más. El inspector muestra los tokens leídos y escritos, y el banco una columna **Caché** con la parte del prompt que salió de ella y lo que ahorró. Para medirlo, añade el mismo modelo con la casilla **Sin caché** (o `-m anthropic:modelo~sin-cache` en la terminal) y compara. Anthropic solo guarda prefijos a partir de un mínimo de tokens que depende del modelo; por debajo, la columna queda en «—».
 

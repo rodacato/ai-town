@@ -2,7 +2,8 @@ import { create } from 'zustand'
 import { executeRun, trialsPerContender, type ContenderInfo } from '../../../core/bench/run'
 import type { BenchProgress, Contender } from '../../../core/bench/runner'
 import { createProvider } from '../../../providers'
-import { PRESETS, type Connection, type LlmSettings } from '../../../providers/llm/config'
+import { EFFORT_LABEL, PRESETS, type Connection, type LlmSettings } from '../../../providers/llm/config'
+import type { ReasoningEffort } from '../../../providers/llm/transport'
 import { createRulesProvider, mockDecision } from '../../../providers/mock'
 import { useTown } from '../../store'
 import { town } from '../../town'
@@ -21,6 +22,8 @@ export interface ContenderSpec {
   model: string
   /** Turns off Anthropic's prompt cache, to measure what it saves against the same model with it. */
   noCache?: boolean
+  /** Asks the host for this reasoning effort instead of the connection's, to compare efforts of one model. */
+  effort?: ReasoningEffort
 }
 
 interface Prefs {
@@ -66,8 +69,11 @@ const uncached = (s: ContenderSpec) => s.kind === 'anthropic' && !!s.noCache
 /** Runs made in the world the app is running now; the others name residents that are not here. */
 export const ofThisWorld = (run: { world: string }) => run.world === town.content.id
 
-export const specId = (s: ContenderSpec) => (s.kind === 'rules' ? 'rules' : `${s.kind}:${s.model.trim()}${uncached(s) ? ':sin-cache' : ''}`)
-export const specLabel = (s: ContenderSpec) => (s.kind === 'rules' ? 'Reglas locales' : `${PRESETS[s.kind].label} · ${s.model.trim() || '¿modelo?'}${uncached(s) ? ' · sin caché' : ''}`)
+const effortOf = (s: ContenderSpec) => (s.kind !== 'rules' && s.kind !== 'anthropic' ? s.effort : undefined)
+export const specId = (s: ContenderSpec) =>
+  s.kind === 'rules' ? 'rules' : `${s.kind}:${s.model.trim()}${uncached(s) ? ':sin-cache' : ''}${effortOf(s) ? `:esfuerzo-${effortOf(s)}` : ''}`
+export const specLabel = (s: ContenderSpec) =>
+  s.kind === 'rules' ? 'Reglas locales' : `${PRESETS[s.kind].label} · ${s.model.trim() || '¿modelo?'}${uncached(s) ? ' · sin caché' : ''}${effortOf(s) ? ` · esfuerzo ${EFFORT_LABEL[effortOf(s)!]}` : ''}`
 
 function defaultPrefs(): Prefs {
   const llm = useTown.getState().llm
@@ -103,9 +109,10 @@ function contenderFor(spec: ContenderSpec, llm: LlmSettings): { contender: Conte
       info: { id, label, kind: 'rules', model: '', host: '', concurrency: 16 },
     }
   }
-  const conn = { ...llm.connections[spec.kind], model: spec.model.trim(), promptCache: !uncached(spec) }
+  const base = llm.connections[spec.kind]
+  const conn = { ...base, model: spec.model.trim(), promptCache: !uncached(spec), reasoningEffort: effortOf(spec) ?? base.reasoningEffort }
   const { provider, concurrency, timeoutMs } = createProvider({ active: spec.kind, connections: { ...llm.connections, [spec.kind]: conn } }, town.content)
-  return { contender: { id, label, provider, concurrency, timeoutMs }, info: { id, label, kind: spec.kind, model: conn.model, host: conn.host, concurrency } }
+  return { contender: { id, label, provider, concurrency, timeoutMs }, info: { id, label, kind: spec.kind, model: conn.model, host: conn.host, concurrency, ...(conn.reasoningEffort ? { effort: conn.reasoningEffort } : {}) } }
 }
 
 /** Saves a run in this browser and, when a folder is linked and allowed, in the folder too. */

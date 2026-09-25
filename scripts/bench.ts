@@ -7,7 +7,8 @@ import { compareSides } from '../src/core/bench/compare'
 import { executeRun, RUN_FORMAT, trialsPerContender, type BenchRun, type RunSetup } from '../src/core/bench/run'
 import { FAIL_FAST_AFTER, type BenchProgress } from '../src/core/bench/runner'
 import { MAX_CONCURRENCY } from '../src/providers'
-import { DEFAULT_SETTINGS, PRESETS, type Connection } from '../src/providers/llm/config'
+import { DEFAULT_SETTINGS, EFFORT_LABEL, PRESETS, type Connection } from '../src/providers/llm/config'
+import { REASONING_EFFORTS, type ReasoningEffort } from '../src/providers/llm/transport'
 import { createLlmProvider } from '../src/providers/llm/provider'
 import { createRulesProvider, mockDecision } from '../src/providers/mock'
 import { activeWorld, WORLDS, worldById } from '../src/worlds'
@@ -38,6 +39,8 @@ Uso: npm run bench -- [opciones]
       --price <entrada/salida>           USD por millón de tokens para los modelos sin precio propio, ej. 3/15.
                                          Precio de un solo modelo: -m proveedor:modelo=3/15
                                          Sin la caché de Anthropic, para medir lo que ahorra: -m anthropic:modelo~sin-cache
+                                         Con otro esfuerzo de razonamiento (hosts OpenAI y SheLLM): -m shellm:claude~bajo
+                                         (~minimo, ~bajo, ~medio o ~alto)
       --rapida                           Solo los casos de oro (${GOLDEN_SIZE} decisiones con una respuesta clara), una vez cada uno.
       --juez <proveedor:modelo>          Al terminar, un modelo juzga de 1 a 5 si las decisiones suenan a cada vecino.
       --muestras <n>                     Decisiones que juzga por contendiente (por defecto 12).
@@ -105,7 +108,8 @@ const unknown = ids.filter((id) => !content.examples.some((e) => e.id === id))
 if (unknown.length) fail(`Pregón desconocido: ${unknown.join(', ')}. Hay: ${content.examples.map((e) => e.id).join(', ')}.`)
 const examples = quick ? content.examples : content.examples.filter((e) => ids.includes(e.id))
 
-const NO_CACHE = '~sin-cache'
+/** Suffixes that ask for a reasoning effort: -m shellm:claude~bajo. */
+const EFFORT_FLAG: Record<ReasoningEffort, string> = { minimal: 'minimo', low: 'bajo', medium: 'medio', high: 'alto' }
 const connectionFor = (spec: string) => connectionForSpec(spec, { concurrency, price })
 
 const contenders: RunSetup['contenders'] = []
@@ -116,14 +120,19 @@ if (!args['skip-rules']) {
   })
 }
 for (const spec of args.model) {
-  const noCache = spec.endsWith(NO_CACHE)
-  const c = { ...connectionFor(noCache ? spec.slice(0, -NO_CACHE.length) : spec), promptCache: !noCache }
-  const id = `${c.kind}:${c.model}${c.host !== DEFAULT_SETTINGS.connections[c.kind].host ? `@${c.host}` : ''}${noCache ? ':sin-cache' : ''}`
+  const [base, ...flags] = spec.split('~')
+  const noCache = flags.includes('sin-cache')
+  const effort = REASONING_EFFORTS.find((e) => flags.includes(EFFORT_FLAG[e]))
+  const unknown = flags.filter((f) => f !== 'sin-cache' && !Object.values(EFFORT_FLAG).includes(f))
+  if (unknown.length) fail(`«~${unknown[0]}» no se entiende: usa ~sin-cache o ~${Object.values(EFFORT_FLAG).join(', ~')}.`)
+  const plain = connectionFor(base)
+  const c = { ...plain, promptCache: !noCache, reasoningEffort: effort ?? plain.reasoningEffort }
+  const id = `${c.kind}:${c.model}${c.host !== DEFAULT_SETTINGS.connections[c.kind].host ? `@${c.host}` : ''}${noCache ? ':sin-cache' : ''}${effort ? `:esfuerzo-${effort}` : ''}`
   if (contenders.some((x) => x.contender.id === id)) fail(`«${spec}» está repetido.`)
-  const label = `${PRESETS[c.kind].label} · ${c.model}${noCache ? ' · sin caché' : ''}`
+  const label = `${PRESETS[c.kind].label} · ${c.model}${noCache ? ' · sin caché' : ''}${effort ? ` · esfuerzo ${EFFORT_LABEL[effort]}` : ''}`
   contenders.push({
     contender: { id, label, provider: createLlmProvider(c, nodeStream), concurrency: c.concurrency, timeoutMs },
-    info: { id, label, kind: c.kind, model: c.model, host: c.host, concurrency: c.concurrency },
+    info: { id, label, kind: c.kind, model: c.model, host: c.host, concurrency: c.concurrency, ...(c.reasoningEffort ? { effort: c.reasoningEffort } : {}) },
   })
 }
 if (!contenders.length) fail('No hay contendientes. Añade alguno con -m proveedor:modelo.')
@@ -228,6 +237,7 @@ function printReport(run: BenchRun) {
       r.errors ? `${r.errors}/${r.trials}` : '0',
       m.ttft && !rules ? s(m.ttft.p50) : '—',
       m.total && !rules ? `${s(m.total.p50)} / ${s(m.total.p95)}` : '—',
+      m.hostQueue ? `${s(m.hostQueue.p50)} / ${s(m.hostQueue.p95)}` : '—',
       !rules && secs && r.errors < r.trials ? (r.trials / secs).toFixed(1) : '—',
       m.tokensPerSecond ? m.tokensPerSecond.toFixed(0) : '—',
       m.inputTokens ? `${k(m.inputTokens)} → ${k(m.outputTokens)}` : '—',
@@ -236,7 +246,7 @@ function printReport(run: BenchRun) {
       rules || m.costUsd === null || !decided ? '—' : usd((m.costUsd / decided) * 1000, m.costEstimated),
     ]
   }
-  const head = ['Contendiente', 'Formato', 'Consist.', 'Acierto', 'Oro', 'Personaje', 'Reglas', 'Errores', '1.ª palabra', 'p50 / p95', 'Pet/s', 'Tok/s', 'Tokens', 'Caché', 'Costo', '$/1k dec.']
+  const head = ['Contendiente', 'Formato', 'Consist.', 'Acierto', 'Oro', 'Personaje', 'Reglas', 'Errores', '1.ª palabra', 'p50 / p95', 'Cola host', 'Pet/s', 'Tok/s', 'Tokens', 'Caché', 'Costo', '$/1k dec.']
   const rows = run.report.contenders.map(row)
   const widths = head.map((h, i) => Math.max(h.length, ...rows.map((r) => r[i].length)))
   const fmt = (cells: string[]) => cells.map((c, i) => (i ? c.padStart(widths[i]) : c.padEnd(widths[i]))).join('  ')

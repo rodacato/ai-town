@@ -34,6 +34,25 @@ describe('OpenAI-compatible streaming', () => {
     expect(JSON.parse(init.body as string)).toMatchObject({ model: 'claude', stream: true, stream_options: { include_usage: true } })
   })
 
+  it('reads what SheLLM 1.16 reports: cache and reasoning inside the counts, and its own timings, past queue comments', async () => {
+    const usage = { prompt_tokens: 1000, completion_tokens: 300, prompt_tokens_details: { cached_tokens: 700 }, completion_tokens_details: { reasoning_tokens: 120 } }
+    const x_shellm = { cost_usd: null, queue_ms: 2400, ttft_ms: 3100, cli_ms: 5200 }
+    const fetch = vi.fn(async () => sse([': queued position=2\n\n', ': keepalive\n\n', chunk({ choices: [{ delta: { content: '{}' } }] }), chunk({ choices: [], usage, x_shellm }), 'data: [DONE]\n\n']))
+    vi.stubGlobal('fetch', fetch)
+    let text = ''
+    const got = await streamCompletion(target, { ...req, effort: 'low' }, (t) => (text += t), new AbortController().signal)
+    expect(text).toBe('{}')
+    expect(got).toEqual({ inputTokens: 300, outputTokens: 300, cacheReadTokens: 700, reasoningTokens: 120, hostQueueMs: 2400, hostTtftMs: 3100, hostModelMs: 5200 })
+    expect(JSON.parse((fetch.mock.calls[0] as unknown as [string, RequestInit])[1].body as string).reasoning_effort).toBe('low')
+  })
+
+  it('leaves the reasoning effort to the host unless asked', async () => {
+    const fetch = vi.fn(async () => sse([chunk({ choices: [{ delta: { content: 'ok' } }] })]))
+    vi.stubGlobal('fetch', fetch)
+    await streamCompletion(target, req, () => {}, new AbortController().signal)
+    expect(JSON.parse((fetch.mock.calls[0] as unknown as [string, RequestInit])[1].body as string)).not.toHaveProperty('reasoning_effort')
+  })
+
   it('retries without stream_options when an older host rejects them', async () => {
     const fetch = vi
       .fn()

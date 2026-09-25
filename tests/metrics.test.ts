@@ -98,3 +98,16 @@ describe('prompt cache', () => {
     expect(cacheText(runMetrics([call({})]))).toBe('—')
   })
 })
+
+describe('what the host reports', () => {
+  it('adds up reasoning tokens and takes percentiles of the host queue, only over calls that report it', () => {
+    const m = runMetrics([
+      call({ usage: { inputTokens: 10, outputTokens: 50, reasoningTokens: 20, hostQueueMs: 1000 } }),
+      call({ usage: { inputTokens: 10, outputTokens: 50, reasoningTokens: 30, hostQueueMs: 3000 } }),
+      call({ usage: { inputTokens: 10, outputTokens: 50 } }),
+    ])
+    expect(m.reasoningTokens).toBe(50)
+    expect(m.hostQueue).toMatchObject({ p50: 1000, max: 3000 })
+    expect(runMetrics([call({})]).hostQueue).toBeNull()
+  })
+})

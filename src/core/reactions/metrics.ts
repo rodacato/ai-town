@@ -20,6 +20,10 @@ export interface RunMetrics {
   queue: Percentiles | null
   /** Output tokens per second of generation, across successful calls. */
   tokensPerSecond: number | null
+  /** Output tokens spent thinking, when the host breaks them out. */
+  reasoningTokens?: number
+  /** Time waiting in the host's own queue, when it reports it (SheLLM does). */
+  hostQueue?: Percentiles | null
 }
 
 export interface Percentiles {
@@ -60,6 +64,8 @@ export function runMetrics(calls: Timed[]): RunMetrics {
     total: percentiles(ok.flatMap((c) => (c.totalMs !== null ? [c.totalMs] : []))),
     queue: percentiles(calls.map((c) => c.queueMs)),
     tokensPerSecond: genSeconds > 0 ? generating.reduce((n, c) => n + c.usage!.outputTokens!, 0) / genSeconds : null,
+    reasoningTokens: sum((c) => c.usage?.reasoningTokens),
+    hostQueue: percentiles(ok.flatMap((c) => (c.usage?.hostQueueMs !== undefined ? [c.usage.hostQueueMs] : []))),
   }
 }
 

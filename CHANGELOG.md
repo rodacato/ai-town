@@ -6,6 +6,14 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+### Añadido
+- Esfuerzo de razonamiento por conexión en los hosts compatibles con OpenAI (SheLLM incluido): mínimo, bajo, medio, alto o lo que diga el host. En el banco, el mismo modelo se puede añadir con otro esfuerzo para compararlo (`~bajo`, `~alto`… en la terminal).
+- Lo que reporta SheLLM 1.16: los tokens que vinieron de la caché y los de razonamiento (también en la API de OpenAI), y los tiempos del host (cola, primera palabra y modelo). El inspector los muestra y el banco añade la columna **Cola del host**.
+- El LLM falso imita a SheLLM 1.16: avisos de cola y keepalive, caché, razonamiento según el esfuerzo y tiempos del host.
+
+### Cambiado
+- La concurrencia por defecto de SheLLM baja de 5 a 4, la que SheLLM usa desde la 1.9.
+
 ## [1.1.0] - 2026-09-24
 
 Dos pueblos, vecinos con memoria propia y relaciones que cambian, y más formas de medir a los modelos. Funciona en tablet y móvil y se puede usar entero con teclado.

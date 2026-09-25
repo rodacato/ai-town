@@ -12,6 +12,10 @@ export interface Target {
   model: string
 }
 
+/** How hard a reasoning model thinks before answering; SheLLM runs minimal as low. */
+export type ReasoningEffort = 'minimal' | 'low' | 'medium' | 'high'
+export const REASONING_EFFORTS: ReasoningEffort[] = ['minimal', 'low', 'medium', 'high']
+
 export interface CompletionRequest {
   system: string
   prompt: string
@@ -22,6 +26,8 @@ export interface CompletionRequest {
   maxTokens?: number
   /** How long to wait for the host to start answering; decisions allow long queues, connection tests fail fast. */
   timeoutMs?: number
+  /** Sent as reasoning_effort on OpenAI-compatible hosts; omitted, the host decides. */
+  effort?: ReasoningEffort
 }
 
 export interface Usage {
@@ -32,6 +38,30 @@ export interface Usage {
   /** Input tokens served from the prompt cache (billed at about a tenth), and written to it (about 1.25×). */
   cacheReadTokens?: number
   cacheWriteTokens?: number
+  /** Output tokens the model spent thinking, already counted in outputTokens. */
+  reasoningTokens?: number
+  /** Timings the host reports (SheLLM does): waiting in its queue, to the first token, and the model's own run. */
+  hostQueueMs?: number
+  hostTtftMs?: number
+  hostModelMs?: number
+}
+
+/** SheLLM's namespaced block, the same in both wire formats; unknown values come as null. */
+interface ShellmMeta {
+  cost_usd?: number | null
+  queue_ms?: number | null
+  ttft_ms?: number | null
+  cli_ms?: number | null
+}
+
+function hostMeta(meta: ShellmMeta | undefined): Usage {
+  if (!meta) return {}
+  const out: Usage = {}
+  if (typeof meta.cost_usd === 'number') out.costUsd = meta.cost_usd
+  if (typeof meta.queue_ms === 'number') out.hostQueueMs = meta.queue_ms
+  if (typeof meta.ttft_ms === 'number') out.hostTtftMs = meta.ttft_ms
+  if (typeof meta.cli_ms === 'number') out.hostModelMs = meta.cli_ms
+  return out
 }
 
 export interface TransportOptions {
@@ -123,9 +153,26 @@ async function streamAnthropic(t: Target, req: CompletionRequest, onText: (text:
 
 interface OpenAIChunk {
   choices?: { delta?: { content?: string }; message?: { content?: string } }[]
-  usage?: { prompt_tokens?: number; completion_tokens?: number }
+  usage?: {
+    prompt_tokens?: number | null
+    completion_tokens?: number | null
+    prompt_tokens_details?: { cached_tokens?: number | null }
+    completion_tokens_details?: { reasoning_tokens?: number | null }
+  }
   error?: { message?: string }
-  x_shellm?: { cost_usd?: number }
+  x_shellm?: ShellmMeta
+}
+
+/** OpenAI counts cached tokens inside prompt_tokens; here, as with Anthropic, inputTokens is only the uncached part. */
+function openAIUsage(u: NonNullable<OpenAIChunk['usage']>): Usage {
+  const cached = u.prompt_tokens_details?.cached_tokens ?? 0
+  const reasoning = u.completion_tokens_details?.reasoning_tokens ?? 0
+  return {
+    ...(u.prompt_tokens != null ? { inputTokens: u.prompt_tokens - cached } : {}),
+    ...(u.completion_tokens != null ? { outputTokens: u.completion_tokens } : {}),
+    ...(cached ? { cacheReadTokens: cached } : {}),
+    ...(reasoning ? { reasoningTokens: reasoning } : {}),
+  }
 }
 
 async function streamOpenAI(t: Target, req: CompletionRequest, onText: (text: string) => void, signal: AbortSignal, includeUsage = true): Promise<Usage> {
@@ -139,6 +186,7 @@ async function streamOpenAI(t: Target, req: CompletionRequest, onText: (text: st
         model: t.model,
         stream: true,
         ...(includeUsage ? { stream_options: { include_usage: true } } : {}),
+        ...(req.effort ? { reasoning_effort: req.effort } : {}),
         messages: [
           { role: 'system', content: req.system },
           { role: 'user', content: req.prefix ? `${req.prefix}\n\n${req.prompt}` : req.prompt },
@@ -159,8 +207,8 @@ async function streamOpenAI(t: Target, req: CompletionRequest, onText: (text: st
     if (chunk.error) throw new Error(chunk.error.message ?? 'Error del proveedor.')
     const text = chunk.choices?.[0]?.delta?.content ?? chunk.choices?.[0]?.message?.content
     if (text) onText(text)
-    if (chunk.usage) Object.assign(usage, { inputTokens: chunk.usage.prompt_tokens, outputTokens: chunk.usage.completion_tokens })
-    if (chunk.x_shellm?.cost_usd !== undefined) usage.costUsd = chunk.x_shellm.cost_usd
+    if (chunk.usage) Object.assign(usage, openAIUsage(chunk.usage))
+    Object.assign(usage, hostMeta(chunk.x_shellm))
   }
   if (!response.headers.get('content-type')?.includes('text/event-stream')) {
     absorb((await response.json()) as OpenAIChunk)
@@ -184,9 +232,8 @@ async function streamOpenAI(t: Target, req: CompletionRequest, onText: (text: st
   return usage
 }
 
-function hostCost(message: unknown): Pick<Usage, 'costUsd'> {
-  const cost = (message as { x_shellm?: { cost_usd?: number } }).x_shellm?.cost_usd
-  return cost === undefined ? {} : { costUsd: cost }
+function hostCost(message: unknown): Usage {
+  return hostMeta((message as { x_shellm?: ShellmMeta }).x_shellm)
 }
 
 export async function listModels(t: Target, opts: TransportOptions = {}): Promise<string[]> {
