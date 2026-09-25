@@ -49,11 +49,11 @@ createServer(async (req, res) => {
   }
   // It answers in the shape each caller asks for: a resident, the ruler, the judge of character or a petitioner.
   const text = system.startsWith('Evalúas personajes')
-    ? JSON.stringify({ puntaje: 1 + Math.floor(Math.random() * 5), razon: 'Suena más o menos como el personaje.' })
+    ? JSON.stringify({ score: 1 + Math.floor(Math.random() * 5), reason: 'Suena más o menos como el personaje.' })
     : system.includes(' y gobiernas ')
-      ? JSON.stringify({ pensamiento: 'Hoy compro un poco de grano, por si acaso.', acciones: [{ tipo: 'comprar_comida', raciones: 10 }] })
+      ? JSON.stringify({ thought: 'Hoy compro un poco de grano, por si acaso.', actions: [{ type: 'buy_food', rations: 10 }] })
       : system.includes('pedirle algo')
-        ? JSON.stringify({ peticion: `Soy ${/^Eres ([^,]+),/m.exec(prompt)?.[1] ?? name}, mi señora, y vengo a pediros ayuda con lo mío.` })
+        ? JSON.stringify({ petition: `Soy ${/^Eres ([^,]+),/m.exec(prompt)?.[1] ?? name}, mi señora, y vengo a pediros ayuda con lo mío.` })
         : JSON.stringify(decision)
   // Like SheLLM 1.16: comment lines while queued or silent, more thinking at a higher effort, and its x_shellm block at the end.
   const effort = parsed.reasoning_effort ?? 'medium'

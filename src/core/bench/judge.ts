@@ -48,7 +48,7 @@ export const JUDGE_SYSTEM = `Evalúas personajes de una simulación: un pueblo d
 Te doy la ficha del personaje, el pregón que oyó y lo que decidió, con su razonamiento y lo que dijo en voz alta.
 Juzga solo si esa decisión y esas palabras son creíbles para ESTE personaje: su forma de hablar, lo que valora, lo que teme y sus rasgos. No juzgues si la decisión fue acertada.
 Responde SOLO con un objeto JSON, sin texto antes ni después:
-{ "puntaje": 1 a 5, "razon": "una frase que diga qué encaja o qué desentona" }
+{ "score": 1 a 5, "reason": "una frase que diga qué encaja o qué desentona" }
 5 = es exactamente este personaje; 3 = podría ser cualquiera; 1 = contradice al personaje. Escribe en español.`
 
 /** The decisions a judge reads: the same sample every time for the same run, spread over announcements and residents. */
@@ -90,10 +90,10 @@ export function parseJudgment(text: string): { score: number; reason: string } |
   const end = text.lastIndexOf('}')
   if (start < 0 || end <= start) return null
   try {
-    const raw = JSON.parse(text.slice(start, end + 1)) as { puntaje?: unknown; razon?: unknown }
-    const score = Math.round(Number(raw.puntaje))
+    const raw = JSON.parse(text.slice(start, end + 1)) as { score?: unknown; reason?: unknown }
+    const score = Math.round(Number(raw.score))
     if (!(score >= 1 && score <= 5)) return null
-    return { score, reason: typeof raw.razon === 'string' ? raw.razon.trim().slice(0, 300) : '' }
+    return { score, reason: typeof raw.reason === 'string' ? raw.reason.trim().slice(0, 300) : '' }
   } catch {
     return null
   }

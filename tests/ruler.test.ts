@@ -48,12 +48,12 @@ describe('reading the Baroness', () => {
     const turn = parseRulerTurn(
       'Claro.\n' +
         JSON.stringify({
-          pensamiento: 'Llega el invierno.',
-          acciones: [
-            { tipo: 'comprar_comida', raciones: 60 },
-            { tipo: 'pregonar', texto: 'Hay grano para todos', cierto: false },
-            { tipo: 'ley', nombre: 'inventada', activa: true },
-            { tipo: 'fiesta' },
+          thought: 'Llega el invierno.',
+          actions: [
+            { type: 'buy_food', rations: 60 },
+            { type: 'proclaim', text: 'Hay grano para todos', honest: false },
+            { type: 'law', name: 'made_up', on: true },
+            { type: 'festival' },
           ],
         }),
     )
@@ -62,17 +62,17 @@ describe('reading the Baroness', () => {
       { kind: 'decree', decree: { kind: 'buyFood', rations: 60 } },
       { kind: 'proclaim', text: 'Hay grano para todos', honest: false },
     ])
-    expect(turn.problems.join(' ')).toMatch(/inventada.*Pidió 4 acciones/)
+    expect(turn.problems.join(' ')).toMatch(/made_up.*Pidió 4 acciones/)
     expect(parseRulerTurn('no sé').problems).toHaveLength(1)
   })
 
   it('never takes more than the allowed actions', () => {
-    const many = { acciones: Array.from({ length: 6 }, () => ({ tipo: 'repartir_comida' })) }
+    const many = { actions: Array.from({ length: 6 }, () => ({ type: 'hand_out_food' })) }
     expect(parseRulerTurn(JSON.stringify(many)).actions).toHaveLength(MAX_ACTIONS)
   })
 
   it('asks a model once per report and counts what it costs', async () => {
-    const reply = JSON.stringify({ pensamiento: 'Todo bien.', acciones: [{ tipo: 'pedir_al_creador', texto: 'Quiero un puerto.' }] })
+    const reply = JSON.stringify({ thought: 'Todo bien.', actions: [{ type: 'ask_creator', text: 'Quiero un puerto.' }] })
     const stream: ChatStream = async function* () {
       yield { type: 'delta', text: reply }
       yield { type: 'done', usage: { inputTokens: 900, outputTokens: 80, costUsd: 0.002 } }
@@ -157,11 +157,11 @@ describe('petitions to the Baroness', () => {
         yield { type: 'done', usage: { inputTokens: 300, outputTokens: 40 } }
       }
     const conn = { ...DEFAULT_SETTINGS.connections.shellm, model: 'claude' }
-    const worded = await modelPetition(conn, content, input, g, new AbortController().signal, answer('{"peticion": "Por caridad, abrid el granero."}'))
+    const worded = await modelPetition(conn, content, input, g, new AbortController().signal, answer('{"petition": "Por caridad, abrid el granero."}'))
     expect(worded).toMatchObject({ text: 'Por caridad, abrid el granero.', fellBack: false })
     const garbled = await modelPetition(conn, content, input, g, new AbortController().signal, answer('no sé'))
     expect(garbled).toMatchObject({ text: g.fallback, fellBack: true })
-    expect(parsePetition('{"peticion": ""}')).toBeNull()
+    expect(parsePetition('{"petition": ""}')).toBeNull()
   })
 })
 

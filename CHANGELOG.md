@@ -17,6 +17,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
   - Valores internos: tonos (`trusted`, `urgent`, `suspicious`, `emergency`), la dificultad `hard`, los niveles de ánimo, confianza y gremio, quién respondió (`rules`), el tipo de cada final y el id de cada gobernante del duelo.
   - Los ids de contendiente usan `:no-cache` y `:effort-…`, y los archivos descargados se llaman `duel-…`, `ai-town-runs-…`, `letters-…` y `<mundo>-day-…`.
   - Las partidas y pruebas guardadas antes se convierten solas al cargarlas: dificultad, finales, quién respondió, tonos e ids de contendiente.
+- **Las respuestas de los modelos se piden con claves en inglés.** La gobernante devuelve `thought` y `actions`, con `type` (`proclaim`, `set_tax`, `set_ration_price`, `hand_out_food`, `buy_food`, `bonus`, `festival`, `law`, `ask_creator`) y sus datos (`text`, `honest`, `percent`, `coins`, `rations`, `name`, `on`), y las leyes se llaman `curfew`, `rationing` y `levy`. Los pensamientos devuelven `thought` y `mood`, las peticiones `petition` y el juez `score` y `reason`. El prompt ahora dice el nombre de cada dato, que antes solo mostraba el ejemplo. Como cambia el texto de los prompts, los duelos y juicios nuevos no son idénticos a los de antes.
 - El informe y el HUD nombran al gremio y a su deudor según el mundo; quedaban fijos los de Chismeroble.
 - La concurrencia por defecto de SheLLM baja de 5 a 4, la que SheLLM usa desde la 1.9.
 

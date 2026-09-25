@@ -19,7 +19,7 @@ export interface RulerTurn {
 
 export const MAX_ACTIONS = 3
 
-const LAW: Record<string, keyof Laws> = { toque_de_queda: 'curfew', racionamiento: 'rationing', leva: 'levy' }
+const LAWS: (keyof Laws)[] = ['curfew', 'rationing', 'levy']
 
 /** What the ruler is told once, before every report: who she is, what she wants and what she can do. */
 export const rulerSystem = (world: WorldContent) => {
@@ -32,29 +32,29 @@ Tus metas, en este orden:
 3. Que el tesoro no se agote.
 4. Gobernar un año entero (40 días). Si más de la mitad del pueblo muere o se va, también pierdes.
 
-Lo que puedes hacer (máximo ${MAX_ACTIONS} acciones por día):
-- "pregonar": anunciar algo al pueblo. Puedes decir la verdad o mentir; indica en "cierto" si es verdad (solo tú lo sabes). Las mentiras se descubren y cuestan confianza.
-- "impuesto": fijar el impuesto entre 0 y 60 (%). Subirlo llena el tesoro pero enfada al pueblo.
-- "precio_racion": fijar el precio de la ración del granero real entre 0 y 6 monedas.
-- "repartir_comida": dar hoy una ración gratis a quien pasa hambre.
-- "comprar_comida": comprar raciones a mercaderes (al precio que dice el informe, máximo 120).
-- "paga_extra": regalar entre 1 y 10 monedas a cada vecino.
-- "fiesta": 40 monedas y 15 raciones para una fiesta que alegra al pueblo.
-- "ley": activar o quitar "toque_de_queda", "racionamiento" (media ración, el granero dura el doble pero enferma y entristece) o "leva" (dos guardias más, cuestan 6 monedas al día).
-- "pedir_al_creador": pedirle algo a quien creó este mundo (una herramienta, una regla nueva). Se lee, pero no se aplica solo. A veces te contesta, y su respuesta llega en el informe.
+Lo que puedes hacer (máximo ${MAX_ACTIONS} acciones por día), con el nombre de cada acción en "type" y sus datos:
+- "proclaim": anunciar algo al pueblo, en "text". Puedes decir la verdad o mentir; indica en "honest" si es verdad (solo tú lo sabes). Las mentiras se descubren y cuestan confianza.
+- "set_tax": fijar el impuesto entre 0 y 60 (%), en "percent". Subirlo llena el tesoro pero enfada al pueblo.
+- "set_ration_price": fijar el precio de la ración del granero real entre 0 y 6 monedas, en "coins".
+- "hand_out_food": dar hoy una ración gratis a quien pasa hambre.
+- "buy_food": comprar raciones a mercaderes (al precio que dice el informe, máximo 120), en "rations".
+- "bonus": regalar entre 1 y 10 monedas a cada vecino, en "coins".
+- "festival": 40 monedas y 15 raciones para una fiesta que alegra al pueblo.
+- "law": activar o quitar una ley, con su nombre en "name" y "on" en true o false: "curfew" (toque de queda), "rationing" (racionamiento: media ración, el granero dura el doble pero enferma y entristece) o "levy" (leva: dos guardias más, cuestan 6 monedas al día).
+- "ask_creator": pedirle algo a quien creó este mundo (una herramienta, una regla nueva), en "text". Se lee, pero no se aplica solo. A veces te contesta, y su respuesta llega en el informe.
 
 Sabe que el invierno casi no da cosecha: hay que llenar el granero en otoño. ${capital(guild.name)}, al que ${nameOf(world, guild.debtor)} debe dinero, conspira más cuanto peor está el ánimo; la leva de guardias los frena. Las noticias pueden venir exageradas.
 
 Responde SOLO con un objeto JSON, sin texto antes ni después:
 {
-  "pensamiento": "2 a 5 frases: cómo ves la situación y por qué decides esto",
-  "acciones": [
-    { "tipo": "comprar_comida", "raciones": 30 },
-    { "tipo": "pregonar", "texto": "…", "cierto": true },
-    { "tipo": "ley", "nombre": "racionamiento", "activa": true }
+  "thought": "2 a 5 frases: cómo ves la situación y por qué decides esto",
+  "actions": [
+    { "type": "buy_food", "rations": 30 },
+    { "type": "proclaim", "text": "…", "honest": true },
+    { "type": "law", "name": "rationing", "on": true }
   ]
 }
-"acciones" puede estar vacío si lo mejor es no hacer nada. Escribe en español.`
+"actions" puede estar vacío si lo mejor es no hacer nada. Escribe en español.`
 }
 
 /** Reads the model's reply into actions, keeping what it could not understand as problems rather than failing outright. */
@@ -62,7 +62,7 @@ export function parseRulerTurn(text: string): RulerTurn {
   const start = text.indexOf('{')
   const end = text.lastIndexOf('}')
   if (start < 0 || end <= start) return { thought: '', actions: [], problems: ['La respuesta no traía JSON.'] }
-  let raw: { pensamiento?: unknown; acciones?: unknown }
+  let raw: { thought?: unknown; actions?: unknown }
   try {
     raw = JSON.parse(text.slice(start, end + 1))
   } catch {
@@ -70,49 +70,49 @@ export function parseRulerTurn(text: string): RulerTurn {
   }
   const problems: string[] = []
   const actions: RulerAction[] = []
-  const list = Array.isArray(raw.acciones) ? raw.acciones : []
-  if (!Array.isArray(raw.acciones)) problems.push('Faltaba la lista de acciones.')
+  const list = Array.isArray(raw.actions) ? raw.actions : []
+  if (!Array.isArray(raw.actions)) problems.push('Faltaba la lista de acciones.')
   for (const a of list.slice(0, MAX_ACTIONS) as Record<string, unknown>[]) {
     const n = (k: string) => Number(a?.[k])
-    switch (a?.tipo) {
-      case 'pregonar':
-        if (typeof a.texto === 'string' && a.texto.trim()) actions.push({ kind: 'proclaim', text: a.texto.trim().slice(0, 200), honest: a.cierto !== false })
+    switch (a?.type) {
+      case 'proclaim':
+        if (typeof a.text === 'string' && a.text.trim()) actions.push({ kind: 'proclaim', text: a.text.trim().slice(0, 200), honest: a.honest !== false })
         else problems.push('Un pregón sin texto.')
         break
-      case 'impuesto':
-        actions.push({ kind: 'decree', decree: { kind: 'tax', rate: n('porcentaje') / 100 } })
+      case 'set_tax':
+        actions.push({ kind: 'decree', decree: { kind: 'tax', rate: n('percent') / 100 } })
         break
-      case 'precio_racion':
-        actions.push({ kind: 'decree', decree: { kind: 'price', price: n('monedas') } })
+      case 'set_ration_price':
+        actions.push({ kind: 'decree', decree: { kind: 'price', price: n('coins') } })
         break
-      case 'repartir_comida':
+      case 'hand_out_food':
         actions.push({ kind: 'decree', decree: { kind: 'handout' } })
         break
-      case 'comprar_comida':
-        actions.push({ kind: 'decree', decree: { kind: 'buyFood', rations: n('raciones') } })
+      case 'buy_food':
+        actions.push({ kind: 'decree', decree: { kind: 'buyFood', rations: n('rations') } })
         break
-      case 'paga_extra':
-        actions.push({ kind: 'decree', decree: { kind: 'bonus', coins: n('monedas') } })
+      case 'bonus':
+        actions.push({ kind: 'decree', decree: { kind: 'bonus', coins: n('coins') } })
         break
-      case 'fiesta':
+      case 'festival':
         actions.push({ kind: 'decree', decree: { kind: 'festival' } })
         break
-      case 'ley': {
-        const law = LAW[String(a.nombre)]
-        if (law) actions.push({ kind: 'decree', decree: { kind: 'law', law, on: a.activa !== false } })
-        else problems.push(`Ley desconocida: «${String(a.nombre)}».`)
+      case 'law': {
+        const law = LAWS.find((l) => l === a.name)
+        if (law) actions.push({ kind: 'decree', decree: { kind: 'law', law, on: a.on !== false } })
+        else problems.push(`Ley desconocida: «${String(a.name)}».`)
         break
       }
-      case 'pedir_al_creador':
-        if (typeof a.texto === 'string' && a.texto.trim()) actions.push({ kind: 'ask', text: a.texto.trim().slice(0, 500) })
+      case 'ask_creator':
+        if (typeof a.text === 'string' && a.text.trim()) actions.push({ kind: 'ask', text: a.text.trim().slice(0, 500) })
         else problems.push('Una carta sin texto.')
         break
       default:
-        problems.push(`Acción desconocida: «${String(a?.tipo)}».`)
+        problems.push(`Acción desconocida: «${String(a?.type)}».`)
     }
   }
   if (list.length > MAX_ACTIONS) problems.push(`Pidió ${list.length} acciones; solo se hacen ${MAX_ACTIONS}.`)
-  return { thought: typeof raw.pensamiento === 'string' ? raw.pensamiento : '', actions, problems }
+  return { thought: typeof raw.thought === 'string' ? raw.thought : '', actions, problems }
 }
 
 /** A sensible Baroness without a model: the baseline to beat, and the ruler when no model is set up. */

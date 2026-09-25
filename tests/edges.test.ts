@@ -56,7 +56,7 @@ describe('a round of decisions', () => {
 
 describe('the Baroness in the margins', () => {
   it('rejects decrees with values that are not numbers', () => {
-    const turn = parseRulerTurn('{"pensamiento": "x", "acciones": [{"tipo": "impuesto", "porcentaje": "mucho"}, {"tipo": "precio_racion", "monedas": "dos"}]}')
+    const turn = parseRulerTurn('{"thought": "x", "actions": [{"type": "set_tax", "percent": "mucho"}, {"type": "set_ration_price", "coins": "dos"}]}')
     const e = town()
     const before = { ...e }
     for (const a of turn.actions) if (a.kind === 'decree') expect(enact(e, a.decree, content.realm!).ok).toBe(false)
@@ -65,21 +65,21 @@ describe('the Baroness in the margins', () => {
   })
 
   it('reads JSON after prose, and says what was wrong', () => {
-    const turn = parseRulerTurn('Pienso que {"pensamiento": "bien", "acciones": [{"tipo": "pedir_al_creador"}, {"tipo": "volar"}]}')
+    const turn = parseRulerTurn('Pienso que {"thought": "bien", "actions": [{"type": "ask_creator"}, {"type": "fly"}]}')
     expect(turn.thought).toBe('bien')
-    expect(turn.problems).toEqual(['Una carta sin texto.', 'Acción desconocida: «volar».'])
-    expect(parseRulerTurn('{"pensamiento": "x", "acciones": "ninguna"}').problems).toContain('Faltaba la lista de acciones.')
-    expect(parseRulerTurn(`{"acciones": [{"tipo": "pregonar", "texto": "${'a'.repeat(300)}"}]}`).actions[0]).toMatchObject({ text: 'a'.repeat(200) })
+    expect(turn.problems).toEqual(['Una carta sin texto.', 'Acción desconocida: «fly».'])
+    expect(parseRulerTurn('{"thought": "x", "actions": "ninguna"}').problems).toContain('Faltaba la lista de acciones.')
+    expect(parseRulerTurn(`{"actions": [{"type": "proclaim", "text": "${'a'.repeat(300)}"}]}`).actions[0]).toMatchObject({ text: 'a'.repeat(200) })
   })
 })
 
 describe('a resident thinking, in the margins', () => {
   it('keeps the thought, the emoji and the mood within bounds', () => {
-    const m = parseMusing(`{"pensamiento": "${'b'.repeat(300)}", "animo": "abc", "emoji": "😀😀😀😀"}`)!
+    const m = parseMusing(`{"thought": "${'b'.repeat(300)}", "mood": "abc", "emoji": "😀😀😀😀"}`)!
     expect(m.thought).toHaveLength(240)
     expect(m.mood).toBe(0)
     expect([...m.emoji]).toHaveLength(2)
-    expect(parseMusing('{"pensamiento": "hola"}')!.emoji).toBe('💭')
+    expect(parseMusing('{"thought": "hola"}')!.emoji).toBe('💭')
   })
 
   it('worries about money, taxes, laws and trust in turn, and talks about the news', () => {
