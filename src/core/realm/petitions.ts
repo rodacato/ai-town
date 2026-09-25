@@ -48,7 +48,7 @@ export function grievances(o: { content: WorldContent; economy: Economy; chronic
 
 export const petitionSystem = (world: WorldContent) => `Eres un vecino de ${world.name}, una aldea de fantasía, y hoy te presentas ante ${world.realm?.ruler.name ?? 'quien gobierna'} para pedirle algo.
 Responde SOLO con un objeto JSON, sin texto antes ni después:
-{ "peticion": "lo que le dices ${toThe(world.realm?.ruler.title ?? 'quien gobierna')}, en una o dos frases, con tu forma de hablar" }
+{ "petition": "lo que le dices ${toThe(world.realm?.ruler.title ?? 'quien gobierna')}, en una o dos frases, con tu forma de hablar" }
 Pide lo que te trae, a tu manera: con respeto, con miedo, con picardía o con enfado, según quién eres y cuánto te fías de ella. Escribe en español.`
 
 const pct = (x: number) => `${Math.round(x * 100)}%`
@@ -71,8 +71,8 @@ export function parsePetition(text: string): string | null {
   const end = text.lastIndexOf('}')
   if (start < 0 || end <= start) return null
   try {
-    const raw = JSON.parse(text.slice(start, end + 1)) as { peticion?: unknown }
-    return typeof raw.peticion === 'string' && raw.peticion.trim() ? raw.peticion.trim().slice(0, 280) : null
+    const raw = JSON.parse(text.slice(start, end + 1)) as { petition?: unknown }
+    return typeof raw.petition === 'string' && raw.petition.trim() ? raw.petition.trim().slice(0, 280) : null
   } catch {
     return null
   }

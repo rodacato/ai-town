@@ -76,8 +76,8 @@ describe('a resident thinking out loud', () => {
 
   it('reads a model answer and keeps it within bounds', async () => {
     const { parseMusing } = await import('../src/core/realm/musing')
-    expect(parseMusing('Pienso… {"pensamiento": "Qué hambre.", "animo": -3, "emoji": "😣"}')).toEqual({ thought: 'Qué hambre.', mood: -1, emoji: '😣' })
-    expect(parseMusing('{"animo": 1}')).toBeNull()
+    expect(parseMusing('Pienso… {"thought": "Qué hambre.", "mood": -3, "emoji": "😣"}')).toEqual({ thought: 'Qué hambre.', mood: -1, emoji: '😣' })
+    expect(parseMusing('{"mood": 1}')).toBeNull()
     expect(parseMusing('sin json')).toBeNull()
   })
 

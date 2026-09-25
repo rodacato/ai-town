@@ -46,8 +46,8 @@ export function musingInputFor(e: Economy, resident: ResidentProfile, o: { trust
 
 export const musingSystem = (town: string) => `Eres un vecino de ${town}, una aldea de fantasía. De vez en cuando te paras a pensar en cómo te va y en cómo va el pueblo.
 Responde SOLO con un objeto JSON, sin texto antes ni después:
-{ "pensamiento": "una o dos frases en primera persona, con tu forma de hablar", "animo": -1, 0 o 1, "emoji": "un emoji" }
-"animo" dice si este pensamiento te deja más triste (-1), igual (0) o más contento (1). Escribe en español.`
+{ "thought": "una o dos frases en primera persona, con tu forma de hablar", "mood": -1, 0 o 1, "emoji": "un emoji" }
+"mood" dice si este pensamiento te deja más triste (-1), igual (0) o más contento (1). Escribe en español.`
 
 const pct = (x: number) => `${Math.round(x * 100)}%`
 
@@ -75,11 +75,11 @@ export function parseMusing(text: string): Musing | null {
   const end = text.lastIndexOf('}')
   if (start < 0 || end <= start) return null
   try {
-    const raw = JSON.parse(text.slice(start, end + 1)) as { pensamiento?: unknown; animo?: unknown; emoji?: unknown }
-    if (typeof raw.pensamiento !== 'string' || !raw.pensamiento.trim()) return null
-    const mood = Number(raw.animo)
+    const raw = JSON.parse(text.slice(start, end + 1)) as { thought?: unknown; mood?: unknown; emoji?: unknown }
+    if (typeof raw.thought !== 'string' || !raw.thought.trim()) return null
+    const mood = Number(raw.mood)
     return {
-      thought: raw.pensamiento.trim().slice(0, 240),
+      thought: raw.thought.trim().slice(0, 240),
       mood: mood > 0 ? 1 : mood < 0 ? -1 : 0,
       emoji: typeof raw.emoji === 'string' && raw.emoji.trim() ? [...raw.emoji.trim()].slice(0, 2).join('') : '💭',
     }

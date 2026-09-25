@@ -25,9 +25,9 @@ describe('the judge of character', () => {
   })
 
   it('reads scores from 1 to 5 and nothing else', () => {
-    expect(parseJudgment('Veredicto: {"puntaje": 4, "razon": "Muy suyo."}')).toEqual({ score: 4, reason: 'Muy suyo.' })
-    expect(parseJudgment('{"puntaje": 9}')).toBeNull()
-    expect(parseJudgment('{"puntaje": "alto"}')).toBeNull()
+    expect(parseJudgment('Veredicto: {"score": 4, "reason": "Muy suyo."}')).toEqual({ score: 4, reason: 'Muy suyo.' })
+    expect(parseJudgment('{"score": 9}')).toBeNull()
+    expect(parseJudgment('{"score": "alto"}')).toBeNull()
     expect(parseJudgment('sin json')).toBeNull()
   })
 
@@ -42,7 +42,7 @@ describe('the judge of character', () => {
       ask: async () => {
         n++
         if (n === 2) throw new Error('sin red')
-        return { text: n === 3 ? 'nada' : '{"puntaje": 5, "razon": "Sí."}', costUsd: 0.01, estimated: true }
+        return { text: n === 3 ? 'nada' : '{"score": 5, "reason": "Sí."}', costUsd: 0.01, estimated: true }
       },
       concurrency: 2,
     })
