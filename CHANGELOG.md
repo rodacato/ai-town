@@ -6,6 +6,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+## [1.2.0] - 2026-09-25
+
+Aprovecha SheLLM 1.16 (esfuerzo de razonamiento, caché, razonamiento y tiempos del host) y pasa el código a inglés; la app y los prompts siguen en español. **Los flags de la terminal cambiaron de nombre** (`--world`, `--quick`, `--judge`, `--samples`, `--difficulty`, `--days`, `--speed`, `~no-cache`, `~low`…); las partidas y pruebas guardadas se convierten solas.
+
 ### Añadido
 - Esfuerzo de razonamiento por conexión en los hosts compatibles con OpenAI (SheLLM incluido): mínimo, bajo, medio, alto o lo que diga el host. En el banco, el mismo modelo se puede añadir con otro esfuerzo para compararlo (`~low`, `~high`… en la terminal).
 - Lo que reporta SheLLM 1.16: los tokens que vinieron de la caché y los de razonamiento (también en la API de OpenAI), y los tiempos del host (cola, primera palabra y modelo). El inspector los muestra y el banco añade la columna **Cola del host**.
@@ -101,6 +105,7 @@ Primera versión estable: un pueblo simulado para probar y comparar modelos de l
 - Comparar dos corridas guardadas, con cambios de decisión y avisos de lo que no es comparable.
 - Duelo de gobernantes (`npm run reign`): varias Baronesas gobiernan el mismo año con la misma semilla, con puntaje y costo.
 
-[Sin publicar]: https://github.com/rodacato/ai-town/compare/v1.1.0...HEAD
+[Sin publicar]: https://github.com/rodacato/ai-town/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/rodacato/ai-town/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/rodacato/ai-town/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/rodacato/ai-town/releases/tag/v1.0.0
