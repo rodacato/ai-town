@@ -77,6 +77,12 @@ export interface TokenUsage {
   cacheWriteTokens?: number
   /** Estimated saving from the cache on this call, when there is a price to tell. */
   cacheSavedUsd?: number
+  /** Output tokens spent thinking, already inside outputTokens. */
+  reasoningTokens?: number
+  /** What the host says the time went on (SheLLM does): its queue, the first token, and the model itself. */
+  hostQueueMs?: number
+  hostTtftMs?: number
+  hostModelMs?: number
 }
 
 export type DecisionEvent =

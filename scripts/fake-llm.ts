@@ -32,7 +32,8 @@ createServer(async (req, res) => {
   active++
   peak = Math.max(peak, active)
   console.log(`active ${active} · peak ${peak}`)
-  const messages: { role: string; content: string }[] = JSON.parse(body).messages
+  const parsed = JSON.parse(body) as { messages: { role: string; content: string }[]; reasoning_effort?: string }
+  const messages = parsed.messages
   const prompt = messages.at(-1)!.content
   const system = messages.find((m) => m.role === 'system')?.content ?? ''
   const name = /^(.+?), \d+ años/m.exec(prompt)?.[1] ?? 'Alguien'
@@ -54,13 +55,24 @@ createServer(async (req, res) => {
       : system.includes('pedirle algo')
         ? JSON.stringify({ peticion: `Soy ${/^Eres ([^,]+),/m.exec(prompt)?.[1] ?? name}, mi señora, y vengo a pediros ayuda con lo mío.` })
         : JSON.stringify(decision)
-  await sleep(400 + Math.random() * 1200)
+  // Like SheLLM 1.16: comment lines while queued or silent, more thinking at a higher effort, and its x_shellm block at the end.
+  const effort = parsed.reasoning_effort ?? 'medium'
+  const thinking = { minimal: 150, low: 300, medium: 800, high: 1600 }[effort] ?? 800
+  const queued = Math.max(0, active - 4) * 300
   res.writeHead(200, { 'content-type': 'text/event-stream' })
+  if (queued) res.write(`: queued position=${active - 4}\n\n`)
+  const t0 = Date.now()
+  await sleep(queued + thinking + Math.random() * thinking)
+  res.write(': keepalive\n\n')
+  const ttft = Date.now() - t0
   for (let i = 0; i < text.length; i += 6) {
     res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: text.slice(i, i + 6) } }] })}\n\n`)
     await sleep(25)
   }
-  res.write(`data: ${JSON.stringify({ choices: [], usage: { prompt_tokens: 900, completion_tokens: text.length / 4 } })}\n\n`)
+  const reasoning = Math.round(thinking / 10)
+  const usage = { prompt_tokens: 900, completion_tokens: Math.round(text.length / 4) + reasoning, prompt_tokens_details: { cached_tokens: 600 }, completion_tokens_details: { reasoning_tokens: reasoning } }
+  const x_shellm = { cost_usd: null, queue_ms: queued, ttft_ms: ttft, cli_ms: Date.now() - t0 - queued }
+  res.write(`data: ${JSON.stringify({ choices: [], usage, x_shellm })}\n\n`)
   res.end('data: [DONE]\n\n')
   active--
 }).listen(PORT, () => console.log(`fake LLM on http://127.0.0.1:${PORT}`))

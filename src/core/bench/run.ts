@@ -15,6 +15,8 @@ export interface ContenderInfo {
   model: string
   host: string
   concurrency: number
+  /** Reasoning effort asked of the host, when the run set one. */
+  effort?: string
 }
 
 /** A finished run, the same shape in the browser history, the CLI output and exported files. */

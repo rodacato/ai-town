@@ -4,7 +4,8 @@ import { trialsPerContender } from '../../../core/bench/run'
 import { errorSummary, type ContenderReport } from '../../../core/bench/analysis'
 import { FAIL_FAST_AFTER } from '../../../core/bench/runner'
 import { RULE_LABEL } from '../../../core/bench/coherence'
-import { PRESETS } from '../../../providers/llm/config'
+import { EFFORT_LABEL, PRESETS } from '../../../providers/llm/config'
+import { REASONING_EFFORTS } from '../../../providers/llm/transport'
 import { ACTION_META } from '../../../theme/actions'
 import { useTown } from '../../store'
 import { town } from '../../town'
@@ -135,6 +136,22 @@ function NewRun() {
                 <span className="contender-note">Sin modelo: la referencia gratuita e instantánea.</span>
               ) : (
                 <input className="input mono" value={s.model} placeholder={PRESETS[s.kind].modelHint} onChange={(e) => update(i, { model: e.target.value })} aria-label="Modelo" spellCheck={false} />
+              )}
+              {s.kind !== 'rules' && llm.connections[s.kind].protocol === 'openai' && (
+                <select
+                  className="input contender-effort"
+                  value={s.effort ?? ''}
+                  onChange={(e) => update(i, { effort: (e.target.value || undefined) as ContenderSpec['effort'] })}
+                  aria-label="Esfuerzo de razonamiento"
+                  title="Añade el mismo modelo con otro esfuerzo para ver cuánto cambian la calidad, el tiempo y el costo"
+                >
+                  <option value="">Esfuerzo: {llm.connections[s.kind].reasoningEffort ? EFFORT_LABEL[llm.connections[s.kind].reasoningEffort!] : 'del host'}</option>
+                  {REASONING_EFFORTS.map((e) => (
+                    <option key={e} value={e}>
+                      Esfuerzo {EFFORT_LABEL[e]}
+                    </option>
+                  ))}
+                </select>
               )}
               {s.kind === 'anthropic' && (
                 <label className="check contender-cache" title="Añade el mismo modelo con y sin caché para ver cuánto ahorra">
@@ -279,6 +296,7 @@ function Result({ run }: { run: BenchRun }) {
   const best = bestOf(reports)
   const hasGolden = reports.some((r) => r.golden)
   const hasCache = reports.some((r) => r.metrics.cacheReadTokens || r.metrics.cacheWriteTokens)
+  const hasHostQueue = reports.some((r) => r.metrics.hostQueue)
   return (
     <div className="bench-result">
       <p className="bench-meta">
@@ -302,6 +320,7 @@ function Result({ run }: { run: BenchRun }) {
               <th scope="col">Errores</th>
               <th scope="col" title="Mediana de lo que tarda en llegar el primer carácter del razonamiento">1.ª palabra</th>
               <th scope="col" title="Mediana y percentil 95 de la respuesta completa">Respuesta</th>
+              {hasHostQueue && <th scope="col" title="Mediana y percentil 95 de lo que esperó en la cola del propio host (SheLLM lo informa), dentro del tiempo de respuesta">Cola del host</th>}
               <th scope="col" title="Peticiones terminadas por segundo, contando la espera">Pet/s</th>
               <th scope="col">Tokens/s</th>
               <th scope="col" title="Entrada → salida, en toda la corrida">Tokens</th>
@@ -313,7 +332,7 @@ function Result({ run }: { run: BenchRun }) {
           </thead>
           <tbody>
             {reports.map((r) => (
-              <Row key={r.contender} r={r} label={label(r.contender)} hasRef={hasRef} hasGolden={hasGolden} hasCache={hasCache} ms={run.durations?.[r.contender]} best={best} />
+              <Row key={r.contender} r={r} label={label(r.contender)} hasRef={hasRef} hasGolden={hasGolden} hasCache={hasCache} hasHostQueue={hasHostQueue} ms={run.durations?.[r.contender]} best={best} />
             ))}
           </tbody>
         </table>
@@ -447,7 +466,7 @@ function bestOf(reports: ContenderReport[]): Best {
   return out
 }
 
-function Row({ r, label, hasRef, hasGolden, hasCache, ms, best }: { r: ContenderReport; label: string; hasRef: boolean; hasGolden: boolean; hasCache: boolean; ms?: number; best: Best }) {
+function Row({ r, label, hasRef, hasGolden, hasCache, hasHostQueue, ms, best }: { r: ContenderReport; label: string; hasRef: boolean; hasGolden: boolean; hasCache: boolean; hasHostQueue: boolean; ms?: number; best: Best }) {
   const m = r.metrics
   const decided = r.trials - r.errors
   const top = (key: keyof typeof BEST) => (best[key]?.has(r.contender) ? 'is-best' : '')
@@ -471,10 +490,13 @@ function Row({ r, label, hasRef, hasGolden, hasCache, ms, best }: { r: Contender
       <td className={`mono ${r.errors ? 'is-bad' : ''}`}>{r.errors ? `${r.errors}/${r.trials}` : '0'}</td>
       <td className={`mono ${top('ttft')}`}>{m.ttft && !rules ? seconds(m.ttft.p50) : '—'}</td>
       <td className={`mono ${top('total')}`}>{m.total && !rules ? `${seconds(m.total.p50)} · p95 ${seconds(m.total.p95)}` : '—'}</td>
+      {hasHostQueue && <td className="mono">{m.hostQueue ? `${seconds(m.hostQueue.p50)} · p95 ${seconds(m.hostQueue.p95)}` : '—'}</td>}
       <td className="mono">{ms && r.contender !== 'rules' && decided ? (r.trials / (ms / 1000)).toFixed(1) : '—'}</td>
       <td className="mono">{m.tokensPerSecond ? m.tokensPerSecond.toFixed(0) : '—'}</td>
       <td className="mono">{m.inputTokens ? `${tokens(m.inputTokens)} → ${tokens(m.outputTokens)}` : '—'}</td>
-      <td className="mono">{m.inputTokens && decided ? `${tokens(m.inputTokens / decided)} → ${tokens(m.outputTokens / decided)}` : '—'}</td>
+      <td className="mono" title={m.reasoningTokens ? `De la salida, ${tokens(m.reasoningTokens / Math.max(1, decided))} por decisión fueron razonamiento` : undefined}>
+        {m.inputTokens && decided ? `${tokens(m.inputTokens / decided)} → ${tokens(m.outputTokens / decided)}` : '—'}
+      </td>
       {hasCache && <td className="mono">{cacheText(m)}</td>}
       <td className={`mono ${m.costUsd === null && !rules ? 'is-muted' : ''}`}>{rules ? '—' : usd(m.costUsd, m.costEstimated)}</td>
       <td className={`mono ${top('per1k')}`}>{rules || cost === null ? '—' : usd(cost, m.costEstimated)}</td>

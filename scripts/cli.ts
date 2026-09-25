@@ -32,7 +32,7 @@ for (const file of ['.env', '.env.local']) {
 }
 
 /** The CLI talks to providers straight from Node: no proxy, no browser connection cap. */
-export const nodeStream: ChatStream = (connection, system, prompt, signal, opts = {}) => completionEvents(connection, { system, prompt, prefix: opts.prefix, cache: connection.promptCache !== false, maxTokens: opts.maxTokens, timeoutMs: opts.timeoutMs }, signal)
+export const nodeStream: ChatStream = (connection, system, prompt, signal, opts = {}) => completionEvents(connection, { system, prompt, prefix: opts.prefix, cache: connection.promptCache !== false, maxTokens: opts.maxTokens, timeoutMs: opts.timeoutMs, effort: connection.reasoningEffort }, signal)
 
 /** «3/15» → input and output USD per million tokens. */
 export const PRICE_RE = /^(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?)$/

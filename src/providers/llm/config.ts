@@ -1,3 +1,4 @@
+import type { ReasoningEffort } from './transport'
 export type ProviderKind = 'mock' | 'anthropic' | 'openai' | 'shellm' | 'custom'
 export type Protocol = 'anthropic' | 'openai'
 
@@ -13,6 +14,8 @@ export interface Connection {
   priceOut?: number
   /** Use Anthropic's prompt cache (on by default); off only to measure what it saves. */
   promptCache?: boolean
+  /** How hard a reasoning model thinks, sent to OpenAI-compatible hosts; unset leaves it to the host. */
+  reasoningEffort?: ReasoningEffort
   /** The model those prices were typed in for; they apply to no other, so comparing two models on one host never mixes prices. */
   priceModel?: string
 }
@@ -74,12 +77,15 @@ export const PRESETS: Record<ProviderKind, ProviderPreset> = {
   },
 }
 
+/** How the interface names each reasoning effort. */
+export const EFFORT_LABEL: Record<ReasoningEffort, string> = { minimal: 'mínimo', low: 'bajo', medium: 'medio', high: 'alto' }
+
 export const DEFAULT_SETTINGS: LlmSettings = {
   active: 'mock',
   connections: {
     anthropic: { kind: 'anthropic', protocol: 'anthropic', host: 'https://api.anthropic.com', apiKey: '', model: 'claude-opus-5', concurrency: 6 },
     openai: { kind: 'openai', protocol: 'openai', host: 'https://api.openai.com', apiKey: '', model: '', concurrency: 6 },
-    shellm: { kind: 'shellm', protocol: 'openai', host: 'http://127.0.0.1:6100', apiKey: '', model: 'claude', concurrency: 5 },
+    shellm: { kind: 'shellm', protocol: 'openai', host: 'http://127.0.0.1:6100', apiKey: '', model: 'claude', concurrency: 4 },
     custom: { kind: 'custom', protocol: 'openai', host: 'http://localhost:11434', apiKey: '', model: '', concurrency: 3 },
   },
 }

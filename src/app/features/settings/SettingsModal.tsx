@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { PRESETS, keyRing, withKeys, type Connection, type LlmSettings, type ProviderKind } from '../../../providers/llm/config'
+import { EFFORT_LABEL, PRESETS, keyRing, withKeys, type Connection, type LlmSettings, type ProviderKind } from '../../../providers/llm/config'
+import { REASONING_EFFORTS } from '../../../providers/llm/transport'
 import { MAX_CONCURRENCY } from '../../../providers'
 import { knownPrice, PRICES_AS_OF } from '../../../providers/llm/pricing'
 import { fetchModels, streamChat, transportMode, type TransportMode } from '../../../providers/llm/client'
@@ -211,13 +212,30 @@ function Dialog({ onClose }: { onClose: () => void }) {
                 )}
               </div>
 
+              {conn.protocol === 'openai' && (
+                <label className="field">
+                  <span className="field-label">Esfuerzo de razonamiento</span>
+                  <select className="input" value={conn.reasoningEffort ?? ''} onChange={(e) => update({ reasoningEffort: (e.target.value || undefined) as Connection['reasoningEffort'] })}>
+                    <option value="">Lo que diga el host</option>
+                    {REASONING_EFFORTS.map((e) => (
+                      <option key={e} value={e}>
+                        {EFFORT_LABEL[e]}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="field-hint">
+                    Cuánto piensa el modelo antes de responder. Menos esfuerzo responde antes y gasta menos; más, puede decidir mejor.{kind === 'shellm' ? ' Si no se indica, SheLLM usa medio con Claude.' : ' Los modelos que no razonan lo ignoran o lo rechazan.'}
+                  </span>
+                </label>
+              )}
+
               <PriceFields key={kind} conn={conn} onChange={update} />
 
               {kind === 'shellm' && (
                 <div className="notice">
                   <Alert width={16} height={16} />
                   <p>
-                    SheLLM atiende tantos procesos a la vez como diga su <span className="mono">MAX_CONCURRENT</span> (5 por defecto; Codex, uno). Si aquí pides más, el resto espera en la cola de SheLLM y lo verás como «Esperando al modelo». En Codex, su propio aviso advierte que los filtros anti-abuso pueden suspender la cuenta. Para usar Codex, pon un modelo <span className="mono">codex</span> o <span className="mono">codex-…</span>.
+                    SheLLM atiende tantos procesos a la vez como diga su <span className="mono">MAX_CONCURRENT</span> (4 por defecto desde SheLLM 1.9). Si aquí pides más, el resto espera en la cola de SheLLM y lo verás como «Esperando al modelo». En Codex, su propio aviso advierte que los filtros anti-abuso pueden suspender la cuenta. Para usar Codex, pon un modelo <span className="mono">codex</span> o <span className="mono">codex-…</span>.
                   </p>
                 </div>
               )}
