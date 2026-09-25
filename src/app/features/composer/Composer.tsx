@@ -9,9 +9,9 @@ import { PlaceChip } from '../../shared/PlaceChip'
 import { SpeakerBadge } from '../../shared/SpeakerBadge'
 import { SpeakerPicker } from './SpeakerPicker'
 import { TrustMeter } from '../../shared/TrustMeter'
+import { TONE_LABEL } from '../../shared/tones'
 import './composer.css'
 
-const TONE_LABEL: Record<Example['tone'], string> = { confiable: 'Confiable', urgente: 'Urgente', sospechoso: 'Sospechoso', emergencia: 'Emergencia' }
 
 const isMac = typeof navigator !== 'undefined' && /Mac/.test(navigator.platform)
 

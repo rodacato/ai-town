@@ -8,6 +8,7 @@ import type { ChronicleEntry } from './chronicle'
 import { nameOf } from '../lang'
 import { rationCost } from './decrees'
 import { GOALS, guildWord, type GuildWord, type Standing } from './standing'
+import { capital, ofThe } from './realmDef'
 import { grievances, type PetitionTopic } from './petitions'
 
 export interface CreatorReply {
@@ -38,22 +39,30 @@ export interface RoyalReport {
   population: number
   lost: number
   /** Rough, as the court perceives it. */
-  mood: 'muy bajo' | 'bajo' | 'regular' | 'bueno' | 'excelente'
+  mood: MoodLevel
   hungry: number
-  trust: 'por los suelos' | 'baja' | 'dudosa' | 'buena' | 'muy alta'
+  trust: TrustLevel
   news: string[]
   petitions: Petition[]
   /** The creator's answers to her letters, arriving for the first time. */
   replies: CreatorReply[]
-  /** What the court hears of the thieves' guild. */
+  /** What the court hears of the thieves' guild, and what the world calls it. */
   guild: GuildWord
+  guildName: string
   unrest: boolean
   /** Dawns left to complete the year. */
   daysLeft: number
 }
 
-const moodWord = (m: number): RoyalReport['mood'] => (m < 0.25 ? 'muy bajo' : m < 0.45 ? 'bajo' : m < 0.6 ? 'regular' : m < 0.8 ? 'bueno' : 'excelente')
-const trustWord = (t: number): RoyalReport['trust'] => (t < 0.2 ? 'por los suelos' : t < 0.4 ? 'baja' : t < 0.55 ? 'dudosa' : t < 0.75 ? 'buena' : 'muy alta')
+export type MoodLevel = 'very-low' | 'low' | 'fair' | 'good' | 'excellent'
+export type TrustLevel = 'rock-bottom' | 'low' | 'doubtful' | 'good' | 'very-high'
+
+/** How the court words each level in the report the ruler reads. */
+const MOOD_WORD: Record<MoodLevel, string> = { 'very-low': 'muy bajo', low: 'bajo', fair: 'regular', good: 'bueno', excellent: 'excelente' }
+const TRUST_WORD: Record<TrustLevel, string> = { 'rock-bottom': 'por los suelos', low: 'baja', doubtful: 'dudosa', good: 'buena', 'very-high': 'muy alta' }
+
+const moodLevel = (m: number): MoodLevel => (m < 0.25 ? 'very-low' : m < 0.45 ? 'low' : m < 0.6 ? 'fair' : m < 0.8 ? 'good' : 'excellent')
+const trustLevel = (t: number): TrustLevel => (t < 0.2 ? 'rock-bottom' : t < 0.4 ? 'low' : t < 0.55 ? 'doubtful' : t < 0.75 ? 'good' : 'very-high')
 
 /** Some news arrives as hearsay: flagged, and with its numbers blown up. */
 function rumour(text: string, next: () => number) {
@@ -102,13 +111,14 @@ export function buildReport(input: {
     laws: { ...e.laws },
     population: living.length,
     lost: ids.length - living.length,
-    mood: moodWord(averageMood(e)),
+    mood: moodLevel(averageMood(e)),
     hungry,
-    trust: trustWord(input.memory.reputation({ kind: 'authority' }).trust),
+    trust: trustLevel(input.memory.reputation({ kind: 'authority' }).trust),
     news,
     petitions,
     replies: input.replies ?? [],
-    guild: input.standing ? guildWord(input.standing) : 'nada',
+    guild: input.standing ? guildWord(input.standing) : 'none',
+    guildName: content.realm?.guild.name ?? 'los ladrones',
     unrest: (input.standing?.unrest ?? 0) > 0,
     daysLeft: Math.max(0, GOALS.yearDays - input.day),
   }
@@ -130,10 +140,10 @@ export function reportText(r: RoyalReport) {
     '## El pueblo, según la corte',
     `- Viven en el pueblo ${r.population} vecinos${r.lost ? ` (${r.lost} se fueron o murieron)` : ''}.`,
     `- Ayer pasaron hambre ${r.hungry}.`,
-    `- El ánimo parece ${r.mood}. La confianza en ti es ${r.trust}.`,
+    `- El ánimo parece ${MOOD_WORD[r.mood]}. La confianza en ti es ${TRUST_WORD[r.trust]}.`,
     '',
     '## Amenazas',
-    `- Del gremio de ladrones de la capital: ${r.guild === 'inminente' ? 'se dice que preparan un golpe contra el tesoro' : r.guild === 'rumores' ? 'corren rumores de forasteros sospechosos' : 'nada se sabe'}.`,
+    `- ${capital(ofThe(r.guildName))}: ${r.guild === 'imminent' ? 'se dice que preparan un golpe contra el tesoro' : r.guild === 'rumors' ? 'corren rumores de forasteros sospechosos' : 'nada se sabe'}.`,
     `- ${r.unrest ? 'Hay murmullos de revuelta en la plaza.' : 'No hay señales de revuelta.'}`,
     `- Faltan ${r.daysLeft} días para cumplir un año de gobierno.`,
     '',

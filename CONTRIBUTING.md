@@ -52,7 +52,10 @@ El código va por capas, de la más pura a la más concreta. Una capa solo impor
 
 - TypeScript estricto; nada de `any` sin motivo.
 - Nombres que se expliquen solos. Los comentarios son pocos y dicen el porqué, no el qué.
-- Todo el texto que ve la persona usuaria va en español.
+- **Idioma: el código en inglés, lo que se lee en español.**
+  - En inglés: nombres de archivos, variables, funciones, tipos y propiedades; valores que funcionan como identificadores (tonos, dificultades, ids, claves de `localStorage`, clases CSS); flags de la terminal; las claves del JSON que se pide a los modelos; comentarios, tests y mensajes de commit del código.
+  - En español: todo lo que lee una persona (la interfaz, la ayuda de la terminal, la crónica, los mensajes de error) y el texto de los prompts. Si un valor en inglés se muestra, se traduce al mostrarlo con una tabla de etiquetas, nunca se usa la etiqueta como identificador.
+  - Las descripciones de los PR y el CHANGELOG van en español.
 - Funciones cortas con una responsabilidad; la lógica de juego va en `core`, no en componentes.
 - Nunca guardar keys en claro ni mandarlas a otro sitio que no sea su proveedor.
 

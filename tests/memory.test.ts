@@ -43,7 +43,7 @@ describe('town memory', () => {
   it('remembers whether each resident was fooled last time', () => {
     const m = new TownMemory([lie('a', 0, ['pip'], ['kael'])])
     const sim = new Simulation(content)
-    const a = { ...announce(sim, exampleByTone('confiable')), minutes: 1500 }
+    const a = { ...announce(sim, exampleByTone('trusted')), minutes: 1500 }
     expect(recallFor(m, a, 'pip', 'La Baronesa')).toMatchObject({ lesson: -1 })
     expect(recallFor(m, a, 'pip', 'La Baronesa').personal).toMatch(/ayer.*te engañó/)
     expect(recallFor(m, a, 'kael', 'La Baronesa')).toMatchObject({ lesson: 1 })
@@ -52,7 +52,7 @@ describe('town memory', () => {
 
   it('reaches the prompt when there is something to remember', () => {
     const sim = new Simulation(content)
-    const a = announce(sim, exampleByTone('confiable'))
+    const a = announce(sim, exampleByTone('trusted'))
     const r = sim.residents.find((x) => x.profile.id === 'pip')!
     const empty = buildPrompt(buildContext(sim, a, r, [], null, new TownMemory()))
     expect(empty).not.toContain('Lo que recuerdas')
@@ -63,7 +63,7 @@ describe('town memory', () => {
 
   it('makes the town believe a speaker less after repeated lies', () => {
     const sim = new Simulation(content)
-    const a = announce(sim, exampleByTone('confiable'))
+    const a = announce(sim, exampleByTone('trusted'))
     const everyone = sim.residents.map((r) => r.profile.id)
     const liar = new TownMemory([lie('a', 0, everyone), lie('b', 10, everyone), lie('c', 20, everyone)])
     const believing = (m?: TownMemory) => sim.residents.filter((r) => mockDecision(buildContext(sim, a, r, [], null, m), content.vocabulary).believes).length
@@ -103,7 +103,7 @@ describe('personal memory', () => {
 
   it('puts grudges and debts into the prompt and marks the rumors of known tellers', () => {
     const m = new TownMemory([heard('a', false, 'kael', 'pip'), heard('b', true, 'finn', 'pip')])
-    const a = { ...announce(sim, exampleByTone('confiable')), minutes: 3000 }
+    const a = { ...announce(sim, exampleByTone('trusted')), minutes: 3000 }
     const pip = sim.residents.find((x) => x.profile.id === 'pip')!
     const recall = recallFor(m, a, 'pip', 'La Baronesa', (id) => id.toUpperCase())
     expect(recall.grudges).toEqual([{ id: 'kael', name: 'KAEL', times: 1 }])
@@ -117,7 +117,7 @@ describe('personal memory', () => {
   })
 
   it('makes a resident trust a rumor less from someone who lied to them before', () => {
-    const a = announce(sim, exampleByTone('urgente'))
+    const a = announce(sim, exampleByTone('urgent'))
     const tellers = sim.residents.map((r) => r.profile.relationships[0]?.id ?? 'kael')
     const believing = (grudge: boolean) =>
       sim.residents.filter((r, i) => {
@@ -130,7 +130,7 @@ describe('personal memory', () => {
   })
 
   it('warns first whoever warned it before', () => {
-    const danger = announce(sim, exampleByTone('emergencia'))
+    const danger = announce(sim, exampleByTone('emergency'))
     const warners = sim.residents.filter((r) => mockDecision(buildContext(sim, danger, r, [], null, new TownMemory()), content.vocabulary).action === 'warn')
     expect(warners.length).toBeGreaterThan(0)
     for (const r of warners) {
@@ -185,7 +185,7 @@ describe('relationships that change', () => {
     const r = sim.residents.find((x) => x.profile.relationships.some((rel) => isWarm(rel.label)))!
     const friend = r.profile.relationships.find((rel) => isWarm(rel.label))!
     const lies = ['a', 'b'].map((id): MemoryEntry => ({ ...lie(id, 0, [r.profile.id]), speaker: { kind: 'sight' }, told: [{ from: friend.id, to: r.profile.id }] }))
-    const a = { ...announce(sim, exampleByTone('confiable')), speaker: { kind: 'neighbor' as const, residentId: friend.id } }
+    const a = { ...announce(sim, exampleByTone('trusted')), speaker: { kind: 'neighbor' as const, residentId: friend.id } }
     const ctx = buildContext(sim, a, r, [], null, new TownMemory(lies))
     expect(ctx.relationships.find((rel) => rel.id === friend.id)!.label).toMatch(/ya no se fía/)
     expect(ctx.announcement.relationToSpeaker).toMatch(/ya no se fía/)

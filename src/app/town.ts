@@ -7,6 +7,7 @@ import { alive, averageMood, foodDays, type Ledger } from '../core/economy/econo
 import { Chronicle, type ChronicleKind } from '../core/realm/chronicle'
 import type { Activity, ActivityKind } from './store/reign'
 import { SEASON_DAYS, seasonOfDay } from '../core/realm/terrarium'
+import { upgradeStanding } from '../core/realm/standing'
 import { FRESH_REIGN, newSeed, type ReignState } from './store/reign'
 import { SEASONS, SEASON_TEXT, type Season } from '../core/sim/season'
 import type { Weather } from '../core/sim/weather'
@@ -29,12 +30,13 @@ import { livingRelations, turnsBetween } from '../core/memory/bonds'
 import type { Outcome } from '../core/reactions/outcome'
 import type { MemoryEntry } from '../core/memory/memory'
 import { Terrarium, type TerrariumHost } from './terrarium'
-import { DIFFICULTY, withDifficulty, type Difficulty } from '../core/realm/difficulty'
+import { asDifficulty, DIFFICULTY, withDifficulty, type Difficulty } from '../core/realm/difficulty'
 import { Throne, type ThroneHost } from './throne'
 import { roundSummary } from '../core/reactions/round'
 import { COMPACT } from './shell/layout'
 import { statusOf } from '../core/sim/status'
 import { RULER } from './ruler'
+import { byRules, RULES } from './via'
 import { clip } from '../core/format'
 
 /** The map's free area: beside the panel on wide screens, between the top bar and the bottom sheet on narrow ones. */
@@ -82,7 +84,7 @@ class TownController implements TerrariumHost, ThroneHost {
     const restored = restoreTown(this.content.id, this.sim)
     if (restored) {
       this.chronicle.entries = restored.chronicle
-      const reign = restored.reign ? { ...FRESH_REIGN, ...restored.reign, standing: { ...FRESH_REIGN.standing, ...restored.reign.standing } } : null
+      const reign = restored.reign ? { ...FRESH_REIGN, ...restored.reign, difficulty: asDifficulty(restored.reign.difficulty), standing: upgradeStanding({ ...FRESH_REIGN.standing, ...restored.reign.standing }) } : null
       // Calls cut short by the reload will never report back.
       if (reign) reign.activity = reign.activity.map((a) => (a.status === 'pending' ? { ...a, status: 'error' as const, detail: 'Se interrumpió al recargar la página.' } : a))
       this.throne.queue = reign?.queued ?? []
@@ -227,7 +229,7 @@ class TownController implements TerrariumHost, ThroneHost {
     this.engine.start(announcement)
     const said = clip(announcement.text, 90)
     const via = this.residentsVia()
-    this.deciding = this.track('residents', `${announcement.speaker.kind === 'sight' ? 'Lo vieron' : 'Pregón'}: «${said}»`, { status: 'pending', via, detail: `Los vecinos deciden qué hacer${via === 'reglas' ? ' con reglas' : ` con ${via}`}…` })
+    this.deciding = this.track('residents', `${announcement.speaker.kind === 'sight' ? 'Lo vieron' : 'Pregón'}: «${said}»`, { status: 'pending', via, detail: `Los vecinos deciden qué hacer${byRules(via) ? ' con reglas' : ` con ${via}`}…` })
   }
 
   /** How the residents' round of decisions went, for the log. */
@@ -423,7 +425,7 @@ class TownController implements TerrariumHost, ThroneHost {
   exportGame() {
     this.save()
     const day = (this.sim.economy?.day ?? 0) + 1
-    return { name: `chismeroble-dia-${day}.json`, text: exportGame(this.content.id) }
+    return { name: `${this.content.id}-day-${day}.json`, text: exportGame(this.content.id) }
   }
 
   /** Loads a saved game: stored first, then the page restarts from it. */
@@ -478,7 +480,7 @@ class TownController implements TerrariumHost, ThroneHost {
   /** Who the residents think with right now. */
   residentsVia() {
     const { autoplay, residentsOnModel, llm } = useTown.getState()
-    return llm.active === 'mock' || (autoplay && !residentsOnModel) ? 'reglas' : activeLabel(llm)
+    return llm.active === 'mock' || (autoplay && !residentsOnModel) ? RULES : activeLabel(llm)
   }
 
   /** Everything of the reign worth saving: whatever FRESH_REIGN lists, so a new field is saved without touching this. */

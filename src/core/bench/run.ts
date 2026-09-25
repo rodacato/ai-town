@@ -27,7 +27,7 @@ export interface BenchRun {
   world: string
   seed: number
   repetitions: number
-  scenarios: { id: string; text: string; tone: string; truth?: boolean }[]
+  scenarios: { id: string; text: string; tone: Example['tone']; truth?: boolean }[]
   contenders: ContenderInfo[]
   durationMs: number
   durations: Record<string, number>
@@ -93,3 +93,19 @@ function withGolden(report: BenchReport, golden: GoldenCase[], trials: Trial[]):
 /** Residents asked per contender: everyone but a neighbor who made the announcement, times repetitions. */
 export const trialsPerContender = (content: WorldContent, examples: Example[], repetitions: number) =>
   examples.reduce((n, e) => n + content.residents.length - (e.speaker.kind === 'neighbor' ? 1 : 0), 0) * repetitions
+
+const OLD_TONES: Record<string, Example['tone']> = { confiable: 'trusted', urgente: 'urgent', sospechoso: 'suspicious', emergencia: 'emergency' }
+
+/** A run saved before the code went English, as JSON text: Spanish tones and contender id suffixes become today's. */
+export const upgradeRunText = (text: string) =>
+  text
+    .replace(/"tone":"(confiable|urgente|sospechoso|emergencia)"/g, (_, tone: string) => `"tone":"${OLD_TONES[tone]}"`)
+    .replace(/:sin-cache(?=[":])/g, ':no-cache')
+    .replace(/:esfuerzo-(minimal|low|medium|high)(?=[":])/g, ':effort-$1')
+
+/** The same, for a run already parsed, as the browser keeps them. */
+export function upgradeRun(run: BenchRun): BenchRun {
+  const text = JSON.stringify(run)
+  const next = upgradeRunText(text)
+  return next === text ? run : (JSON.parse(next) as BenchRun)
+}

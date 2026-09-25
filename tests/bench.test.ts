@@ -162,10 +162,10 @@ describe('persona coherence', () => {
   })
 
   it('only judges the rules that apply to that resident', () => {
-    const [scenario] = [buildScenario(content, exampleByTone('emergencia'), 7)]
+    const [scenario] = [buildScenario(content, exampleByTone('emergency'), 7)]
     const brave = scenario.contexts.find((c) => c.resident.personality.scales.bravery >= 0.9)!
     const goes = { ...mockDecision(brave, content.vocabulary), action: 'go' as const }
-    expect(checkCoherence(brave, 'emergencia', goes).broken).not.toContain('timid-into-danger')
+    expect(checkCoherence(brave, 'emergency', goes).broken).not.toContain('timid-into-danger')
   })
 })
 

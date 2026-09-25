@@ -3,8 +3,11 @@ import { nameOf } from '../lang'
 import type { WorldContent } from '../world/content'
 import { capital } from './realmDef'
 
-/** How a reign ended, if it has. */
+export type EndingKind = 'revolt' | 'deserted' | 'thrived' | 'survived'
+
+/** How a reign ended, if it has; `title` is for people, `kind` for code. */
 export interface Ending {
+  kind: EndingKind
   won: boolean
   title: string
   text: string
@@ -36,8 +39,8 @@ export const GOALS: Goals = { yearDays: 40, revoltAt: 0.3, unrestDays: 3 }
 
 export const freshStanding = (): Standing => ({ plot: 0.1, debt: 90, unrest: 0, heists: 0, stolen: 0, end: null })
 
-export type GuildWord = 'nada' | 'rumores' | 'inminente'
-export const guildWord = (s: Standing): GuildWord => (s.plot >= 0.75 ? 'inminente' : s.plot >= 0.45 ? 'rumores' : 'nada')
+export type GuildWord = 'none' | 'rumors' | 'imminent'
+export const guildWord = (s: Standing): GuildWord => (s.plot >= 0.75 ? 'imminent' : s.plot >= 0.45 ? 'rumors' : 'none')
 
 const clamp = (v: number) => Math.min(1, Math.max(0, v))
 
@@ -81,16 +84,24 @@ export function dawnStanding(s: Standing, e: Economy, trust: number, day: number
   s.unrest = angry ? s.unrest + 1 : Math.max(0, s.unrest - 1)
   if (angry && s.unrest === 1) lines.push(`Se oyen murmullos de revuelta en la plaza contra ${ruler.title}.`)
 
-  const end = (won: boolean, title: string, text: string) => {
-    s.end = { won, title, text, day }
+  const end = (kind: EndingKind, won: boolean, title: string, text: string) => {
+    s.end = { kind, won, title, text, day }
     lines.push(text)
   }
-  if (s.unrest >= goals.unrestDays) end(false, 'Revuelta', `El pueblo se alzó contra ${ruler.title} y tomó ${ruler.seat}.`)
-  else if (living.length * 2 < ids.length) end(false, 'Pueblo desierto', `Más de la mitad de los vecinos murieron o se marcharon: ${world.name} quedó desierto.`)
+  if (s.unrest >= goals.unrestDays) end('revolt', false, 'Revuelta', `El pueblo se alzó contra ${ruler.title} y tomó ${ruler.seat}.`)
+  else if (living.length * 2 < ids.length) end('deserted', false, 'Pueblo desierto', `Más de la mitad de los vecinos murieron o se marcharon: ${world.name} quedó desierto.`)
   else if (day >= goals.yearDays) {
     const thriving = living.length >= ids.length * 0.9 && trust >= 0.5 && mood >= 0.5
-    if (thriving) end(true, 'Año de prosperidad', `Pasó un año entero y el pueblo prospera: ${living.length} vecinos y confianza en ${ruler.title}.`)
-    else end(true, 'Sobrevivió un año', `Pasó un año entero. ${world.name} sigue en pie con ${living.length} vecinos, aunque no sin heridas.`)
+    if (thriving) end('thrived', true, 'Año de prosperidad', `Pasó un año entero y el pueblo prospera: ${living.length} vecinos y confianza en ${ruler.title}.`)
+    else end('survived', true, 'Sobrevivió un año', `Pasó un año entero. ${world.name} sigue en pie con ${living.length} vecinos, aunque no sin heridas.`)
   }
   return lines
+}
+
+const OLD_ENDINGS: Record<string, EndingKind> = { Revuelta: 'revolt', 'Pueblo desierto': 'deserted', 'Año de prosperidad': 'thrived', 'Sobrevivió un año': 'survived' }
+
+/** A standing saved before endings had a kind gets it back from its title. */
+export function upgradeStanding(s: Standing): Standing {
+  if (!s.end || s.end.kind) return s
+  return { ...s, end: { ...s.end, kind: OLD_ENDINGS[s.end.title] ?? (s.end.won ? 'survived' : 'deserted') } }
 }

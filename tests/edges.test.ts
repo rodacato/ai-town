@@ -107,10 +107,10 @@ describe('a resident thinking, in the margins', () => {
 })
 
 describe('the duel score', () => {
-  const base: ReignSummary = { ruler: 'a', ending: 'Sobrevivió un año', won: true, survivedDays: 41, population: 20, deaths: 0, departures: 0, heists: 0, stolen: 0, trust: 0.5, mood: 0.5, treasury: 0, lies: 0, proclamations: 0, letters: [], problems: 0, errors: 0, costUsd: 0, score: 0 }
+  const base: ReignSummary = { rulerId: 'a', ruler: 'a', ending: 'Sobrevivió un año', endingKind: 'survived', won: true, survivedDays: 41, population: 20, deaths: 0, departures: 0, heists: 0, stolen: 0, trust: 0.5, mood: 0.5, treasury: 0, lies: 0, proclamations: 0, letters: [], problems: 0, errors: 0, costUsd: 0, score: 0 }
 
   it('rewards prosperity, punishes heists, and breaks ties by cost', () => {
-    expect(scoreReign({ ...base, ending: 'Año de prosperidad' })).toBe(scoreReign(base) + 15)
+    expect(scoreReign({ ...base, ending: 'Año de prosperidad', endingKind: 'thrived' })).toBe(scoreReign(base) + 15)
     expect(scoreReign({ ...base, heists: 2 })).toBe(scoreReign(base) - 10)
     const cheap = { ...base, ruler: 'barato', score: 100, costUsd: 0.1 }
     const dear = { ...base, ruler: 'caro', score: 100, costUsd: 0.5 }

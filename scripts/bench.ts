@@ -4,7 +4,7 @@ import { parseArgs } from 'node:util'
 import { errorSummary, type ContenderReport } from '../src/core/bench/analysis'
 import { RULE_LABEL } from '../src/core/bench/coherence'
 import { compareSides } from '../src/core/bench/compare'
-import { executeRun, RUN_FORMAT, trialsPerContender, type BenchRun, type RunSetup } from '../src/core/bench/run'
+import { executeRun, RUN_FORMAT, trialsPerContender, upgradeRunText, type BenchRun, type RunSetup } from '../src/core/bench/run'
 import { FAIL_FAST_AFTER, type BenchProgress } from '../src/core/bench/runner'
 import { MAX_CONCURRENCY } from '../src/providers'
 import { DEFAULT_SETTINGS, EFFORT_LABEL, PRESETS, type Connection } from '../src/providers/llm/config'
@@ -29,7 +29,7 @@ Uso: npm run bench -- [opciones]
   -m, --model <proveedor:modelo[@host]>  Contendiente; repítelo para comparar.
                                          Proveedores: anthropic, openai, shellm, custom.
                                          Ej: -m shellm:claude -m shellm:codex -m custom:llama3.2:3b
-      --mundo <id>                       Mundo en el que se juega: %WORLDS% (por defecto el primero).
+      --world <id>                       Mundo en el que se juega: %WORLDS% (por defecto el primero).
       --skip-rules                       No incluir las reglas locales como referencia.
   -s, --scenarios <ids>                  Pregones separados por coma (por defecto, todos): %SCENARIOS%
   -r, --reps <n>                         Repeticiones por residente (por defecto 3).
@@ -38,12 +38,12 @@ Uso: npm run bench -- [opciones]
       --timeout <s>                      Tiempo máximo por decisión (por defecto 120).
       --price <entrada/salida>           USD por millón de tokens para los modelos sin precio propio, ej. 3/15.
                                          Precio de un solo modelo: -m proveedor:modelo=3/15
-                                         Sin la caché de Anthropic, para medir lo que ahorra: -m anthropic:modelo~sin-cache
-                                         Con otro esfuerzo de razonamiento (hosts OpenAI y SheLLM): -m shellm:claude~bajo
-                                         (~minimo, ~bajo, ~medio o ~alto)
-      --rapida                           Solo los casos de oro (${GOLDEN_SIZE} decisiones con una respuesta clara), una vez cada uno.
-      --juez <proveedor:modelo>          Al terminar, un modelo juzga de 1 a 5 si las decisiones suenan a cada vecino.
-      --muestras <n>                     Decisiones que juzga por contendiente (por defecto 12).
+                                         Sin la caché de Anthropic, para medir lo que ahorra: -m anthropic:modelo~no-cache
+                                         Con otro esfuerzo de razonamiento (hosts OpenAI y SheLLM): -m shellm:claude~low
+                                         (~minimal, ~low, ~medium o ~high)
+      --quick                            Solo los casos de oro (${GOLDEN_SIZE} decisiones con una respuesta clara), una vez cada uno.
+      --judge <proveedor:modelo>         Al terminar, un modelo juzga de 1 a 5 si las decisiones suenan a cada vecino.
+      --samples <n>                      Decisiones que juzga por contendiente (por defecto 12).
   -o, --out <archivo.json>               Dónde guardar la corrida (por defecto AI_TOWN_RUNS_DIR o bench-results/).
       --dry-run                          Muestra el plan sin hacer peticiones.
       --compare <antes.json> <después.json>
@@ -61,7 +61,7 @@ const { values: args, positionals } = parseArgs({
   options: {
     model: { type: 'string', short: 'm', multiple: true, default: [] },
     'skip-rules': { type: 'boolean', default: false },
-    mundo: { type: 'string' },
+    world: { type: 'string' },
     scenarios: { type: 'string', short: 's' },
     reps: { type: 'string', short: 'r', default: '3' },
     seed: { type: 'string', default: '7' },
@@ -69,17 +69,17 @@ const { values: args, positionals } = parseArgs({
     timeout: { type: 'string', default: '120' },
     price: { type: 'string' },
     out: { type: 'string', short: 'o' },
-    juez: { type: 'string' },
-    rapida: { type: 'boolean', default: false },
-    muestras: { type: 'string', default: '12' },
+    judge: { type: 'string' },
+    quick: { type: 'boolean', default: false },
+    samples: { type: 'string', default: '12' },
     'dry-run': { type: 'boolean', default: false },
     compare: { type: 'boolean', default: false },
     help: { type: 'boolean', short: 'h', default: false },
   },
 })
 
-const world = args.mundo ? worldById(args.mundo) : activeWorld
-if (!world) fail(`No hay un mundo «${args.mundo}». Hay: ${WORLDS.map((w) => w.content.id).join(', ')}.`)
+const world = args.world ? worldById(args.world) : activeWorld
+if (!world) fail(`No hay un mundo «${args.world}». Hay: ${WORLDS.map((w) => w.content.id).join(', ')}.`)
 const content = world!.content
 if (args.help) {
   console.log(HELP.replace('%SCENARIOS%', content.examples.map((e) => e.id).join(', ')).replace('%WORLDS%', WORLDS.map((w) => w.content.id).join(', ')))
@@ -95,7 +95,7 @@ const int = (name: string, raw: string, min: number, max: number) => {
   if (!Number.isInteger(n) || n < min || n > max) fail(`--${name} debe ser un entero entre ${min} y ${max}.`)
   return n
 }
-const quick = args.rapida
+const quick = args.quick
 const repetitions = quick ? 1 : int('reps', args.reps, 1, 50)
 const seed = int('seed', args.seed, -(2 ** 31), 2 ** 31)
 const timeoutMs = int('timeout', args.timeout, 5, 3600) * 1000
@@ -108,8 +108,6 @@ const unknown = ids.filter((id) => !content.examples.some((e) => e.id === id))
 if (unknown.length) fail(`Pregón desconocido: ${unknown.join(', ')}. Hay: ${content.examples.map((e) => e.id).join(', ')}.`)
 const examples = quick ? content.examples : content.examples.filter((e) => ids.includes(e.id))
 
-/** Suffixes that ask for a reasoning effort: -m shellm:claude~bajo. */
-const EFFORT_FLAG: Record<ReasoningEffort, string> = { minimal: 'minimo', low: 'bajo', medium: 'medio', high: 'alto' }
 const connectionFor = (spec: string) => connectionForSpec(spec, { concurrency, price })
 
 const contenders: RunSetup['contenders'] = []
@@ -121,13 +119,13 @@ if (!args['skip-rules']) {
 }
 for (const spec of args.model) {
   const [base, ...flags] = spec.split('~')
-  const noCache = flags.includes('sin-cache')
-  const effort = REASONING_EFFORTS.find((e) => flags.includes(EFFORT_FLAG[e]))
-  const unknown = flags.filter((f) => f !== 'sin-cache' && !Object.values(EFFORT_FLAG).includes(f))
-  if (unknown.length) fail(`«~${unknown[0]}» no se entiende: usa ~sin-cache o ~${Object.values(EFFORT_FLAG).join(', ~')}.`)
+  const noCache = flags.includes('no-cache')
+  const effort = REASONING_EFFORTS.find((e) => flags.includes(e))
+  const unknown = flags.filter((f) => f !== 'no-cache' && !REASONING_EFFORTS.includes(f as ReasoningEffort))
+  if (unknown.length) fail(`«~${unknown[0]}» no se entiende: usa ~no-cache o ~${REASONING_EFFORTS.join(', ~')}.`)
   const plain = connectionFor(base)
   const c = { ...plain, promptCache: !noCache, reasoningEffort: effort ?? plain.reasoningEffort }
-  const id = `${c.kind}:${c.model}${c.host !== DEFAULT_SETTINGS.connections[c.kind].host ? `@${c.host}` : ''}${noCache ? ':sin-cache' : ''}${effort ? `:esfuerzo-${effort}` : ''}`
+  const id = `${c.kind}:${c.model}${c.host !== DEFAULT_SETTINGS.connections[c.kind].host ? `@${c.host}` : ''}${noCache ? ':no-cache' : ''}${effort ? `:effort-${effort}` : ''}`
   if (contenders.some((x) => x.contender.id === id)) fail(`«${spec}» está repetido.`)
   const label = `${PRESETS[c.kind].label} · ${c.model}${noCache ? ' · sin caché' : ''}${effort ? ` · esfuerzo ${EFFORT_LABEL[effort]}` : ''}`
   contenders.push({
@@ -179,7 +177,7 @@ const run = await executeRun(
 )
 process.stdout.write('\n\n')
 printReport(run)
-if (args.juez && run.trials.length && !run.cancelled) await judge(run)
+if (args.judge && run.trials.length && !run.cancelled) await judge(run)
 
 // A synced folder shared with the browser's history, if set; bench-results/ otherwise.
 const out = args.out ?? join(process.env.AI_TOWN_RUNS_DIR || 'bench-results', runFileName(run))
@@ -194,8 +192,8 @@ process.exit(run.cancelled ? 130 : dead.length ? 1 : 0)
 
 /** A second model reads a sample of decisions and says how in character they were; the verdict is saved inside the run. */
 async function judge(run: BenchRun) {
-  const connection = connectionForSpec(args.juez!, { price })
-  const perContender = int('muestras', args.muestras!, 1, 200)
+  const connection = connectionForSpec(args.judge!, { price })
+  const perContender = int('samples', args.samples!, 1, 200)
   process.stdout.write(dim(`\nEl juez (${connection.model}) lee ${perContender} decisiones por contendiente…`))
   const verdict = await runJudge({
     run,
@@ -297,7 +295,7 @@ function printReport(run: BenchRun) {
 function readRun(file: string): BenchRun {
   let run: BenchRun
   try {
-    run = JSON.parse(readFileSync(file, 'utf8')) as BenchRun
+    run = JSON.parse(upgradeRunText(readFileSync(file, 'utf8'))) as BenchRun
   } catch {
     fail(`No se pudo leer ${file}.`)
   }

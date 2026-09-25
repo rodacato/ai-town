@@ -32,17 +32,17 @@ describe('mock decisions', () => {
   })
 
   it('mostly distrusts the suspicious example', () => {
-    const decisions = decideAll(exampleByTone('sospechoso'))
+    const decisions = decideAll(exampleByTone('suspicious'))
     expect(decisions.filter((d) => d.believes).length).toBeLessThan(decisions.length / 3)
   })
 
   it('mostly shelters on the emergency example', () => {
-    const decisions = decideAll(exampleByTone('emergencia'))
+    const decisions = decideAll(exampleByTone('emergency'))
     expect(decisions.filter((d) => d.action === 'stay_home' || d.action === 'warn').length).toBeGreaterThan(decisions.length / 2)
   })
 
   it('mostly believes the trusted example', () => {
-    const decisions = decideAll(exampleByTone('confiable'))
+    const decisions = decideAll(exampleByTone('trusted'))
     expect(decisions.filter((d) => d.believes).length).toBeGreaterThan(decisions.length / 2)
   })
 })
@@ -80,7 +80,7 @@ describe('personalities', () => {
   })
 
   it('make the bravest resident face danger and the most timid one hide from it', () => {
-    const dragon = exampleByTone('emergencia')
+    const dragon = exampleByTone('emergency')
     const decisions = new Map(sim.residents.map((r, i) => [r.profile.id, decideAll(dragon)[i]]))
     const byBravery = [...content.residents].sort((a, b) => a.personality.scales.bravery - b.personality.scales.bravery)
     expect(decisions.get(byBravery.at(-1)!.id)!.action).toBe('investigate')

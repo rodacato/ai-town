@@ -2,6 +2,8 @@ import { useTown } from '../../store'
 import { town } from '../../town'
 import { GOALS, guildWord } from '../../../core/realm/standing'
 import { RULER } from '../../ruler'
+import { capital } from '../../../core/realm/realmDef'
+import { nameOf } from '../../../core/lang'
 import './realm.css'
 
 const pct = (x: number) => `${Math.round(x * 100)}%`
@@ -10,6 +12,7 @@ const pct = (x: number) => `${Math.round(x * 100)}%`
 export function RealmHud() {
   const realm = useTown((s) => s.realm)
   const standing = useTown((s) => s.standing)
+  const guild = town.content.realm?.guild ?? { name: 'los ladrones', debtor: '' }
   const autoplay = useTown((s) => s.autoplay)
   const rulerMode = useTown((s) => s.rulerMode)
   const rulerBusy = useTown((s) => s.rulerBusy)
@@ -52,10 +55,10 @@ export function RealmHud() {
           <b className="mono">{realm.dead.length + realm.gone.length}</b>
         </div>
       )}
-      {guildWord(standing) !== 'nada' && (
-        <div className="realm-stat is-alert" data-tip={guildWord(standing) === 'inminente' ? 'El gremio de ladrones prepara un golpe contra el tesoro. La leva de guardias lo frena.' : 'Corren rumores del gremio de ladrones al que Bartolo debe dinero.'}>
+      {guildWord(standing) !== 'none' && (
+        <div className="realm-stat is-alert" data-tip={guildWord(standing) === 'imminent' ? `${capital(guild.name)} prepara un golpe contra el tesoro. La leva de guardias lo frena.` : `Corren rumores de ${guild.name}, a quien ${nameOf(town.content, guild.debtor)} debe dinero.`}>
           <span aria-hidden>🗡️</span>
-          <b>{guildWord(standing) === 'inminente' ? '¡Ladrones!' : 'Rumores'}</b>
+          <b>{guildWord(standing) === 'imminent' ? '¡Ladrones!' : 'Rumores'}</b>
         </div>
       )}
       {standing.unrest > 0 && !standing.end && (

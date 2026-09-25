@@ -59,7 +59,7 @@ describe.each(WORLDS.map((w) => [w.content.name, w.content] as const))('%s', (_,
   })
 
   it('has an example of every tone and puts every hazard, the exit and the graves in real places', () => {
-    expect(new Set(content.examples.map((e) => e.tone))).toEqual(new Set(['confiable', 'urgente', 'sospechoso', 'emergencia']))
+    expect(new Set(content.examples.map((e) => e.tone))).toEqual(new Set(['trusted', 'urgent', 'suspicious', 'emergency']))
     const places = new Set(world.places.map((p) => p.id))
     for (const h of content.hazards) expect(places.has(h.place), `${h.visual} → ${h.place}`).toBe(true)
     for (const id of [content.exit, content.graveyard, content.gatheringPlace]) if (id) expect(places.has(id), id).toBe(true)

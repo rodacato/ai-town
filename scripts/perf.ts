@@ -11,17 +11,17 @@ const HELP = `Cuánto cuesta simular el pueblo, sin navegador: días enteros a l
 
 Uso: npm run perf -- [opciones]
 
-      --mundo <id>        Mundo: ${WORLDS.map((w) => w.content.id).join(', ')} (por defecto el primero).
-      --dias <n>          Días de juego que simular (por defecto 3).
-      --velocidad <n>     Multiplicador del reloj, como los botones ×1 a ×16 (por defecto 16).
+      --world <id>        Mundo: ${WORLDS.map((w) => w.content.id).join(', ')} (por defecto el primero).
+      --days <n>          Días de juego que simular (por defecto 3).
+      --speed <n>         Multiplicador del reloj, como los botones ×1 a ×16 (por defecto 16).
 
 Mide solo la lógica (simulación, reacciones y reglas); el dibujo se mide en el navegador con ?perf.`
 
 const { values: args } = parseArgs({
   options: {
-    mundo: { type: 'string' },
-    dias: { type: 'string', default: '3' },
-    velocidad: { type: 'string', default: '16' },
+    world: { type: 'string' },
+    days: { type: 'string', default: '3' },
+    speed: { type: 'string', default: '16' },
     help: { type: 'boolean', short: 'h', default: false },
   },
 })
@@ -33,11 +33,11 @@ const fail = (msg: string): never => {
   console.error(`✗ ${msg}`)
   process.exit(1)
 }
-const world = args.mundo ? (worldById(args.mundo) ?? fail(`No hay un mundo «${args.mundo}».`)) : activeWorld
-const days = Number(args.dias)
-const speed = Number(args.velocidad)
-if (!(days > 0 && days <= 40)) fail('--dias va de 1 a 40.')
-if (!(speed >= 1 && speed <= 64)) fail('--velocidad va de 1 a 64.')
+const world = args.world ? (worldById(args.world) ?? fail(`No hay un mundo «${args.world}».`)) : activeWorld
+const days = Number(args.days)
+const speed = Number(args.speed)
+if (!(days > 0 && days <= 40)) fail('--days va de 1 a 40.')
+if (!(speed >= 1 && speed <= 64)) fail('--speed va de 1 a 64.')
 
 const content = world.content
 const sim = new Simulation(content)

@@ -7,11 +7,17 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 ## [Sin publicar]
 
 ### Añadido
-- Esfuerzo de razonamiento por conexión en los hosts compatibles con OpenAI (SheLLM incluido): mínimo, bajo, medio, alto o lo que diga el host. En el banco, el mismo modelo se puede añadir con otro esfuerzo para compararlo (`~bajo`, `~alto`… en la terminal).
+- Esfuerzo de razonamiento por conexión en los hosts compatibles con OpenAI (SheLLM incluido): mínimo, bajo, medio, alto o lo que diga el host. En el banco, el mismo modelo se puede añadir con otro esfuerzo para compararlo (`~low`, `~high`… en la terminal).
 - Lo que reporta SheLLM 1.16: los tokens que vinieron de la caché y los de razonamiento (también en la API de OpenAI), y los tiempos del host (cola, primera palabra y modelo). El inspector los muestra y el banco añade la columna **Cola del host**.
 - El LLM falso imita a SheLLM 1.16: avisos de cola y keepalive, caché, razonamiento según el esfuerzo y tiempos del host.
 
 ### Cambiado
+- **El código pasa a inglés; lo que se lee sigue en español.** La regla queda escrita en CONTRIBUTING y en `CLAUDE.md`.
+  - Flags de la terminal: `--world`, `--quick`, `--judge`, `--samples`, `--difficulty` (`normal`, `hard` o `cruel`), `--days` y `--speed`; sufijos `~no-cache` y `~minimal`, `~low`, `~medium` y `~high`.
+  - Valores internos: tonos (`trusted`, `urgent`, `suspicious`, `emergency`), la dificultad `hard`, los niveles de ánimo, confianza y gremio, quién respondió (`rules`), el tipo de cada final y el id de cada gobernante del duelo.
+  - Los ids de contendiente usan `:no-cache` y `:effort-…`, y los archivos descargados se llaman `duel-…`, `ai-town-runs-…`, `letters-…` y `<mundo>-day-…`.
+  - Las partidas y pruebas guardadas antes se convierten solas al cargarlas: dificultad, finales, quién respondió, tonos e ids de contendiente.
+- El informe y el HUD nombran al gremio y a su deudor según el mundo; quedaban fijos los de Chismeroble.
 - La concurrencia por defecto de SheLLM baja de 5 a 4, la que SheLLM usa desde la 1.9.
 
 ## [1.1.0] - 2026-09-24

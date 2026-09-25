@@ -1,3 +1,4 @@
+import { upgradeRun } from '../../../core/bench/run'
 import type { BenchRun } from '../../../core/bench/run'
 
 export type { BenchRun }
@@ -35,7 +36,7 @@ async function tx<T>(mode: IDBTransactionMode, run: (store: IDBObjectStore) => I
 /** Runs kept in this browser; a shared folder or an exported file carries them elsewhere. */
 export const history = {
   save: (run: BenchRun) => tx('readwrite', (s) => s.put(run)),
-  list: async () => ((await tx('readonly', (s) => s.getAll())) as BenchRun[]).sort((a, b) => b.createdAt - a.createdAt),
+  list: async () => ((await tx('readonly', (s) => s.getAll())) as BenchRun[]).map(upgradeRun).sort((a, b) => b.createdAt - a.createdAt),
   remove: (id: string) => tx('readwrite', (s) => s.delete(id)),
   keep: async <T>(key: string, value: T | null) => {
     if (value === null) await tx('readwrite', (s) => s.delete(key), KEEP)

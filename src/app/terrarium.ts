@@ -13,6 +13,7 @@ import type { Simulation } from '../core/sim/simulation'
 import { clip } from '../core/format'
 import { modelMusing } from '../providers/musing'
 import { useTown } from './store'
+import { byRules } from './via'
 import type { Activity, ActivityKind } from './store/reign'
 
 /** What the terrarium needs from the town around it. */
@@ -130,12 +131,12 @@ export class Terrarium {
     })
     const via = this.host.residentsVia()
     const name = firstName(resident.name)
-    const entry = this.host.track('musing', `${name} se pone a pensar…`, { status: via === 'reglas' ? 'info' : 'pending', via })
+    const entry = this.host.track('musing', `${name} se pone a pensar…`, { status: byRules(via) ? 'info' : 'pending', via })
     this.musing = true
     try {
       const { llm } = useTown.getState()
       const gen = this.host.generation
-      const reply = via === 'reglas' || llm.active === 'mock' ? { ...rulesMusing(input), ms: 0, fellBack: false, usage: undefined } : await modelMusing(llm.connections[llm.active], input, AbortSignal.timeout(60_000))
+      const reply = byRules(via) || llm.active === 'mock' ? { ...rulesMusing(input), ms: 0, fellBack: false, usage: undefined } : await modelMusing(llm.connections[llm.active], input, AbortSignal.timeout(60_000))
       if (gen !== this.host.generation) return
       const n = e.needs[id]
       if (alive(e, id)) n.mood = Math.min(1, Math.max(0, n.mood + reply.mood * 0.04))

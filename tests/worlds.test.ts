@@ -84,9 +84,9 @@ describe.each(WORLDS.map((w) => [w.content.name, w.content] as const))('%s is pl
       const a = { id: ex.id, text: ex.text, speaker: ex.speaker, place: detectPlace(ex.text, sim.world.places, world.homeKeywords), minutes: sim.minutes }
       const decisions = sim.residents.filter((r) => r.profile.id !== ex.speaker.residentId).map((r) => mockDecision(buildContext(sim, a, r, [], null), world.vocabulary))
       const believers = decisions.filter((d) => d.believes).length
-      if (ex.tone === 'sospechoso') expect(believers, ex.id).toBeLessThan(decisions.length / 2)
-      if (ex.tone === 'confiable') expect(believers, ex.id).toBeGreaterThan(decisions.length / 2)
-      if (ex.tone === 'emergencia') expect(decisions.filter((d) => d.action === 'stay_home' || d.action === 'warn').length, ex.id).toBeGreaterThan(decisions.length / 2)
+      if (ex.tone === 'suspicious') expect(believers, ex.id).toBeLessThan(decisions.length / 2)
+      if (ex.tone === 'trusted') expect(believers, ex.id).toBeGreaterThan(decisions.length / 2)
+      if (ex.tone === 'emergency') expect(decisions.filter((d) => d.action === 'stay_home' || d.action === 'warn').length, ex.id).toBeGreaterThan(decisions.length / 2)
     }
     const prompt = buildPrompt(buildContext(sim, { id: 'x', text: world.examples[0].text, speaker: { kind: 'authority' }, place: null, minutes: sim.minutes }, sim.residents[0], [], null))
     expect(prompt).toContain(world.speakers.authority.name)
