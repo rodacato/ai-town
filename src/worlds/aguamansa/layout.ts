@@ -5,7 +5,7 @@ const N = 32
 export const LAKE: Rect = { x0: 24, y0: 0, x1: N - 1, y1: N - 1 }
 export const BEACH: Rect = { x0: 22, y0: 0, x1: 23, y1: N - 1 }
 export const PIER: Rect = { x0: 24, y0: 14, x1: 28, y1: 14 }
-export const LONJA: Rect = { x0: 13, y0: 11, x1: 18, y1: 16 }
+export const FISH_MARKET: Rect = { x0: 13, y0: 11, x1: 18, y1: 16 }
 export const PADDY: Rect = { x0: 1, y0: 26, x1: 6, y1: 30 }
 export const WILLOW = { x: 16, y: 15, size: 3 }
 export const GATE = { x: 11, y: 29 }
@@ -34,7 +34,7 @@ export const layout: WorldLayout = {
     { kind: 'water', rect: LAKE },
     { kind: 'sand', rect: BEACH },
     { kind: 'bridge', rect: PIER },
-    { kind: 'plaza', rect: LONJA },
+    { kind: 'plaza', rect: FISH_MARKET },
     { kind: 'field', rect: PADDY, prop: { name: 'haystack', every: 'row' } },
   ],
   landmarks: [

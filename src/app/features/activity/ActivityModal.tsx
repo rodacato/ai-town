@@ -8,6 +8,7 @@ import { Close } from '../../shared/icons'
 import { useDialog } from '../../shared/useDialog'
 import { town } from '../../town'
 import { RULER } from '../../ruler'
+import { byRules, viaLabel } from '../../via'
 import './activity.css'
 
 export function ActivityModal() {
@@ -35,7 +36,7 @@ const since = (at: number, now: number) => {
 function Status({ now }: { now: number }) {
   const { activity, rulerMode, rulerCalls, rulerCap, llm } = useTown()
   const residentsVia = town.residentsVia()
-  const calls = activity.filter((a) => a.via && a.via !== 'reglas')
+  const calls = activity.filter((a) => a.via && !byRules(a.via))
   const pending = calls.filter((a) => a.status === 'pending').length
   const lastOk = [...calls].reverse().find((a) => a.status === 'ok')
   const recent = calls.slice(-10)
@@ -54,7 +55,7 @@ function Status({ now }: { now: number }) {
       <div>
         <dt>Los vecinos deciden con</dt>
         <dd>
-          {residentsVia === 'reglas' ? 'reglas, sin gastar' : residentsVia}
+          {byRules(residentsVia) ? 'reglas, sin gastar' : residentsVia}
           {residentsSpend && <span className="activity-spend">{residentsSpend}</span>}
         </dd>
       </div>
@@ -91,7 +92,7 @@ function Row({ a, now }: { a: Activity; now: number }) {
         {a.detail && <p className="activity-detail">{a.detail}</p>}
         {(a.via || a.ms || a.costUsd) && (
           <p className="activity-meta mono">
-            {[a.via, a.ms ? `${a.kind === 'residents' ? 'mediana ' : ''}${seconds(a.ms)}` : null, a.tokensIn || a.tokensOut ? `${tokens(a.tokensIn ?? 0)} → ${tokens(a.tokensOut ?? 0)} tokens` : null, a.costUsd ? usd(a.costUsd, a.costEstimated) : null].filter(Boolean).join(' · ')}
+            {[a.via && viaLabel(a.via), a.ms ? `${a.kind === 'residents' ? 'mediana ' : ''}${seconds(a.ms)}` : null, a.tokensIn || a.tokensOut ? `${tokens(a.tokensIn ?? 0)} → ${tokens(a.tokensOut ?? 0)} tokens` : null, a.costUsd ? usd(a.costUsd, a.costEstimated) : null].filter(Boolean).join(' · ')}
           </p>
         )}
       </div>

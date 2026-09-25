@@ -33,7 +33,7 @@ function EndDialog() {
       <div className={`modal panel end-screen ${end.won ? 'is-won' : 'is-lost'}`} role="dialog" aria-modal="true" aria-labelledby="end-title" ref={dialog}>
         <header className="end-head">
           <span className="end-crest" aria-hidden>
-            {end.won ? '👑' : end.title === 'Revuelta' ? '🔥' : '🪦'}
+            {end.won ? '👑' : end.kind === 'revolt' ? '🔥' : '🪦'}
           </span>
           <span className="end-kicker">{end.won ? 'Fin del reinado · victoria' : 'Fin del reinado · derrota'}</span>
           <h2 id="end-title">{end.title}</h2>

@@ -1,6 +1,6 @@
 import type { WorldContent } from '../../core/world/content'
 import { ECONOMY } from './economy'
-import { BEACH, GATE, LONJA, WILLOW, inPinewood, layout } from './layout'
+import { BEACH, GATE, FISH_MARKET, WILLOW, inPinewood, layout } from './layout'
 import { RESIDENTS } from './residents'
 
 const MAYOR = 'Alcalde Mauricio Redondo'
@@ -10,11 +10,11 @@ export const aguamansa: WorldContent = {
   name: 'Aguamansa',
   tagline: 'Un pueblo de pescadores donde el lago guarda más secretos que la gente.',
   layout,
-  gatheringPlace: 'lonja',
+  gatheringPlace: 'fishMarket',
   homeLabel: 'sus casas',
   homeKeywords: ['casa', 'hogar', 'refugi', 'encierr', 'atranquen', 'suban'],
   places: [
-    { id: 'lonja', name: 'la Lonja', keywords: ['lonja', 'plaza'], spots: (q) => q.where((_, t) => t.kind === 'plaza' && !t.prop) },
+    { id: 'fishMarket', name: 'la Lonja', keywords: ['lonja', 'plaza'], spots: (q) => q.where((_, t) => t.kind === 'plaza' && !t.prop) },
     {
       id: 'willow',
       name: 'el Sauce de los Chismes',
@@ -23,7 +23,7 @@ export const aguamansa: WorldContent = {
       linger: true,
     },
     { id: 'benches', name: 'un banco', spots: (q) => q.where((_, t) => t.prop === 'bench'), linger: true },
-    { id: 'market', name: 'el mercado de pescado', keywords: ['mercado', 'puesto', 'pescaderia'], spots: (q) => q.inRect({ x0: LONJA.x0, y0: LONJA.y0, x1: LONJA.x0 + 1, y1: LONJA.y1 }) },
+    { id: 'market', name: 'el mercado de pescado', keywords: ['mercado', 'puesto', 'pescaderia'], spots: (q) => q.inRect({ x0: FISH_MARKET.x0, y0: FISH_MARKET.y0, x1: FISH_MARKET.x0 + 1, y1: FISH_MARKET.y1 }) },
     { id: 'pier', name: 'el muelle', keywords: ['muelle', 'embarcadero', 'barca'], spots: (q) => q.where((_, t) => t.kind === 'bridge'), linger: true },
     { id: 'beach', name: 'la playa', keywords: ['playa', 'orilla', 'arena'], spots: (q) => q.where((_, t) => t.kind === 'sand' && !t.prop), linger: true },
     { id: 'lighthouse', name: 'el faro', keywords: ['faro'], spots: (q) => q.aroundDoor('lighthouse', 2), indoors: true },
@@ -60,28 +60,28 @@ export const aguamansa: WorldContent = {
     {
       id: 'smoked-fish',
       truth: true,
-      tone: 'confiable',
+      tone: 'trusted',
       speaker: { kind: 'authority' },
       text: '¡Por orden del Alcalde! Esta tarde se reparte pescado ahumado gratis en la Lonja para todas las familias.',
     },
     {
       id: 'lake-beast',
       truth: true,
-      tone: 'urgente',
+      tone: 'urgent',
       speaker: { kind: 'neighbor', residentId: 'fermin' },
       text: 'Anoche vi una sombra enorme bajo el agua junto al muelle. Que nadie saque las barcas hasta que la guardia lo revise.',
     },
     {
       id: 'black-pearls',
       truth: false,
-      tone: 'sospechoso',
+      tone: 'suspicious',
       speaker: { kind: 'stranger' },
       text: 'Pago en oro cualquier perla negra. Tráiganlas esta noche al final del muelle, solos y sin decírselo a nadie.',
     },
     {
       id: 'flood',
       truth: true,
-      tone: 'emergencia',
+      tone: 'emergency',
       speaker: { kind: 'authority' },
       text: '¡Alerta! El lago viene crecido y se desbordará sobre la playa: aléjense de la orilla y suban a sus casas.',
     },
@@ -110,7 +110,7 @@ export const aguamansa: WorldContent = {
     { visual: 'monster', place: 'pier' },
     { visual: 'ghost', place: 'lighthouse' },
     { visual: 'fire', place: 'pinewood' },
-    { visual: 'feast', place: 'lonja' },
+    { visual: 'feast', place: 'fishMarket' },
   ],
   exit: 'gate',
   economy: ECONOMY,

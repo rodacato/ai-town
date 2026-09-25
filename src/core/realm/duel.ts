@@ -4,12 +4,16 @@ import type { ChronicleEntry } from './chronicle'
 import type { Difficulty } from './difficulty'
 import { fateCalendar, runReign, type DayRecord, type FateEvent, type ReignResult } from './reign'
 import type { RoyalReport } from './report'
+import type { EndingKind } from './standing'
 import { rulesRuler, type RulerTurn } from './ruler'
 
 /** One ruler's reign in numbers, comparable across rulers that faced the same seed and calendar. */
 export interface ReignSummary {
+  /** Who governed, as code knows them ('absent', 'rules' or a model's id) and as people read it. */
+  rulerId: string
   ruler: string
   ending: string
+  endingKind: EndingKind | null
   won: boolean
   survivedDays: number
   population: number
@@ -33,16 +37,18 @@ export interface ReignSummary {
  * Points for a reign: a day per day survived, three per resident still home, up to twenty each for
  * trust and spirits, a bonus for finishing the year (more if prosperous), and five off per heist.
  */
-export function scoreReign(r: Pick<ReignSummary, 'survivedDays' | 'population' | 'trust' | 'mood' | 'heists' | 'won' | 'ending'>) {
-  const bonus = r.won ? (r.ending === 'Año de prosperidad' ? 40 : 25) : 0
+export function scoreReign(r: Pick<ReignSummary, 'survivedDays' | 'population' | 'trust' | 'mood' | 'heists' | 'won' | 'ending' | 'endingKind'>) {
+  const bonus = r.won ? (r.endingKind === 'thrived' ? 40 : 25) : 0
   return Math.round(r.survivedDays + r.population * 3 + r.trust * 20 + r.mood * 20 + bonus - r.heists * 5)
 }
 
-export function summarize(ruler: string, result: ReignResult, extra: { errors?: number; costUsd?: number } = {}): ReignSummary {
+export function summarize(who: { id: string; label: string }, result: ReignResult, extra: { errors?: number; costUsd?: number } = {}): ReignSummary {
   const last = result.days[result.days.length - 1]
   const base = {
-    ruler,
+    rulerId: who.id,
+    ruler: who.label,
     ending: result.ending?.title ?? 'Sin terminar',
+    endingKind: result.ending?.kind ?? null,
     won: result.ending?.won ?? false,
     survivedDays: result.survivedDays,
     population: last?.population ?? 0,
@@ -122,7 +128,7 @@ export async function runDuel(o: {
           }
         },
       })
-      return { id: d.id, label: d.label, summary: summarize(d.label, result, usage), days: result.days, chronicle: result.chronicle.entries }
+      return { id: d.id, label: d.label, summary: summarize(d, result, usage), days: result.days, chronicle: result.chronicle.entries }
     }),
   )
   return { seed: o.seed, days: o.days, difficulty: o.difficulty, fate, rulers }

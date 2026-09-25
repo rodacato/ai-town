@@ -10,8 +10,8 @@ interface Rule {
   broken: (d: Decision) => boolean
 }
 
-const DANGER: Example['tone'][] = ['urgente', 'emergencia']
-const OFFER: Example['tone'][] = ['confiable', 'sospechoso']
+const DANGER: Example['tone'][] = ['urgent', 'emergency']
+const OFFER: Example['tone'][] = ['trusted', 'suspicious']
 
 const RULES: Rule[] = [
   {
@@ -23,13 +23,13 @@ const RULES: Rule[] = [
   {
     id: 'credulous-doubts-trusted',
     label: 'Muy crédulo (≥ 0.8) que no cree un anuncio confiable',
-    applies: (ctx, tone) => ctx.resident.personality.scales.credulity >= 0.8 && tone === 'confiable',
+    applies: (ctx, tone) => ctx.resident.personality.scales.credulity >= 0.8 && tone === 'trusted',
     broken: (d) => !d.believes,
   },
   {
     id: 'skeptic-buys-suspicious',
     label: 'Muy escéptico (credulidad ≤ 0.25) que cree un anuncio sospechoso',
-    applies: (ctx, tone) => ctx.resident.personality.scales.credulity <= 0.25 && tone === 'sospechoso',
+    applies: (ctx, tone) => ctx.resident.personality.scales.credulity <= 0.25 && tone === 'suspicious',
     broken: (d) => d.believes,
   },
   {
@@ -41,7 +41,7 @@ const RULES: Rule[] = [
   {
     id: 'loyal-ignores-order',
     label: 'Muy obediente (autoridad ≥ 0.85) que ignora una orden oficial de emergencia',
-    applies: (ctx, tone) => ctx.resident.personality.scales.authority >= 0.85 && ctx.announcement.speakerKind === 'authority' && tone === 'emergencia',
+    applies: (ctx, tone) => ctx.resident.personality.scales.authority >= 0.85 && ctx.announcement.speakerKind === 'authority' && tone === 'emergency',
     broken: (d) => d.action === 'ignore' || d.action === 'go',
   },
   {

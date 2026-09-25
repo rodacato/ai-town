@@ -71,7 +71,7 @@ export const ofThisWorld = (run: { world: string }) => run.world === town.conten
 
 const effortOf = (s: ContenderSpec) => (s.kind !== 'rules' && s.kind !== 'anthropic' ? s.effort : undefined)
 export const specId = (s: ContenderSpec) =>
-  s.kind === 'rules' ? 'rules' : `${s.kind}:${s.model.trim()}${uncached(s) ? ':sin-cache' : ''}${effortOf(s) ? `:esfuerzo-${effortOf(s)}` : ''}`
+  s.kind === 'rules' ? 'rules' : `${s.kind}:${s.model.trim()}${uncached(s) ? ':no-cache' : ''}${effortOf(s) ? `:effort-${effortOf(s)}` : ''}`
 export const specLabel = (s: ContenderSpec) =>
   s.kind === 'rules' ? 'Reglas locales' : `${PRESETS[s.kind].label} · ${s.model.trim() || '¿modelo?'}${uncached(s) ? ' · sin caché' : ''}${effortOf(s) ? ` · esfuerzo ${EFFORT_LABEL[effortOf(s)!]}` : ''}`
 
@@ -197,7 +197,7 @@ export const useBench = create<BenchState>((set, get) => ({
     await Promise.all(shared.filter((r) => !known.has(r.id)).map((r) => history.save(r).catch(() => undefined)))
     set({ runs: mergeRuns(local, shared) })
   },
-  exportAll: () => download(`ai-town-pruebas-${new Date().toISOString().slice(0, 10)}.json`, bundleRuns(get().runs), 'application/json'),
+  exportAll: () => download(`ai-town-runs-${new Date().toISOString().slice(0, 10)}.json`, bundleRuns(get().runs), 'application/json'),
   folder: null,
   linkFolder: async () => {
     try {

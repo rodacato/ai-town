@@ -104,7 +104,7 @@ El costo sale del host cuando lo reporta (SheLLM) o se estima con el precio por 
 
 En los hosts compatibles con OpenAI (SheLLM incluido) se puede elegir el **esfuerzo de razonamiento** de cada conexión (mínimo, bajo, medio o alto, o lo que diga el host; SheLLM usa medio con Claude desde la 1.16). Con SheLLM 1.16 o más nuevo, el inspector y el banco muestran además los tokens que salieron de la caché y los que fueron razonamiento, y cuánto esperó cada petición en la cola del propio SheLLM (columna **Cola del host**), para separar la espera del modelo de la del servidor.
 
-Con Anthropic, cada decisión usa la **caché de prompts**: las instrucciones y el anuncio (con la lista de vecinos) son iguales para todo el pueblo y van primero, marcados para la caché; lo propio de cada residente va después. Leer de la caché cuesta la décima parte y escribirla un cuarto más. El inspector muestra los tokens leídos y escritos, y el banco una columna **Caché** con la parte del prompt que salió de ella y lo que ahorró. Para medirlo, añade el mismo modelo con la casilla **Sin caché** (o `-m anthropic:modelo~sin-cache` en la terminal) y compara. Anthropic solo guarda prefijos a partir de un mínimo de tokens que depende del modelo; por debajo, la columna queda en «—».
+Con Anthropic, cada decisión usa la **caché de prompts**: las instrucciones y el anuncio (con la lista de vecinos) son iguales para todo el pueblo y van primero, marcados para la caché; lo propio de cada residente va después. Leer de la caché cuesta la décima parte y escribirla un cuarto más. El inspector muestra los tokens leídos y escritos, y el banco una columna **Caché** con la parte del prompt que salió de ella y lo que ahorró. Para medirlo, añade el mismo modelo con la casilla **Sin caché** (o `-m anthropic:modelo~no-cache` en la terminal) y compara. Anthropic solo guarda prefijos a partir de un mínimo de tokens que depende del modelo; por debajo, la columna queda en «—».
 
 ### Banco de pruebas
 
@@ -133,16 +133,16 @@ Las keys y hosts salen de `.env` / `.env.local` (`ANTHROPIC_API_KEY`, `OPENAI_AP
 ```bash
 npm run bench -- -m shellm:claude -m shellm:codex -r 3 -c 16
 npm run bench -- -m anthropic:claude-opus-5 -m custom:llama3.2@http://localhost:11434 -s banquet,troll
-npm run bench -- -m shellm:claude -m shellm:codex --juez anthropic:claude-opus-5 --muestras 12
-npm run bench -- --rapida -m anthropic:claude-sonnet-5 -m custom:llama3.2@http://localhost:11434
+npm run bench -- -m shellm:claude -m shellm:codex --judge anthropic:claude-opus-5 --samples 12
+npm run bench -- --quick -m anthropic:claude-sonnet-5 -m custom:llama3.2@http://localhost:11434
 npm run bench -- --compare bench-results/antes.json bench-results/despues.json
 npm run reign -- -m anthropic:claude-sonnet-5 -m custom:qwen3@http://mi-servidor:8000=0.2/0.6 --seed 12
-npm run reign -- --dificultad cruel --seed 12
+npm run reign -- --difficulty cruel --seed 12
 npm run reign -- --dry-run --seed 12
-npm run reign -- --mundo aguamansa --dificultad dura
+npm run reign -- --world aguamansa --difficulty hard
 ```
 
-`npm run bench` corre el banco sin navegador, guarda la corrida en `bench-results/` (se importa en el historial) y Ctrl+C cancela guardando lo que alcanzó. `npm run reign` es el **duelo de gobernantes**: varios gobernantes llevan el mismo año con la misma semilla, la misma dificultad y el mismo calendario del destino, junto al trono vacío y las reglas como referencia, y al final muestra quién terminó el año, vecinos, asaltos, confianza, mentiras, fallos de formato, costo, un puntaje y las cartas que escribieron. Los dos aceptan `--mundo` para jugar en otro mundo.
+`npm run bench` corre el banco sin navegador, guarda la corrida en `bench-results/` (se importa en el historial) y Ctrl+C cancela guardando lo que alcanzó. `npm run reign` es el **duelo de gobernantes**: varios gobernantes llevan el mismo año con la misma semilla, la misma dificultad y el mismo calendario del destino, junto al trono vacío y las reglas como referencia, y al final muestra quién terminó el año, vecinos, asaltos, confianza, mentiras, fallos de formato, costo, un puntaje y las cartas que escribieron. Los dos aceptan `--world` para jugar en otro mundo.
 
 ## Atajos
 
@@ -192,7 +192,7 @@ docs/          diseño del terrario y revisión de la 1.0
 - `npm run typecheck` y `npm run build`.
 - `npm run map`: imprime el mapa generado en ASCII.
 - `npm run sim:smoke`: corre 3 minutos de simulación sin interfaz.
-- `npm run perf -- [--mundo aguamansa] [--dias 3] [--velocidad 16]`: simula días enteros a la velocidad que digas, con un pregón cada medio día, y da cuánto cuesta la lógica por cuadro (p50, p95, p99 y máximo). Añadir `?perf` a la dirección de la app muestra un medidor con cuadros por segundo, lógica, dibujo, objetos y memoria, para probar en un teléfono o a ×16.
+- `npm run perf -- [--world aguamansa] [--days 3] [--speed 16]`: simula días enteros a la velocidad que digas, con un pregón cada medio día, y da cuánto cuesta la lógica por cuadro (p50, p95, p99 y máximo). Añadir `?perf` a la dirección de la app muestra un medidor con cuadros por segundo, lógica, dibujo, objetos y memoria, para probar en un teléfono o a ×16.
 - `npx tsx scripts/reaction-smoke.ts [banquet|troll|crypt|dragon]`: pasa los pregones de ejemplo por el motor en modo simulado.
 - `npm run fake-llm`: un LLM falso compatible con OpenAI en `http://127.0.0.1:6199` para probar el flujo de un modelo sin gastar; responde como vecino, como gobernante, como juez o con una petición según el prompt. Con `FAKE_KEY=…` exige esa key, para ensayar errores de autenticación.
 

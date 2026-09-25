@@ -28,7 +28,7 @@ export const RESIDENTS: ResidentProfile[] = [
       { id: 'fermin', label: 'le guía de vuelta con el faro' },
     ],
     home: 'nerea',
-    routine: { pier: 5, beach: 2, lonja: 2, home: 1 },
+    routine: { pier: 5, beach: 2, fishMarket: 2, home: 1 },
     look: { skin: SKIN.tan, hair: HAIR.brown, hairStyle: 'bun', shirt: 0x3f6e8c, pants: 0x4a3f36, accessory: 'straw-hat', ancestry: 'human' },
   },
   {
@@ -52,7 +52,7 @@ export const RESIDENTS: ResidentProfile[] = [
       { id: 'rita', label: 'le enseña canciones de marineros' },
     ],
     home: 'nerea',
-    routine: { beach: 4, lonja: 2, lighthouse: 1, willow: 2, home: 1 },
+    routine: { beach: 4, fishMarket: 2, lighthouse: 1, willow: 2, home: 1 },
     look: { skin: SKIN.tan, hair: HAIR.brown, hairStyle: 'curly', shirt: 0xe8883a, pants: 0x5a4a3a, accessory: 'wooden-sword', ancestry: 'human' },
   },
   {
@@ -100,7 +100,7 @@ export const RESIDENTS: ResidentProfile[] = [
       { id: 'rita', label: 'le paga con cena por cantar' },
     ],
     home: 'inn',
-    routine: { inn: 7, market: 1, lonja: 1, home: 1 },
+    routine: { inn: 7, market: 1, fishMarket: 1, home: 1 },
     look: { skin: SKIN.brown, hair: HAIR.black, hairStyle: 'long', shirt: 0xc86f5a, pants: 0x5a4a3a, accessory: 'apron', ancestry: 'human' },
   },
   {
@@ -148,7 +148,7 @@ export const RESIDENTS: ResidentProfile[] = [
       { id: 'yara', label: 'la acogió al llegar' },
     ],
     home: 'shrine',
-    routine: { shrine: 6, lonja: 1, visit: 2, home: 1 },
+    routine: { shrine: 6, fishMarket: 1, visit: 2, home: 1 },
     look: { skin: SKIN.light, hair: HAIR.grey, hairStyle: 'bun', shirt: 0xece8e2, pants: 0x6b6b6b, accessory: 'holy-symbol', ancestry: 'human' },
   },
   {
@@ -172,7 +172,7 @@ export const RESIDENTS: ResidentProfile[] = [
       { id: 'nerea', label: 'la respeta: es la más valiente del muelle' },
     ],
     home: 'barracks',
-    routine: { gate: 4, lonja: 2, pier: 2, townhall: 1, home: 1 },
+    routine: { gate: 4, fishMarket: 2, pier: 2, townhall: 1, home: 1 },
     look: { skin: SKIN.orc, hair: HAIR.black, hairStyle: 'short', shirt: 0x3f6e8c, pants: 0x3a3a44, accessory: 'helmet', ancestry: 'halforc' },
   },
   {
@@ -244,7 +244,7 @@ export const RESIDENTS: ResidentProfile[] = [
       { id: 'ines', label: 'su héroe secreto: le regala juguetes' },
     ],
     home: 'workshop',
-    routine: { workshop: 6, inn: 2, lonja: 1, home: 1 },
+    routine: { workshop: 6, inn: 2, fishMarket: 1, home: 1 },
     look: { skin: SKIN.gnome, hair: HAIR.red, hairStyle: 'curly', shirt: 0x9a7a4a, pants: 0x4a3f36, accessory: 'monocle', ancestry: 'gnome' },
   },
   {
@@ -268,7 +268,7 @@ export const RESIDENTS: ResidentProfile[] = [
       { id: 'olmo', label: 'le compone canciones que él ignora' },
     ],
     home: 'rita',
-    routine: { inn: 4, lonja: 3, willow: 1, home: 2 },
+    routine: { inn: 4, fishMarket: 3, willow: 1, home: 2 },
     nightRoutine: { inn: 3, home: 2 },
     look: { skin: SKIN.brown, hair: HAIR.red, hairStyle: 'long', shirt: 0xb23a48, pants: 0x3f3552, accessory: 'lute', ancestry: 'human' },
   },
@@ -313,7 +313,7 @@ export const RESIDENTS: ResidentProfile[] = [
     },
     relationships: [],
     home: 'yara',
-    routine: { beach: 3, pier: 2, lonja: 1, home: 2 },
+    routine: { beach: 3, pier: 2, fishMarket: 1, home: 2 },
     look: { skin: SKIN.deep, hair: HAIR.black, hairStyle: 'short', shirt: 0x5e9a8e, pants: 0x3a3a44, accessory: 'bag', ancestry: 'human' },
   },
 ]

@@ -38,7 +38,7 @@ async function run(ex: Example, seconds = 40, truth?: boolean) {
 
 describe('reaction engine', () => {
   it('gets every listener to a decision and reports completion', async () => {
-    const ex = exampleByTone('confiable')
+    const ex = exampleByTone('trusted')
     const { engine, completed } = await run(ex)
     const listeners = [...engine.reactions.values()].filter((r) => !r.isSpeaker)
     expect(listeners.length).toBe(content.residents.length - (ex.speaker.kind === 'neighbor' ? 1 : 0))
@@ -55,21 +55,21 @@ describe('reaction engine', () => {
   })
 
   it('sends residents home when they decide to shelter', async () => {
-    const { sim, engine } = await run(exampleByTone('emergencia'), 60)
+    const { sim, engine } = await run(exampleByTone('emergency'), 60)
     const sheltering = [...engine.reactions.values()].filter((r) => r.decision?.action === 'stay_home')
     expect(sheltering.length).toBeGreaterThan(0)
     for (const r of sheltering) expect(sim.get(r.id)!.mode).toBe('inside')
   })
 
   it('clears everything on stop', async () => {
-    const { sim, engine } = await run(exampleByTone('confiable'), 5)
+    const { sim, engine } = await run(exampleByTone('trusted'), 5)
     engine.stop()
     expect(engine.reactions.size).toBe(0)
     expect(sim.residents.some((r) => r.frozen)).toBe(false)
   })
 
   it('reveals the truth once everyone has decided, and judges each belief', async () => {
-    const { engine, outcomes } = await run(exampleByTone('confiable'), 40, true)
+    const { engine, outcomes } = await run(exampleByTone('trusted'), 40, true)
     expect(outcomes).toHaveLength(1)
     expect(outcomes[0]).toMatchObject({ truth: true, visual: 'feast' })
     expect(outcomes[0].summary).toMatch(/^Era verdad/)
@@ -81,7 +81,7 @@ describe('reaction engine', () => {
   })
 
   it('sends people near a real threat running home', async () => {
-    const { sim, engine, outcomes } = await run(exampleByTone('urgente'), 60, true)
+    const { sim, engine, outcomes } = await run(exampleByTone('urgent'), 60, true)
     const o = outcomes[0]
     expect(o.visual).toBe('monster')
     const near = sim.residents.filter((r) => Math.hypot(r.x - o.at.x, r.y - o.at.y) < 3 && r.mode !== 'inside')
@@ -90,7 +90,7 @@ describe('reaction engine', () => {
   })
 
   it('marks believers wrong when it was a lie and sends the curious home disappointed', async () => {
-    const { sim, engine, outcomes } = await run(exampleByTone('sospechoso'), 40, false)
+    const { sim, engine, outcomes } = await run(exampleByTone('suspicious'), 40, false)
     expect(outcomes[0].summary).toMatch(/^Era mentira/)
     const went = [...engine.reactions.values()].filter((r) => r.decision?.action === 'go' || r.decision?.action === 'investigate')
     for (const r of went) expect(sim.get(r.id)!.tasks.some((t) => t.label.includes('decepcionado')) || sim.get(r.id)!.mode === 'inside').toBe(true)
@@ -99,13 +99,13 @@ describe('reaction engine', () => {
   })
 
   it('reveals nothing when the announcement carries no truth', async () => {
-    const { outcomes } = await run(exampleByTone('confiable'), 40)
+    const { outcomes } = await run(exampleByTone('trusted'), 40)
     expect(outcomes).toEqual([])
   })
 
   it('never lets the truth reach the model', () => {
     const sim = new Simulation(content)
-    const a = { ...announce(sim, exampleByTone('emergencia')), truth: false }
+    const a = { ...announce(sim, exampleByTone('emergency')), truth: false }
     const ctx = buildContext(sim, a, sim.residents[0], [], null)
     expect(JSON.stringify(ctx)).not.toMatch(/truth/)
     expect(buildPrompt(ctx)).not.toMatch(/mentira|truth/i)

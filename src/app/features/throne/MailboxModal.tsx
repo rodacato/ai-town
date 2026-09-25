@@ -7,6 +7,7 @@ import { town } from '../../town'
 import { download, stamp } from '../experiment/export'
 import { letterKey, lettersMarkdown } from '../../ideas'
 import { RULER } from '../../ruler'
+import { viaLabel } from '../../via'
 import './mailbox.css'
 
 type Tab = 'game' | 'ideas'
@@ -28,7 +29,7 @@ function Mailbox() {
   const [tab, setTab] = useState<Tab>(mailbox.length || !ideas.length ? 'game' : 'ideas')
   const dialog = useDialog<HTMLDivElement>(close)
   const letters = tab === 'game' ? [...mailbox].reverse() : [...ideas].reverse()
-  const save = () => download(`cartas-${tab === 'game' ? 'partida' : 'ideas'}-${stamp()}.md`, lettersMarkdown([...letters].reverse(), tab === 'game' ? `Cartas ${RULER.of} en esta partida` : `Ideas del buzón ${RULER.of}`), 'text/markdown')
+  const save = () => download(`letters-${tab === 'game' ? 'game' : 'ideas'}-${stamp()}.md`, lettersMarkdown([...letters].reverse(), tab === 'game' ? `Cartas ${RULER.of} en esta partida` : `Ideas del buzón ${RULER.of}`), 'text/markdown')
   return (
     <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && close()}>
       <div className="modal panel mailbox" role="dialog" aria-modal="true" aria-labelledby="mailbox-title" ref={dialog}>
@@ -81,7 +82,7 @@ function LetterItem({ letter: l, archived }: { letter: Letter; archived: boolean
     <li className={`letter ${l.seen ? '' : 'is-new'}`}>
       <div className="letter-meta">
         <span className="mono">Día {l.day + 1}</span>
-        {l.via && <span>{l.via}</span>}
+        {l.via && <span>{viaLabel(l.via)}</span>}
         {!l.seen && <span className="letter-new">Nueva</span>}
       </div>
       <p className="letter-text">{l.text}</p>

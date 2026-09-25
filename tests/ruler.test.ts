@@ -147,10 +147,10 @@ describe('petitions to the Baroness', () => {
   it('asks the model in the resident\'s voice and falls back to their usual words', async () => {
     const e = grim()
     const g = grievances({ content, economy: e, chronicle: [], minutes: 6 * 60 + 1440 })[0]
-    const clemencia = content.residents.find((r) => r.id === g.id)!
-    const input = musingInputFor(e, clemencia, { trust: 0.4, news: [], minutes: 7 * 60, world: content })
+    const petitioner = content.residents.find((r) => r.id === g.id)!
+    const input = musingInputFor(e, petitioner, { trust: 0.4, news: [], minutes: 7 * 60, world: content })
     expect(petitionPrompt(input, g)).toContain(g.wish)
-    expect(petitionPrompt(input, g)).toContain(clemencia.personality.voice)
+    expect(petitionPrompt(input, g)).toContain(petitioner.personality.voice)
     const answer = (text: string): ChatStream =>
       async function* () {
         yield { type: 'delta', text }

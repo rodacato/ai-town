@@ -19,8 +19,8 @@ Uso: npm run reign -- [opciones]
       --skip-rules                       Sin el gobernante de reglas.
       --skip-absent                      Sin el trono vacío (nadie gobierna).
       --seed <n>                         Semilla del calendario del destino (por defecto 7).
-      --mundo <id>                       Mundo en el que se juega: %WORLDS% (por defecto el primero).
-      --dificultad <normal|dura|cruel>   Golpes del destino, reservas y cosecha (por defecto normal).
+      --world <id>                       Mundo en el que se juega: %WORLDS% (por defecto el primero).
+      --difficulty <normal|hard|cruel>   Golpes del destino, reservas y cosecha (por defecto normal).
       --days <n>                         Días a gobernar (por defecto ${GOALS.yearDays + 1}: un año entero).
       --timeout <s>                      Tiempo máximo por turno (por defecto 120).
       --price <entrada/salida>           USD por millón de tokens para los modelos sin precio propio, ej. 3/15.
@@ -35,11 +35,11 @@ const { values: args } = parseArgs({
   options: {
     model: { type: 'string', short: 'm', multiple: true, default: [] },
     'skip-rules': { type: 'boolean', default: false },
-    mundo: { type: 'string' },
+    world: { type: 'string' },
     'skip-absent': { type: 'boolean', default: false },
     seed: { type: 'string', default: '7' },
     days: { type: 'string', default: String(GOALS.yearDays + 1) },
-    dificultad: { type: 'string', default: 'normal' },
+    difficulty: { type: 'string', default: 'normal' },
     timeout: { type: 'string', default: '120' },
     price: { type: 'string' },
     out: { type: 'string', short: 'o' },
@@ -63,10 +63,10 @@ const timeoutMs = int('timeout', args.timeout, 5, 3600) * 1000
 const price = args.price?.match(PRICE_RE) ?? null
 if (args.price && !price) fail('--price va como entrada/salida, ej. 3/15.')
 
-const difficulty = args.dificultad as Difficulty
-if (!DIFFICULTIES.includes(difficulty)) fail(`--dificultad va como ${DIFFICULTIES.join(', ')}.`)
-const world = args.mundo ? worldById(args.mundo) : activeWorld
-if (!world) fail(`No hay un mundo «${args.mundo}». Hay: ${WORLDS.map((w) => w.content.id).join(', ')}.`)
+const difficulty = args.difficulty as Difficulty
+if (!DIFFICULTIES.includes(difficulty)) fail(`--difficulty va como ${DIFFICULTIES.join(', ')}.`)
+const world = args.world ? worldById(args.world) : activeWorld
+if (!world) fail(`No hay un mundo «${args.world}». Hay: ${WORLDS.map((w) => w.content.id).join(', ')}.`)
 const content = world!.content
 const fate = fateCalendar(content, seed, days, difficulty)
 
@@ -117,7 +117,7 @@ const summaries = duel.rulers.map((r) => r.summary)
 printTable(ranking(summaries))
 printLetters(summaries)
 
-const out = args.out ?? `reign-results/duelo-${new Date().toISOString().replace(/[:.]/g, '-')}.json`
+const out = args.out ?? `reign-results/duel-${new Date().toISOString().replace(/[:.]/g, '-')}.json`
 mkdirSync(dirname(out), { recursive: true })
 writeFileSync(out, JSON.stringify({ format: 'ai-town-reign/1', world: content.id, ...duel }, null, 2))
 console.log(dim(`\nGuardado en ${out}`))
@@ -136,7 +136,7 @@ function printTable(list: ReignSummary[]) {
     ['Tesoro', (s) => `${s.treasury}`],
     ['Mentiras', (s) => `${s.lies}/${s.proclamations}`],
     ['Formato', (s) => (s.problems || s.errors ? red(`${s.problems} fallos${s.errors ? `, ${s.errors} sin respuesta` : ''}`) : 'ok')],
-    ['Costo', (s) => (s.ruler === 'Trono vacío' || s.ruler === 'Reglas' ? '—' : usd(s.costUsd))],
+    ['Costo', (s) => (s.rulerId === absentDuelist.id || s.rulerId === rulesDuelist.id ? '—' : usd(s.costUsd))],
     ['Puntos', (s) => bold(`${s.score}`)],
   ]
   // eslint-disable-next-line no-control-regex

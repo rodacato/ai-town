@@ -141,5 +141,5 @@ export async function runReign(o: ReignOptions): Promise<ReignResult> {
     if (standing.end || !living.length) break
   }
   const lost = (s: string) => ids.filter((id) => e.needs[id].status === s).length
-  return { days, survivedDays: days.length, ending: standing.end, revolt: standing.end?.title === 'Revuelta', heists: standing.heists, stolen: standing.stolen, deaths: lost('dead'), departures: lost('gone'), lies, proclamations, letters, chronicle, economy: e }
+  return { days, survivedDays: days.length, ending: standing.end, revolt: standing.end?.kind === 'revolt', heists: standing.heists, stolen: standing.stolen, deaths: lost('dead'), departures: lost('gone'), lies, proclamations, letters, chronicle, economy: e }
 }

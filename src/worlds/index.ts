@@ -32,5 +32,5 @@ export function chooseWorld(id: string) {
   }
 }
 
-/** A world by id, for the terminal's --mundo flag. */
+/** A world by id, for the terminal's --world flag. */
 export const worldById = (id: string) => WORLDS.find((w) => w.content.id === id)

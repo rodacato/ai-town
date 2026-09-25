@@ -73,22 +73,22 @@
   font-weight: 600;
 }
 
-.tone-confiable {
+.tone-trusted {
   background: var(--sage-soft);
   color: #446d3c;
 }
 
-.tone-urgente {
+.tone-urgent {
   background: #fdf0d5;
   color: #8a5f0e;
 }
 
-.tone-sospechoso {
+.tone-suspicious {
   background: #efe7f5;
   color: #6f4f8a;
 }
 
-.tone-emergencia {
+.tone-emergency {
   background: var(--accent-soft);
   color: #a24e37;
 }

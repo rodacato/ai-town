@@ -148,7 +148,7 @@ export interface Hazard {
 
 export interface Example {
   id: string
-  tone: 'confiable' | 'urgente' | 'sospechoso' | 'emergencia'
+  tone: 'trusted' | 'urgent' | 'suspicious' | 'emergency'
   speaker: { kind: SpeakerKind; residentId?: string }
   text: string
   /** Whether it is true in this world's story; the benchmark scores beliefs against it. */

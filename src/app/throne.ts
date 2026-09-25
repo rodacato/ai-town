@@ -17,6 +17,7 @@ import { missingKey } from '../providers/llm/config'
 import { createModelRuler, createRulesRuler } from '../providers/ruler'
 import { useTown } from './store'
 import { RULER } from './ruler'
+import { byRules, RULES } from './via'
 import type { Activity, ActivityKind, RulerLog, RulerMode } from './store/reign'
 
 /** What the throne needs from the town around it. */
@@ -107,7 +108,7 @@ export class Throne {
     const replies = state.mailbox.filter((l) => l.reply && !l.delivered).map((l) => ({ letter: l.text, reply: l.reply! }))
     const report = buildReport({ content: this.host.sim.content, economy: e, memory: this.host.memory, chronicle: this.host.chronicle.entries, minutes: this.host.sim.minutes, season: this.host.sim.season, weather: this.host.sim.weather, day: e.day, seed: this.host.sim.content.layout.seed, standing: state.standing, petitions, replies })
     if (replies.length) useTown.setState((s) => ({ mailbox: s.mailbox.map((l) => (l.reply ? { ...l, delivered: true } : l)) }))
-    const via = modelOk && active !== 'mock' ? `${state.llm.connections[active].model} (${active})` : 'reglas'
+    const via = modelOk && active !== 'mock' ? `${state.llm.connections[active].model} (${active})` : RULES
     const entry = this.host.track('ruler', `Día ${e.day + 1}: ${RULER.title} ${modelOk ? `consulta a ${via}` : 'decide con reglas'}`, { status: modelOk ? 'pending' : 'info', via })
     try {
       const reply = await ruler(report, AbortSignal.timeout(120_000))
@@ -159,7 +160,7 @@ export class Throne {
       list.map(async (g): Promise<Petition> => {
         const resident = content.residents.find((r) => r.id === g.id)!
         const from = nameOf(content, g.id)
-        if (via === 'reglas' || active === 'mock') return { from, text: g.fallback, topic: g.topic }
+        if (byRules(via) || active === 'mock') return { from, text: g.fallback, topic: g.topic }
         const entry = this.host.track('petition', `${from} prepara su petición…`, { status: 'pending', via })
         try {
           const reply = await modelPetition(llm.connections[active], content, musingInputFor(e, resident, { trust, news: [], minutes, world: content }), g, AbortSignal.timeout(45_000))

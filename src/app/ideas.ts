@@ -1,3 +1,4 @@
+import { viaLabel } from './via'
 import type { Letter } from './store/reign'
 
 const KEY = 'ai-town:ideas'
@@ -27,7 +28,7 @@ export const letterKey = (l: Letter) => l.id ?? `${l.day}:${l.text.slice(0, 60)}
 export function lettersMarkdown(letters: Letter[], title: string) {
   const lines = [`# ${title}`, '']
   for (const l of letters) {
-    lines.push(`## Día ${l.day + 1}${l.via ? ` · ${l.via}` : ''}${l.idea ? ' · 💡 idea' : ''}`, '', `> ${l.text.replace(/\n/g, '\n> ')}`, '')
+    lines.push(`## Día ${l.day + 1}${l.via ? ` · ${viaLabel(l.via)}` : ''}${l.idea ? ' · 💡 idea' : ''}`, '', `> ${l.text.replace(/\n/g, '\n> ')}`, '')
     if (l.reply) lines.push(`**Respuesta:** ${l.reply}`, '')
   }
   return lines.join('\n')

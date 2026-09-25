@@ -20,10 +20,10 @@ describe('difficulty', () => {
   })
 
   it('brings more blows and fewer good ones the harder it gets', () => {
-    const count = (d: 'normal' | 'dura' | 'cruel') => fateCalendar(content, 12, 40, d)
-    const boons = (d: 'normal' | 'dura' | 'cruel') => count(d).filter((f) => f.visual === 'caravan' || f.visual === 'treasure').length / count(d).length
-    expect(count('dura').length).toBeGreaterThan(count('normal').length)
-    expect(count('cruel').length).toBeGreaterThan(count('dura').length)
+    const count = (d: 'normal' | 'hard' | 'cruel') => fateCalendar(content, 12, 40, d)
+    const boons = (d: 'normal' | 'hard' | 'cruel') => count(d).filter((f) => f.visual === 'caravan' || f.visual === 'treasure').length / count(d).length
+    expect(count('hard').length).toBeGreaterThan(count('normal').length)
+    expect(count('cruel').length).toBeGreaterThan(count('hard').length)
     expect(boons('cruel')).toBeLessThan(0.25)
   })
 
@@ -67,14 +67,14 @@ describe('difficulty', () => {
 describe('a duel of rulers', () => {
   it('gives every ruler the same year, counts the days a model fails, and can be cancelled', async () => {
     const { absentDuelist, rulesDuelist, runDuel } = await import('../src/core/realm/duel')
-    const broken = { id: 'roto', label: 'Roto', decide: async () => Promise.reject(new Error('sin red')) }
+    const broken = { id: 'broken', label: 'Roto', decide: async () => Promise.reject(new Error('sin red')) }
     const days: Record<string, number> = {}
-    const duel = await runDuel({ content, seed: 5, days: 12, difficulty: 'dura', seasonLength: 10, rulers: [absentDuelist, rulesDuelist, broken], onDay: (id, d) => (days[id] = d + 1) })
-    expect(duel.fate).toEqual(fateCalendar(content, 5, 12, 'dura'))
+    const duel = await runDuel({ content, seed: 5, days: 12, difficulty: 'hard', seasonLength: 10, rulers: [absentDuelist, rulesDuelist, broken], onDay: (id, d) => (days[id] = d + 1) })
+    expect(duel.fate).toEqual(fateCalendar(content, 5, 12, 'hard'))
     expect(duel.rulers.map((r) => r.label)).toEqual(['Trono vacío', 'Reglas', 'Roto'])
-    const roto = duel.rulers.find((r) => r.id === 'roto')!
+    const failed = duel.rulers.find((r) => r.id === 'broken')!
     // The last dawn ends the year, and nobody governs after it.
-    expect(roto.summary.errors).toBe(roto.days.length - 1)
+    expect(failed.summary.errors).toBe(failed.days.length - 1)
     expect(days.rules).toBe(duel.rulers[1].days.length - 1)
 
     const controller = new AbortController()

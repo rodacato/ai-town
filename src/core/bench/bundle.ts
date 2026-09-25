@@ -1,4 +1,4 @@
-import { RUN_FORMAT, type BenchRun } from './run'
+import { RUN_FORMAT, upgradeRunText, type BenchRun } from './run'
 
 /** Many runs in one file, to carry a whole history to another machine. */
 export const BUNDLE_FORMAT = 'ai-town-bench-bundle/1'
@@ -12,7 +12,7 @@ const isRun = (x: unknown): x is BenchRun => {
 export function readRuns(text: string): BenchRun[] {
   let data: unknown
   try {
-    data = JSON.parse(text)
+    data = JSON.parse(upgradeRunText(text))
   } catch {
     throw new Error('El archivo no es JSON.')
   }

@@ -8,6 +8,7 @@ import { daylight } from '../../../theme/daylight'
 import { Bolt, Gauge, Gear, Logbook, Moon, Pause, Play, Sun, TownMark, Users } from '../../shared/icons'
 import { useBench } from '../bench/benchStore'
 import { RULER } from '../../ruler'
+import { byRules } from '../../via'
 import './topbar.css'
 
 export function TopBar() {
@@ -109,7 +110,7 @@ function TimeControls() {
 function LogButton() {
   const pending = useTown((s) => s.activity.some((a) => a.status === 'pending'))
   const failed = useTown((s) => {
-    const last = [...s.activity].reverse().find((a) => a.via && a.via !== 'reglas' && a.status !== 'pending')
+    const last = [...s.activity].reverse().find((a) => a.via && !byRules(a.via) && a.status !== 'pending')
     return last?.status === 'error'
   })
   return (

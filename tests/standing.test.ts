@@ -16,7 +16,7 @@ describe('the thieves guild', () => {
     while (!s.heists && day < 30) dawnStanding(s, open, 0.5, day++, content)
     expect(s.heists).toBe(1)
     expect(open.treasury).toBeLessThan(600)
-    expect(guildWord(s)).toBe('nada')
+    expect(guildWord(s)).toBe('none')
 
     const guarded = town()
     guarded.treasury = 600
@@ -31,7 +31,7 @@ describe('the thieves guild', () => {
     e.treasury = 600
     const s = { ...freshStanding(), plot: 0.7 }
     const lines = dawnStanding(s, e, 0.5, 1, content)
-    expect(guildWord(s)).toBe('inminente')
+    expect(guildWord(s)).toBe('imminent')
     expect(lines.join(' ')).toMatch(/encapuchados/)
   })
 
@@ -92,10 +92,10 @@ describe('a ruler duel', () => {
     const { fateCalendar } = await import('../src/core/realm/reign')
     const { rulesRuler } = await import('../src/core/realm/ruler')
     const base = { content, days: 41, seed: 8, seasonLength: 10, fate: fateCalendar(content, 8, 41) }
-    const absent = summarize('ausente', await runReign({ ...base, rule: async () => ({ thought: '', actions: [], problems: [] }) }))
-    const ruled = summarize('reglas', await runReign({ ...base, rule: async (r) => rulesRuler(r) }))
+    const absent = summarize({ id: 'absent', label: 'Trono vacío' }, await runReign({ ...base, rule: async () => ({ thought: '', actions: [], problems: [] }) }))
+    const ruled = summarize({ id: 'rules', label: 'Reglas' }, await runReign({ ...base, rule: async (r) => rulesRuler(r) }))
     expect(ruled.won).toBe(true)
-    expect(ranking([absent, ruled]).map((r) => r.ruler)).toEqual(['reglas', 'ausente'])
+    expect(ranking([absent, ruled]).map((r) => r.rulerId)).toEqual(['rules', 'absent'])
     expect(ruled.score).toBeGreaterThan(absent.score)
   })
 })

@@ -153,6 +153,7 @@ const CHARTS: { title: string; read: (d: DayRecord) => number; max: (r: DuelResu
   { title: 'Tesoro', read: (d) => d.treasury, max: (r) => Math.max(100, ...r.rulers.flatMap((x) => x.days.map((d) => d.treasury))), format: (v) => `${Math.round(v)}` },
 ]
 
+/** The first column is the ending, marked won or lost. */
 const COLUMNS: [string, (s: ReignSummary) => string][] = [
   ['Final', (s) => s.ending],
   ['Días', (s) => `${s.survivedDays}`],
@@ -173,7 +174,7 @@ function DuelView({ result }: { result: DuelResult }) {
   const [hover, setHover] = useState<{ day: number; chart: string } | null>(null)
   const series: DuelSeries[] = result.rulers.map((r, i) => ({ id: r.id, label: r.label, slot: i, days: r.days }))
   const ranked = ranking(result.rulers.map((r) => r.summary))
-  const slotOf = (label: string) => result.rulers.findIndex((r) => r.label === label)
+  const slotOf = (id: string) => result.rulers.findIndex((r) => r.id === id)
   const letters = result.rulers.filter((r) => r.summary.letters.length)
   return (
     <section className="duel-result">
@@ -195,12 +196,12 @@ function DuelView({ result }: { result: DuelResult }) {
           </thead>
           <tbody>
             {ranked.map((s) => (
-              <tr key={s.ruler}>
+              <tr key={s.rulerId}>
                 <th scope="row">
-                  <i className="duel-swatch" style={{ background: `var(--series-${slotOf(s.ruler) + 1})` }} aria-hidden /> {s.ruler}
+                  <i className="duel-swatch" style={{ background: `var(--series-${slotOf(s.rulerId) + 1})` }} aria-hidden /> {s.ruler}
                 </th>
-                {COLUMNS.map(([name, read]) => (
-                  <td key={name} className={`mono ${name === 'Final' ? (s.won ? 'is-won' : 'is-lost') : ''}`}>
+                {COLUMNS.map(([name, read], i) => (
+                  <td key={name} className={`mono ${i === 0 ? (s.won ? 'is-won' : 'is-lost') : ''}`}>
                     {read(s)}
                   </td>
                 ))}
@@ -244,7 +245,7 @@ function DuelView({ result }: { result: DuelResult }) {
 
       <div className="export-row">
         <span className="section-label">Exportar</span>
-        <button className="btn-secondary compact" onClick={() => download(`duelo-${result.seed}-${result.difficulty}.json`, JSON.stringify({ format: 'ai-town-reign/1', world: town.content.id, ...result }, null, 2), 'application/json')}>
+        <button className="btn-secondary compact" onClick={() => download(`duel-${result.seed}-${result.difficulty}.json`, JSON.stringify({ format: 'ai-town-reign/1', world: town.content.id, ...result }, null, 2), 'application/json')}>
           JSON
         </button>
       </div>

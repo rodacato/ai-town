@@ -133,11 +133,11 @@ export function rulesRuler(r: RoyalReport): RulerTurn {
   }
   if (r.foodDays < 2 && !r.laws.rationing) add({ kind: 'decree', decree: { kind: 'law', law: 'rationing', on: true } }, 'Sin comida suficiente, toca racionar.')
   if (r.foodDays > 8 && r.laws.rationing) add({ kind: 'decree', decree: { kind: 'law', law: 'rationing', on: false } }, 'Hay comida de sobra: se acaba el racionamiento.')
-  if ((r.mood === 'bajo' || r.mood === 'muy bajo') && r.treasury >= 60 && r.granary >= 30 && r.taxRate <= 0.3)
+  if ((r.mood === 'low' || r.mood === 'very-low') && r.treasury >= 60 && r.granary >= 30 && r.taxRate <= 0.3)
     add({ kind: 'decree', decree: { kind: 'festival' } }, 'El pueblo está decaído: una fiesta.')
-  const danger = r.guild !== 'nada' || r.petitions.some((p) => p.topic === 'guard') || r.trust === 'baja' || r.trust === 'por los suelos'
+  const danger = r.guild !== 'none' || r.petitions.some((p) => p.topic === 'guard') || r.trust === 'low' || r.trust === 'rock-bottom'
   if (danger && !r.laws.levy && r.treasury >= 40) add({ kind: 'decree', decree: { kind: 'law', law: 'levy', on: true } }, 'Hay peligro y el pueblo duda de mí: refuerzo la guardia.')
   if (!danger && r.laws.levy && r.treasury < 40) add({ kind: 'decree', decree: { kind: 'law', law: 'levy', on: false } }, 'No hay para pagar la leva; la guardia vuelve a su tamaño.')
-  if (r.taxRate > 0.2 && (r.mood === 'bajo' || r.mood === 'muy bajo')) add({ kind: 'decree', decree: { kind: 'tax', rate: 0.2 } }, 'Los impuestos pesan demasiado.')
+  if (r.taxRate > 0.2 && (r.mood === 'low' || r.mood === 'very-low')) add({ kind: 'decree', decree: { kind: 'tax', rate: 0.2 } }, 'Los impuestos pesan demasiado.')
   return { thought: why.join(' ') || 'Todo está en orden; hoy no hace falta intervenir.', actions, problems: [] }
 }

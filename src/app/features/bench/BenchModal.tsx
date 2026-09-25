@@ -26,6 +26,7 @@ import { JudgePanel } from './JudgePanel'
 import { GOLDEN_SIZE, passesGolden } from '../../../core/bench/golden'
 import { foldersSupported } from './folder'
 import { nameOf } from '../../../core/lang'
+import { TONE_LABEL } from '../../shared/tones'
 import { cacheText } from '../../../core/reactions/metrics'
 
 const KINDS: ContenderKind[] = ['rules', 'anthropic', 'openai', 'shellm', 'custom']
@@ -183,7 +184,7 @@ function NewRun() {
                   onChange={(ev) => setPrefs({ scenarioIds: ev.target.checked ? [...scenarioIds, e.id] : scenarioIds.filter((id) => id !== e.id) })}
                 />
                 <span>
-                  <span className={`tone tone-${e.tone}`}>{e.tone}</span> {e.text}
+                  <span className={`tone tone-${e.tone}`}>{TONE_LABEL[e.tone]}</span> {e.text}
                 </span>
               </label>
             </li>
@@ -369,7 +370,7 @@ function Result({ run }: { run: BenchRun }) {
         {run.scenarios.map((s) => (
           <div key={s.id} className="scenario-result">
             <p>
-              <span className={`tone tone-${s.tone}`}>{s.tone}</span>
+              <span className={`tone tone-${s.tone}`}>{TONE_LABEL[s.tone]}</span>
               {s.truth !== undefined && <span className={`truth-chip ${s.truth ? 'is-true' : 'is-false'}`}>{s.truth ? 'era verdad' : 'era mentira'}</span>} {s.text}
             </p>
             {reports.map((r) => {

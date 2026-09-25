@@ -127,7 +127,7 @@ describe('the town lives the economy', () => {
     const gone = sim.residents.filter((r) => r.mode === 'gone')
     expect(gone.length).toBeGreaterThan(0)
     const engine = new ReactionEngine(sim, new DecisionScheduler(createRulesProvider(content.vocabulary), 8))
-    engine.start(announce(sim, exampleByTone('confiable')))
+    engine.start(announce(sim, exampleByTone('trusted')))
     for (const r of gone) expect(engine.reactions.has(r.profile.id)).toBe(false)
   })
 })
